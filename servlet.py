@@ -48,17 +48,23 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 			return False
 		return output
 
-	def sendResponse(self, status, data):
+	def sendResponse(self, status, data, callback=None):
 		outData = json.dumps(data)
 
 		self.send_response(status)
 		self.send_header("Content-type", "application/json")
 		self.end_headers()
-		self.wfile.write(outData.encode('utf-8'))
+		if callback==None:
+			self.wfile.write(outData.encode('utf-8'))
+		else:
+			returner = callback+"("+outData+")"
+			self.wfile.write(returner.encode('utf-8'))
+			
 		#self.send_response(403)
 
 
-	def handleListPairs(self):
+	def handleListPairs(self, data):
+		callback = data["callback"][0]
 		responseData = []
 		for pair in self.pairs:
 			(l1, l2) = pair.split('-')
@@ -69,11 +75,12 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 			"responseDetails": None,
 			"responseStatus": status}
 
-		self.sendResponse(status, toReturn)
+		self.sendResponse(status, toReturn, callback)
 
 		
 	def handleTranslate(self, data):
 		pair = data["langpair"][0]
+		callback = data["callback"][0]
 		(l1, l2) = pair.split('|')
 		toTranslate = data["q"][0]
 		print(toTranslate, l1, l2)
@@ -89,12 +96,12 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 			"responseDetails": None,
 			"responseStatus": status}
 
-		self.sendResponse(status, toReturn)
+		self.sendResponse(status, toReturn, callback)
 
 
 	def routeAction(self, path, data):
 		if path=="/listPairs":
-			self.handleListPairs()
+			self.handleListPairs(data)
 		if path=="/translate":
 			self.handleTranslate(data)
 
@@ -105,14 +112,15 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 
 	def do_POST(self):
-		length = int(self.headers['Content-Length'])
-		indata = self.rfile.read(length)
-		post_data = urllib.parse.parse_qs(indata.decode('utf-8'))
-		if len(post_data) == 0:
-			post_data = indata.decode('utf-8')
-
-		data = json.loads(post_data)
-		print(data, self.path)
+		#length = int(self.headers['Content-Length'])
+		#indata = self.rfile.read(length)
+		#post_data = urllib.parse.parse_qs(indata.decode('utf-8'))
+		#if len(post_data) == 0:
+		#	post_data = indata.decode('utf-8')
+		#
+		#data = json.loads(post_data)
+		#print(data, self.path)
+		self.send_response(403)
 
 def setup_server():
 	global Handler, httpd
