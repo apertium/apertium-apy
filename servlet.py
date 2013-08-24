@@ -39,13 +39,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 	def translate(self, toTranslate, pair):
 		strPair = '%s-%s' % pair
 		if strPair in self.pairs:
-			#toCall = "sh " + self.pairs[strPair] + " %s" % toTranslate
-			#os.chdir(self.pairs[strPair])
-			#print(toCall)
-			#sts = call(toCall, shell=True)
-			#print(sts)
-			#apertium = "apertium -d %s %s" % (self.pairs[strPair], strPair)
-			#echo = "echo %s" % toTranslate
 			p1 = Popen(["echo", toTranslate], stdout=PIPE)
 			p2 = Popen(["apertium", "-d %s" % self.pairs[strPair], strPair], stdin=p1.stdout, stdout=PIPE)
 			p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
@@ -100,7 +93,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 
 	def routeAction(self, path, data):
-		#print(path, data)
 		if path=="/listPairs":
 			self.handleListPairs()
 		if path=="/translate":
@@ -109,36 +101,18 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 	def do_GET(self):
 		parsed_params = urllib.parse.urlparse(self.path)
 		query_parsed = urllib.parse.parse_qs(parsed_params.query)
-		#print(self.path, parsed_params, query_parsed)
-		#length = int(self.headers['Content-Length'])
-		#indata = self.rfile.read(length)
-		#print(indata)
-		#self.routeAction(self.path)
 		self.routeAction(parsed_params.path, query_parsed)
 
 
 	def do_POST(self):
 		length = int(self.headers['Content-Length'])
 		indata = self.rfile.read(length)
-		#print("indata: "+str(indata))
-		#print("headers: "+str(self.headers))
 		post_data = urllib.parse.parse_qs(indata.decode('utf-8'))
 		if len(post_data) == 0:
 			post_data = indata.decode('utf-8')
 
-		#if "payload" in post_data:
-		#	data = json.loads(post_data['payload'][0])
-		#else:
-		#	#print(post_data)
-		#	data = json.loads(post_data)
-
 		data = json.loads(post_data)
 		print(data, self.path)
-
-		#msgs = []
-		#if "commits" in data:
-		#	for commit in data['commits']:
-
 
 def setup_server():
 	global Handler, httpd
@@ -153,7 +127,6 @@ def setup_server():
 	print("Server is up and running on port %s" % PORT)
 	try:
 		httpd.serve_forever()
-	#except KeyboardInterrupt:
 	except TypeError:
 		httpd.shutdown()
 	except KeyboardInterrupt:
