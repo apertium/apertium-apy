@@ -111,6 +111,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 							break
 						d = procOut.stdout.read(1)
 					return subbuf.decode('utf-8')
+				else:
+					return False
 			else:
 				return False
 		else:
