@@ -59,10 +59,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 			outCommands = []
 			for command in commands:
 				command = command.strip()
-				if re.search('lrx-proc', command):
-					outCommand = command
-				else:
-					outCommand = re.sub('^(.*?)\s(.*)$', '\g<1> -z \g<2>', command)
+				#if re.search('lrx-proc', command):
+				#	outCommand = command
+				#else:
+				#	outCommand = re.sub('^(.*?)\s(.*)$', '\g<1> -z \g<2>', command)
+				outCommand = re.sub('^(.*?)\s(.*)$', '\g<1> -z \g<2>', command)
 				outCommand = re.sub('\s{2,}', ' ', outCommand)
 				outCommands.append(outCommand)
 			toReturn = ' | '.join(outCommands)
