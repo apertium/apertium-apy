@@ -35,6 +35,7 @@ def getPairsInPath(pairsPath):
 class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 	pairs = {}
+	pipelines = {}
 
 	def translateApertium(self, toTranslate, pair):
 		strPair = '%s-%s' % pair
@@ -76,6 +77,49 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 	def translateMode(self, toTranslate, pair):
 		strPair = '%s-%s' % pair
 		if strPair in self.pairs:
+			if strPair not in self.pipelines:
+				modeFile = "%s/modes/%s.mode" % (self.pairs[strPair], strPair)
+				modeFileLine = self.getModeFileLine(modeFile)
+				commandList = []
+				if modeFileLine:
+					for command in modeFileLine.split('|'):
+						thisCommand = command.strip().split(' ')
+						commandList.append(thisCommand)
+					commandsDone = []
+					for command in commandList:
+						if len(commandsDone)>0:
+							newP = Popen(command, stdin=commandsDone[-1].stdout, stdout=PIPE)
+						else:
+							newP = Popen(command, stdin=PIPE, stdout=PIPE)
+						commandsDone.append(newP)
+
+					self.pipelines[strPair] = (commandsDone[0], commandsDone[-1])
+
+				if strPair in self.pipelines:
+					(procIn, procOut) = self.pipelines[strPair]
+					procIn.stdin.write(bytes(toTranslate, 'utf-8'))
+					procIn.stdin.write(bytes('\0', "utf-8"))
+					print("DEBUG 1")
+					procIn.stdin.write(bytes('\0', "utf-8"))
+					print("DEBUG 1.1")
+					d = procOut.stdout.read(1)
+					print("DEBUG 2 %s" % d)
+					subbuf = b''
+					while d != '\0':
+						subbuf = subbuf + d
+						if d == b'\0':
+							break
+						d = procOut.stdout.read(1)
+					return subbuf.decode('utf-8')
+			else:
+				return False
+		else:
+			return False
+
+
+	def translateModeDirect(self, toTranslate, pair):
+		strPair = '%s-%s' % pair
+		if strPair in self.pairs:
 			modeFile = "%s/modes/%s.mode" % (self.pairs[strPair], strPair)
 			modeFileLine = self.getModeFileLine(modeFile)
 			commandList = []
@@ -99,7 +143,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 				return False
 		else:
 			return False
-
 
 	def translateModeSimple(self, toTranslate, pair):
 		strPair = '%s-%s' % pair
