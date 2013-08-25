@@ -64,7 +64,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 
 	def handleListPairs(self, data):
-		callback = data["callback"][0]
+		if "callback" in data:
+			callback = data["callback"][0]
+		else:
+			callback = None
 		responseData = []
 		for pair in self.pairs:
 			(l1, l2) = pair.split('-')
@@ -80,7 +83,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 		
 	def handleTranslate(self, data):
 		pair = data["langpair"][0]
-		callback = data["callback"][0]
+		if "callback" in data:
+			callback = data["callback"][0]
+		else:
+			callback = None
 		(l1, l2) = pair.split('|')
 		toTranslate = data["q"][0]
 		print(toTranslate, l1, l2)
