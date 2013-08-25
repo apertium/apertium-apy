@@ -36,7 +36,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 	pairs = {}
 
-	def translate(self, toTranslate, pair):
+	def translateApertium(self, toTranslate, pair):
 		strPair = '%s-%s' % pair
 		if strPair in self.pairs:
 			p1 = Popen(["echo", toTranslate], stdout=PIPE)
@@ -44,9 +44,26 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 			p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
 			output = p2.communicate()[0].decode('utf-8')
 			print(output)
+			return output
 		else:
 			return False
-		return output
+
+	def translateMode(self, toTranslate, pair):
+		strPair = '%s-%s' % pair
+		if strPair in self.pairs:
+			modeFile = "%s/modes/%s.mode" % (self.pairs[strPair], strPair)
+			p1 = Popen(["echo", toTranslate], stdout=PIPE)
+			p2 = Popen(["sh", modeFile, "-g"], stdin=p1.stdout, stdout=PIPE)
+			p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
+			output = p2.communicate()[0].decode('utf-8')
+			print(output)
+			return output
+		else:
+			return False
+
+
+	def translate(self, toTranslate, pair):
+		return self.translateMode(toTranslate, pair)
 
 	def sendResponse(self, status, data, callback=None):
 		outData = json.dumps(data)
