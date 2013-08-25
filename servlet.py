@@ -48,7 +48,59 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 		else:
 			return False
 
+	def getModeFileLine(self, modeFile):
+		modeFileContents = open(modeFile, 'r').readlines()
+		modeFileLine = None
+		for line in modeFileContents:
+			if '|' in line:
+				modeFileLine = line
+		if modeFileLine != None:
+			commands = modeFileLine.split('|')
+			outCommands = []
+			for command in commands:
+				command = command.strip()
+				if re.search('lrx-proc', command):
+					outCommand = command
+				else:
+					outCommand = re.sub('^(.*?)\s(.*)$', '\g<1> -z \g<2>', command)
+				outCommand = re.sub('\s{2,}', ' ', outCommand)
+				outCommands.append(outCommand)
+			toReturn = ' | '.join(outCommands)
+			toReturn = re.sub('\$1', '-g', toReturn)
+			#print(toReturn)
+			return toReturn
+		else:
+			return False
+
 	def translateMode(self, toTranslate, pair):
+		strPair = '%s-%s' % pair
+		if strPair in self.pairs:
+			modeFile = "%s/modes/%s.mode" % (self.pairs[strPair], strPair)
+			modeFileLine = self.getModeFileLine(modeFile)
+			commandList = []
+			if modeFileLine:
+				for command in modeFileLine.split('|'):
+					thisCommand = command.strip().split(' ')
+					commandList.append(thisCommand)
+				p1 = Popen(["echo", toTranslate], stdout=PIPE)
+				commandsDone = [p1]
+				for command in commandList:
+					#print(command, commandsDone, commandsDone[-1])
+					#print(command)
+					newP = Popen(command, stdin=commandsDone[-1].stdout, stdout=PIPE)
+					commandsDone.append(newP)
+
+				p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
+				output = commandsDone[-1].communicate()[0].decode('utf-8')
+				print(output)
+				return output
+			else:
+				return False
+		else:
+			return False
+
+
+	def translateModeSimple(self, toTranslate, pair):
 		strPair = '%s-%s' % pair
 		if strPair in self.pairs:
 			modeFile = "%s/modes/%s.mode" % (self.pairs[strPair], strPair)
