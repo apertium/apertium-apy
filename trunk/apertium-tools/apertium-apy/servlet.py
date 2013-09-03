@@ -64,9 +64,17 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 				#	outCommand = command
 				#else:
 				#	outCommand = re.sub('^(.*?)\s(.*)$', '\g<1> -z \g<2>', command)
-				outCommand = re.sub('^(.*?)\s(.*)$', '\g<1> -z \g<2>', command)
-				outCommand = re.sub('\s{2,}', ' ', outCommand)
-				outCommands.append(outCommand)
+
+				#print(command)
+
+				#if re.search('automorf', command) or re.search('cg-proc', command) or re.search('autobil', command) or re.search('lrx-proc', command):
+				#if not (re.search('lrx-proc', command) or re.search('transfer', command) or re.search('hfst-proc', command) or re.search('autopgen', command)):
+				#if re.search('automorf', command) or re.search('cg-proc', command) or re.search('autobil', command):
+				if re.search('automorf', command):
+					outCommand = re.sub('^(.*?)\s(.*)$', '\g<1> -z \g<2>', command)
+					outCommand = re.sub('\s{2,}', ' ', outCommand)
+					outCommands.append(outCommand)
+					print(outCommand)
 			toReturn = ' | '.join(outCommands)
 			toReturn = re.sub('\$1', '-g', toReturn)
 			#print(toReturn)
@@ -76,8 +84,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 	def translateMode(self, toTranslate, pair):
 		strPair = '%s-%s' % pair
+		print(self.pairs, self.pipelines)
 		if strPair in self.pairs:
+			print("DEBUG 0.6")
 			if strPair not in self.pipelines:
+				print("DEBUG 0.7")
 				modeFile = "%s/modes/%s.mode" % (self.pairs[strPair], strPair)
 				modeFileLine = self.getModeFileLine(modeFile)
 				commandList = []
@@ -95,24 +106,23 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 					self.pipelines[strPair] = (commandsDone[0], commandsDone[-1])
 
-				if strPair in self.pipelines:
-					(procIn, procOut) = self.pipelines[strPair]
-					procIn.stdin.write(bytes(toTranslate, 'utf-8'))
-					procIn.stdin.write(bytes('\0', "utf-8"))
-					print("DEBUG 1")
-					procIn.stdin.write(bytes('\0', "utf-8"))
-					print("DEBUG 1.1")
+			print("DEBUG 0.8")
+			if strPair in self.pipelines:
+				(procIn, procOut) = self.pipelines[strPair]
+				procIn.stdin.write(bytes(toTranslate, 'utf-8'))
+				procIn.stdin.write(bytes('\0', "utf-8"))
+				print("DEBUG 1")
+				#procIn.stdin.write(bytes('\0', "utf-8"))
+				#print("DEBUG 1.1")
+				d = procOut.stdout.read(1)
+				print("DEBUG 2 %s" % d)
+				subbuf = b''
+				while d != '\0':
+					subbuf = subbuf + d
+					if d == b'\0':
+						break
 					d = procOut.stdout.read(1)
-					print("DEBUG 2 %s" % d)
-					subbuf = b''
-					while d != '\0':
-						subbuf = subbuf + d
-						if d == b'\0':
-							break
-						d = procOut.stdout.read(1)
-					return subbuf.decode('utf-8')
-				else:
-					return False
+				return subbuf.decode('utf-8')
 			else:
 				return False
 		else:
@@ -203,12 +213,15 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 		else:
 			callback = None
 		(l1, l2) = pair.split('|')
-		toTranslate = data["q"][0]
-		print(toTranslate, l1, l2)
+		if "q" in data:
+			toTranslate = data["q"][0]
+			print(toTranslate, l1, l2)
 
-		translated = self.translate(toTranslate, (l1, l2))
-		if translated:
-			status = 200
+			translated = self.translate(toTranslate, (l1, l2))
+			if translated:
+				status = 200
+			else:
+				status = 404
 		else:
 			status = 404
 
