@@ -70,7 +70,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 				#if re.search('automorf', command) or re.search('cg-proc', command) or re.search('autobil', command) or re.search('lrx-proc', command):
 				#if not (re.search('lrx-proc', command) or re.search('transfer', command) or re.search('hfst-proc', command) or re.search('autopgen', command)):
 				#if re.search('automorf', command) or re.search('cg-proc', command) or re.search('autobil', command):
-				if re.search('automorf', command):
+				if not re.search('transfer', command):
+				#if not (re.search('lrx-proc', command)):
+				#if 1==1:
 					outCommand = re.sub('^(.*?)\s(.*)$', '\g<1> -z \g<2>', command)
 					outCommand = re.sub('\s{2,}', ' ', outCommand)
 					outCommands.append(outCommand)
@@ -112,7 +114,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 				procIn.stdin.write(bytes(toTranslate, 'utf-8'))
 				procIn.stdin.write(bytes('\0', "utf-8"))
 				print("DEBUG 1")
-				#procIn.stdin.write(bytes('\0', "utf-8"))
+				procIn.stdin.write(bytes('\0', "utf-8"))
 				#print("DEBUG 1.1")
 				d = procOut.stdout.read(1)
 				print("DEBUG 2 %s" % d)
@@ -124,8 +126,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 					d = procOut.stdout.read(1)
 				return subbuf.decode('utf-8')
 			else:
+				print("no pair in piplines")
 				return False
 		else:
+			print("strpair not in pairs")
 			return False
 
 
