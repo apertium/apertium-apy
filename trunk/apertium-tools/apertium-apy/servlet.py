@@ -70,7 +70,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 				#if re.search('automorf', command) or re.search('cg-proc', command) or re.search('autobil', command) or re.search('lrx-proc', command):
 				#if not (re.search('lrx-proc', command) or re.search('transfer', command) or re.search('hfst-proc', command) or re.search('autopgen', command)):
 				#if re.search('automorf', command) or re.search('cg-proc', command) or re.search('autobil', command):
-				if not re.search('transfer', command):
+				if not re.search('apertium-pretransfer', command):
 				#if not (re.search('lrx-proc', command)):
 				#if 1==1:
 					outCommand = re.sub('^(.*?)\s(.*)$', '\g<1> -z \g<2>', command)
