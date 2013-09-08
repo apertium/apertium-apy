@@ -79,7 +79,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 					print(outCommand)
 			toReturn = ' | '.join(outCommands)
 			toReturn = re.sub('\$1', '-g', toReturn)
-			#print(toReturn)
+			print(toReturn)
 			return toReturn
 		else:
 			return False
@@ -228,6 +228,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 				status = 404
 		else:
 			status = 404
+			#print(data)
+			translated = False
 
 		toReturn = {"responseData":
 			{"translatedText": translated},
@@ -238,6 +240,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 
 	def routeAction(self, path, data):
+		print(path)
 		if path=="/listPairs":
 			self.handleListPairs(data)
 		if path=="/translate":
