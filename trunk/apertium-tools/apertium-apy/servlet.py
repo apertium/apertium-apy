@@ -44,7 +44,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 			p2 = Popen(["apertium", "-d %s" % self.pairs[strPair], strPair], stdin=p1.stdout, stdout=PIPE)
 			p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
 			output = p2.communicate()[0].decode('utf-8')
-			print(output)
+			#print(output)
 			return output
 		else:
 			return False
@@ -70,16 +70,19 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 				#if re.search('automorf', command) or re.search('cg-proc', command) or re.search('autobil', command) or re.search('lrx-proc', command):
 				#if not (re.search('lrx-proc', command) or re.search('transfer', command) or re.search('hfst-proc', command) or re.search('autopgen', command)):
 				#if re.search('automorf', command) or re.search('cg-proc', command) or re.search('autobil', command):
-				if not re.search('apertium-pretransfer', command):
+				#if not re.search('apertium-pretransfer', command):
 				#if not (re.search('lrx-proc', command)):
-				#if 1==1:
-					outCommand = re.sub('^(.*?)\s(.*)$', '\g<1> -z \g<2>', command)
+				if 1==1:
+					if re.search('apertium-pretransfer', command):
+						outCommand = command+" -z"
+					else:
+						outCommand = re.sub('^(.*?)\s(.*)$', '\g<1> -z \g<2>', command)
 					outCommand = re.sub('\s{2,}', ' ', outCommand)
 					outCommands.append(outCommand)
-					print(outCommand)
+					#print(outCommand)
 			toReturn = ' | '.join(outCommands)
 			toReturn = re.sub('\$1', '-g', toReturn)
-			print(toReturn)
+			#print(toReturn)
 			return toReturn
 		else:
 			return False
