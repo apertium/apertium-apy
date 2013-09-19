@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
+# -*- indent-tabs-mode: t -*-
 
 import sys, os, re
 import http.server, socketserver, urllib.parse, json
 from subprocess import Popen, PIPE #call
-
-pairsPath = "/home/jonathan/quick/apertium/svn/trunk/"
-PORT = 2737
 
 Handler = None
 httpd = None
@@ -81,7 +79,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 					outCommands.append(outCommand)
 					#print(outCommand)
 			toReturn = ' | '.join(outCommands)
-			toReturn = re.sub('\$1', '-g', toReturn)
+			toReturn = re.sub('\s*\$2', '', re.sub('\$1', '-g', toReturn))
 			#print(toReturn)
 			return toReturn
 		else:
@@ -98,9 +96,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 				modeFileLine = self.getModeFileLine(modeFile)
 				commandList = []
 				if modeFileLine:
-					for command in modeFileLine.split('|'):
-						thisCommand = command.strip().split(' ')
-						commandList.append(thisCommand)
+					commandList = [ c.strip().split() for c in 
+							modeFileLine.split('|') ]
 					commandsDone = []
 					for command in commandList:
 						if len(commandsDone)>0:
@@ -114,22 +111,23 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 			print("DEBUG 0.8")
 			if strPair in self.pipelines:
 				(procIn, procOut) = self.pipelines[strPair]
-				procIn.stdin.write(bytes(toTranslate, 'utf-8'))
+				deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
+				deformat.stdin.write(bytes(toTranslate, 'utf-8'))
+				procIn.stdin.write(deformat.communicate()[0])
 				procIn.stdin.write(bytes('\0', "utf-8"))
-				print("DEBUG 1")
-				procIn.stdin.write(bytes('\0', "utf-8"))
-				#print("DEBUG 1.1")
+				procIn.stdin.flush()
+				print("DEBUG 1 %s\\0" % toTranslate)
 				d = procOut.stdout.read(1)
 				print("DEBUG 2 %s" % d)
-				subbuf = b''
-				while d != '\0':
-					subbuf = subbuf + d
-					if d == b'\0':
-						break
+				output = []
+				while d and d != b'\0':
+					output.append(d)
 					d = procOut.stdout.read(1)
-				return subbuf.decode('utf-8')
+				reformat = Popen("apertium-rehtml", stdin=PIPE, stdout=PIPE)
+				reformat.stdin.write(b"".join(output))
+				return reformat.communicate()[0].decode('utf-8')
 			else:
-				print("no pair in piplines")
+				print("no pair in pipelines")
 				return False
 		else:
 			print("strpair not in pairs")
@@ -270,10 +268,17 @@ def setup_server():
 	global Handler, httpd
 	Handler = MyHandler
 
+	if len(sys.argv) != 3:
+		raise Exception("Expects exactly two arguments, directory to apertium/trunk and port. Got: %s." % sys.argv)
+	pairsPath, PORT = sys.argv[1], int(sys.argv[2])
+
 	rawPairs = getPairsInPath(pairsPath)
 	for pair in rawPairs:
 		(f, l1, l2) = pair
 		Handler.pairs["%s-%s" % (l1, l2)] = f
+
+	socketserver.TCPServer.allow_reuse_address = True 
+	# is useful when debugging, possibly risky: http://thread.gmane.org/gmane.comp.python.general/509706
 
 	httpd = socketserver.TCPServer(("", PORT), Handler)
 	print("Server is up and running on port %s" % PORT)
