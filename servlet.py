@@ -87,11 +87,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 	def translateMode(self, toTranslate, pair):
 		strPair = '%s-%s' % pair
-		print(self.pairs, self.pipelines)
+		#print(self.pairs, self.pipelines)
 		if strPair in self.pairs:
-			print("DEBUG 0.6")
+			#print("DEBUG 0.6")
 			if strPair not in self.pipelines:
-				print("DEBUG 0.7")
+				#print("DEBUG 0.7")
 				modeFile = "%s/modes/%s.mode" % (self.pairs[strPair], strPair)
 				modeFileLine = self.getModeFileLine(modeFile)
 				commandList = []
@@ -108,7 +108,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 					self.pipelines[strPair] = (commandsDone[0], commandsDone[-1])
 
-			print("DEBUG 0.8")
+			#print("DEBUG 0.8")
 			if strPair in self.pipelines:
 				(procIn, procOut) = self.pipelines[strPair]
 				deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
@@ -116,14 +116,14 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 				procIn.stdin.write(deformat.communicate()[0])
 				procIn.stdin.write(bytes('\0', "utf-8"))
 				procIn.stdin.flush()
-				print("DEBUG 1 %s\\0" % toTranslate)
+				#print("DEBUG 1 %s\\0" % toTranslate)
 				d = procOut.stdout.read(1)
-				print("DEBUG 2 %s" % d)
+				#print("DEBUG 2 %s" % d)
 				output = []
 				while d and d != b'\0':
 					output.append(d)
 					d = procOut.stdout.read(1)
-				print("DEBUG 3 %s" % output)
+				#print("DEBUG 3 %s" % output)
 				reformat = Popen("apertium-rehtml", stdin=PIPE, stdout=PIPE)
 				reformat.stdin.write(b"".join(output))
 				return reformat.communicate()[0].decode('utf-8')
@@ -176,8 +176,32 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 			return False
 
 
+	def translateSplitting(self, toTranslate, pair):
+		"""Splitting it up a bit ensures we don't fill up FIFO buffers (leads
+		to processes hanging on read/write)."""
+		# This should be as high as possible while low enough
+		# that buffers don't fill up:
+		hardbreak=100000
+		# We would prefer to split on a period seen before the
+		# hardbreak, if we can:
+		softbreak=int(hardbreak*0.9)
+		allSplit = []	# [].append and join faster than str +=
+		last=0
+		while last<len(toTranslate):
+			dot=toTranslate.find(".", last+softbreak, last+hardbreak)
+			if dot>-1:
+				next=dot
+			else:
+				next=last+hardbreak
+			print("toTranslate[%d:%d]" %(last,next))
+			allSplit.append(self.translateMode(toTranslate[last:next],
+							   pair))
+			last=next
+			
+		return "".join(allSplit)
+
 	def translate(self, toTranslate, pair):
-		return self.translateMode(toTranslate, pair)
+		return self.translateSplitting(toTranslate, pair)
 
 	def sendResponse(self, status, data, callback=None):
 		outData = json.dumps(data)
@@ -221,7 +245,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 		(l1, l2) = pair.split('|')
 		if "q" in data:
 			toTranslate = data["q"][0]
-			print(toTranslate, l1, l2)
+			#print(toTranslate, l1, l2)
 
 			translated = self.translate(toTranslate, (l1, l2))
 			if translated:
@@ -251,21 +275,18 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 			self.handleTranslate(data)
 
 	def do_GET(self):
-		parsed_params = urllib.parse.urlparse(self.path)
+		params_parsed = urllib.parse.urlparse(self.path)
 		query_parsed = urllib.parse.parse_qs(parsed_params.query)
-		self.routeAction(parsed_params.path, query_parsed)
+		self.routeAction(params_parsed.path, query_parsed)
 
 
 	def do_POST(self):
-		#length = int(self.headers['Content-Length'])
-		#indata = self.rfile.read(length)
-		#post_data = urllib.parse.parse_qs(indata.decode('utf-8'))
-		#if len(post_data) == 0:
-		#	post_data = indata.decode('utf-8')
-		#
-		#data = json.loads(post_data)
-		#print(data, self.path)
-		self.send_response(403)
+		length = int(self.headers['Content-Length'])
+		indata = self.rfile.read(length)
+		query_parsed = urllib.parse.parse_qs(indata.decode('utf-8'))
+		params_parsed = urllib.parse.urlparse(self.path)
+		self.routeAction(params_parsed.path, query_parsed)
+
 
 def setup_server():
 	global Handler, httpd
