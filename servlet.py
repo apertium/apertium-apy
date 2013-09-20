@@ -96,7 +96,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 				modeFileLine = self.getModeFileLine(modeFile)
 				commandList = []
 				if modeFileLine:
-					commandList = [ c.strip().split() for c in 
+					commandList = [ c.strip().split() for c in
 							modeFileLine.split('|') ]
 					commandsDone = []
 					for command in commandList:
@@ -197,7 +197,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 			allSplit.append(self.translateMode(toTranslate[last:next],
 							   pair))
 			last=next
-			
+
 		return "".join(allSplit)
 
 	def translate(self, toTranslate, pair):
@@ -214,7 +214,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 		else:
 			returner = callback+"("+outData+")"
 			self.wfile.write(returner.encode('utf-8'))
-			
+
 		#self.send_response(403)
 
 
@@ -235,7 +235,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 		self.sendResponse(status, toReturn, callback)
 
-		
+
 	def handleTranslate(self, data):
 		pair = data["langpair"][0]
 		if "callback" in data:
@@ -276,7 +276,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 	def do_GET(self):
 		params_parsed = urllib.parse.urlparse(self.path)
-		query_parsed = urllib.parse.parse_qs(parsed_params.query)
+		query_parsed = urllib.parse.parse_qs(params_parsed.query)
 		self.routeAction(params_parsed.path, query_parsed)
 
 
@@ -301,7 +301,7 @@ def setup_server():
 		(f, l1, l2) = pair
 		Handler.pairs["%s-%s" % (l1, l2)] = f
 
-	socketserver.TCPServer.allow_reuse_address = True 
+	socketserver.TCPServer.allow_reuse_address = True
 	# is useful when debugging, possibly risky: http://thread.gmane.org/gmane.comp.python.general/509706
 
 	httpd = socketserver.TCPServer(("", PORT), Handler)
