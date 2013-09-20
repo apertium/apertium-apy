@@ -123,6 +123,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 				while d and d != b'\0':
 					output.append(d)
 					d = procOut.stdout.read(1)
+				print("DEBUG 3 %s" % output)
 				reformat = Popen("apertium-rehtml", stdin=PIPE, stdout=PIPE)
 				reformat.stdin.write(b"".join(output))
 				return reformat.communicate()[0].decode('utf-8')
@@ -227,8 +228,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 				status = 200
 			else:
 				status = 404
+				print("nothing returned")
 		else:
 			status = 404
+			print("no query")
 			#print(data)
 			translated = False
 
