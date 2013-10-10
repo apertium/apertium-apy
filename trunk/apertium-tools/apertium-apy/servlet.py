@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- indent-tabs-mode: t -*-
 
+import threading
 import sys, os, re
 import http.server, socketserver, urllib.parse, json
 from subprocess import Popen, PIPE #call
@@ -10,6 +11,10 @@ httpd = None
 
 
 def getPairsInPath(pairsPath):
+	# TODO: this doesn't get es-en_GB and such. If it's supposed
+	# to work on the SVN directories (as opposed to installed
+	# pairs), it should parse modes.xml and grab all and only
+	# modes that have install="yes"
 	REmodeFile = re.compile("([a-z]{2,3})-([a-z]{2,3})\.mode")
 
 	pairs = []
@@ -30,10 +35,23 @@ def getPairsInPath(pairsPath):
 	return pairs
 
 
+class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+	pass
+
 class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 	pairs = {}
 	pipelines = {}
+
+	# The lock is needed so we don't let two threads write
+	# simultaneously to a pipeline; then the first thread to read
+	# might read translations of text put there by the second
+	# thread …
+	translock = threading.RLock()
+	# TODO: one lock per pipeline, if the es-ca pipeline is free,
+	# we don't need to wait just because mk-en is currently
+	# translating. In that case, should also make hardbreak()
+	# pipeline dependent.
 
 	def translateApertium(self, toTranslate, pair):
 		strPair = '%s-%s' % pair
@@ -80,59 +98,60 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 					#print(outCommand)
 			toReturn = ' | '.join(outCommands)
 			toReturn = re.sub('\s*\$2', '', re.sub('\$1', '-g', toReturn))
-			#print(toReturn)
+			print(toReturn)
 			return toReturn
 		else:
 			return False
 
-	def translateMode(self, toTranslate, pair):
-		strPair = '%s-%s' % pair
-		#print(self.pairs, self.pipelines)
-		if strPair in self.pairs:
-			#print("DEBUG 0.6")
-			if strPair not in self.pipelines:
-				#print("DEBUG 0.7")
-				modeFile = "%s/modes/%s.mode" % (self.pairs[strPair], strPair)
-				modeFileLine = self.getModeFileLine(modeFile)
-				commandList = []
-				if modeFileLine:
-					commandList = [ c.strip().split() for c in
-							modeFileLine.split('|') ]
-					commandsDone = []
-					for command in commandList:
-						if len(commandsDone)>0:
-							newP = Popen(command, stdin=commandsDone[-1].stdout, stdout=PIPE)
-						else:
-							newP = Popen(command, stdin=PIPE, stdout=PIPE)
-						commandsDone.append(newP)
+	def translateNULFlush(self, toTranslate, pair):
+		with self.translock:
+			strPair = '%s-%s' % pair
+			#print(self.pairs, self.pipelines)
+			if strPair in self.pairs:
+				#print("DEBUG 0.6")
+				if strPair not in self.pipelines:
+					#print("DEBUG 0.7")
+					modeFile = "%s/modes/%s.mode" % (self.pairs[strPair], strPair)
+					modeFileLine = self.getModeFileLine(modeFile)
+					commandList = []
+					if modeFileLine:
+						commandList = [ c.strip().split() for c in
+								modeFileLine.split('|') ]
+						commandsDone = []
+						for command in commandList:
+							if len(commandsDone)>0:
+								newP = Popen(command, stdin=commandsDone[-1].stdout, stdout=PIPE)
+							else:
+								newP = Popen(command, stdin=PIPE, stdout=PIPE)
+							commandsDone.append(newP)
 
-					self.pipelines[strPair] = (commandsDone[0], commandsDone[-1])
+						self.pipelines[strPair] = (commandsDone[0], commandsDone[-1])
 
-			#print("DEBUG 0.8")
-			if strPair in self.pipelines:
-				(procIn, procOut) = self.pipelines[strPair]
-				deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
-				deformat.stdin.write(bytes(toTranslate, 'utf-8'))
-				procIn.stdin.write(deformat.communicate()[0])
-				procIn.stdin.write(bytes('\0', "utf-8"))
-				procIn.stdin.flush()
-				#print("DEBUG 1 %s\\0" % toTranslate)
-				d = procOut.stdout.read(1)
-				#print("DEBUG 2 %s" % d)
-				output = []
-				while d and d != b'\0':
-					output.append(d)
+				#print("DEBUG 0.8")
+				if strPair in self.pipelines:
+					(procIn, procOut) = self.pipelines[strPair]
+					deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
+					deformat.stdin.write(bytes(toTranslate, 'utf-8'))
+					procIn.stdin.write(deformat.communicate()[0])
+					procIn.stdin.write(bytes('\0', "utf-8"))
+					procIn.stdin.flush()
+					#print("DEBUG 1 %s\\0" % toTranslate)
 					d = procOut.stdout.read(1)
-				#print("DEBUG 3 %s" % output)
-				reformat = Popen("apertium-rehtml", stdin=PIPE, stdout=PIPE)
-				reformat.stdin.write(b"".join(output))
-				return reformat.communicate()[0].decode('utf-8')
+					#print("DEBUG 2 %s" % d)
+					output = []
+					while d and d != b'\0':
+						output.append(d)
+						d = procOut.stdout.read(1)
+					#print("DEBUG 3 %s" % output)
+					reformat = Popen("apertium-rehtml", stdin=PIPE, stdout=PIPE)
+					reformat.stdin.write(b"".join(output))
+					return reformat.communicate()[0].decode('utf-8')
+				else:
+					print("no pair in pipelines")
+					return False
 			else:
-				print("no pair in pipelines")
+				print("strpair not in pairs")
 				return False
-		else:
-			print("strpair not in pairs")
-			return False
 
 
 	def translateModeDirect(self, toTranslate, pair):
@@ -176,31 +195,51 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 			return False
 
 
+	def hardbreak(self):
+		"""If others are waiting on us, we send short requests, otherwise we
+		try to minimise the number of requests, but without
+		letting buffers fill up.
+
+		Unfortunately, if we've already started a long
+		request, the next one to come along will have to wait
+		one long request until they start getting shorter.
+
+		These numbers could probably be tweaked a lot.
+		"""
+		if threading.active_count()>2:
+			hardbreak=10000
+			# (would prefer "self.translock.waiting_count", but doesn't seem exist)
+		else:
+			hardbreak=50000
+		print((threading.active_count(), hardbreak))
+		return hardbreak
+
+
 	def translateSplitting(self, toTranslate, pair):
 		"""Splitting it up a bit ensures we don't fill up FIFO buffers (leads
 		to processes hanging on read/write)."""
-		# This should be as high as possible while low enough
-		# that buffers don't fill up:
-		hardbreak=100000
-		# We would prefer to split on a period seen before the
-		# hardbreak, if we can:
-		softbreak=int(hardbreak*0.9)
 		allSplit = []	# [].append and join faster than str +=
 		last=0
 		while last<len(toTranslate):
+			hardbreak = self.hardbreak()
+			# We would prefer to split on a period seen before the
+			# hardbreak, if we can:
+			softbreak = int(hardbreak*0.9)
 			dot=toTranslate.find(".", last+softbreak, last+hardbreak)
 			if dot>-1:
 				next=dot
 			else:
 				next=last+hardbreak
 			print("toTranslate[%d:%d]" %(last,next))
-			allSplit.append(self.translateMode(toTranslate[last:next],
-							   pair))
+			allSplit.append(self.translateNULFlush(toTranslate[last:next],
+							       pair))
 			last=next
 
 		return "".join(allSplit)
 
 	def translate(self, toTranslate, pair):
+		# TODO: should probably check whether we have the pair
+		# here, instead of for each split …
 		return self.translateSplitting(toTranslate, pair)
 
 	def sendResponse(self, status, data, callback=None):
@@ -281,6 +320,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 
 	def do_POST(self):
+		cur_thread = threading.current_thread()
+		print("{}".format(cur_thread.name))
 		length = int(self.headers['Content-Length'])
 		indata = self.rfile.read(length)
 		query_parsed = urllib.parse.parse_qs(indata.decode('utf-8'))
@@ -304,7 +345,7 @@ def setup_server():
 	socketserver.TCPServer.allow_reuse_address = True
 	# is useful when debugging, possibly risky: http://thread.gmane.org/gmane.comp.python.general/509706
 
-	httpd = socketserver.TCPServer(("", PORT), Handler)
+	httpd = ThreadedTCPServer(("", PORT), Handler)
 	print("Server is up and running on port %s" % PORT)
 	try:
 		httpd.serve_forever()
