@@ -84,7 +84,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             return False
             
     def morphAnalysis(self, toAnalyze, dir, mode):
-        print(self.pairs)
         p1 = Popen(["echo", toAnalyze], stdout=PIPE)
         p2 = Popen(["apertium", "-d %s" % dir, mode], stdin=p1.stdout, stdout=PIPE)
         p1.stdout.close()
@@ -365,7 +364,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             status = 200
             analysis = self.morphAnalysis(toAnalyze, self.analyzers[mode][0], self.analyzers[mode][1])
             lexicalUnits = re.findall(r'\^([^\$]*)\$([^\^]*)', analysis)
-            toReturn = [(lexicalUnit[0].split('/')[0] + lexicalUnit[1], lexicalUnit[0]) for lexicalUnit in lexicalUnits]
+            toReturn = [(lexicalUnit[0], lexicalUnit[0].split('/')[0] + lexicalUnit[1]) for lexicalUnit in lexicalUnits]
         else:
             status = 400
             print('analyzer mode not found')
