@@ -382,6 +382,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         if mode in self.generators:
             status = 200
             lexicalUnits = re.findall(r'(\^[^\$]*\$[^\^]*)', toGenerate)
+            if len(lexicalUnits) == 0:
+                lexicalUnits = ['^%s$' % toGenerate]
             generated = self.morphGeneration('[SEP]'.join(lexicalUnits), self.generators[mode][0], self.generators[mode][1])
             toReturn = [(generation, lexicalUnits[index]) for (index, generation) in enumerate(generated.split('[SEP]'))]
         else:
