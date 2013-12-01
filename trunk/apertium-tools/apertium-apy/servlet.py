@@ -307,6 +307,21 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
         self.sendResponse(status, toReturn, callback)
 
+    def handleListAnalyzers(self, data):
+        if "callback" in data:
+            callback = data["callback"][0]
+        else:
+            callback = None
+            
+        self.sendResponse(200, self.analyzers, callback)
+        
+    def handleListGenerators(self, data):
+        if "callback" in data:
+            callback = data["callback"][0]
+        else:
+            callback = None
+            
+        self.sendResponse(200, self.generators, callback)
 
     def handleTranslate(self, data):
         pair = data["langpair"][0]
@@ -339,6 +354,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.sendResponse(status, toReturn, callback)
         
     def handleAnalyze(self, data):
+        if "callback" in data:
+            callback = data["callback"][0]
+        else:
+            callback = None
+            
         mode = data["mode"][0]
         toAnalyze = data["q"][0]
         if mode in self.analyzers:
@@ -350,9 +370,14 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             status = 400
             print('analyzer mode not found')
             toReturn = 'analyzer mode not found'
-        self.sendResponse(status, toReturn, None)
+        self.sendResponse(status, toReturn, callback)
     
     def handleGenerate(self, data):
+        if "callback" in data:
+            callback = data["callback"][0]
+        else:
+            callback = None
+        
         mode = data["mode"][0]
         toGenerate = data["q"][0]
         if mode in self.generators:
@@ -364,12 +389,16 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             status = 400
             print('generator mode not found')
             toReturn = 'generator mode not found'
-        self.sendResponse(status, toReturn, None)
+        self.sendResponse(status, toReturn, callback)
 
     def routeAction(self, path, data):
         print(path)
         if path=="/listPairs":
             self.handleListPairs(data)
+        if path=="/listAnalyzers":
+            self.handleListAnalyzers(data)
+        if path=="/listGenerators":
+            self.handleListGenerators(data)
         elif path=="/translate":
             self.handleTranslate(data)
         elif path=="/analyze":
