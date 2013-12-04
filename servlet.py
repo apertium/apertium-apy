@@ -16,7 +16,7 @@ def searchPath(pairsPath):
     # pairs), it should parse modes.xml and grab all and only
     # modes that have install="yes"
     REmodeFile = re.compile("([a-z]{2,3})-([a-z]{2,3})\.mode")
-    REmorphFile = re.compile("(([a-z]{2,3}(-[a-z]{2,3})?)-(an)?morph)\.mode")
+    REmorphFile = re.compile("(([a-z]{2,3}(-[a-z]{2,3})?)-(an)?mor(ph)?)\.mode")
     REgenerFile = re.compile("(([a-z]{2,3}(-[a-z]{2,3})?)-gener[A-z]*)\.mode")
 
     pairs = []
