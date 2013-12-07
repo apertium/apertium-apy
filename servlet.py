@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- indent-tabs-mode: t -*-
 
-import threading
-import sys, os, re
+import sys, threading, os, re, ssl, argparse
 import http.server, socketserver, urllib.parse, json
 from subprocess import Popen, PIPE #call
 
@@ -266,7 +265,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             allSplit.append(self.translateNULFlush(toTranslate[last:next],
                                    pair))
             last=next
-
         return "".join(allSplit)
 
     def translate(self, toTranslate, pair):
@@ -423,13 +421,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.routeAction(params_parsed.path, query_parsed)
 
 
-def setup_server():
+def setup_server(port, pairsPath, sslPath):
     global Handler, httpd
     Handler = MyHandler
-
-    if len(sys.argv) != 3:
-        raise Exception("Expects exactly two arguments, directory to apertium/trunk and port. Got: %s." % sys.argv)
-    pairsPath, PORT = sys.argv[1], int(sys.argv[2])
 
     rawPairs, rawAnalyzers, rawGenerators = searchPath(pairsPath)
     for pair in rawPairs:
@@ -443,8 +437,10 @@ def setup_server():
     socketserver.TCPServer.allow_reuse_address = True
     # is useful when debugging, possibly risky: http://thread.gmane.org/gmane.comp.python.general/509706
 
-    httpd = ThreadedTCPServer(("", PORT), Handler)
-    print("Server is up and running on port %s" % PORT)
+    httpd = ThreadedTCPServer(("", port), Handler)
+    if sslPath:
+        httpd.socket = ssl.wrap_socket(httpd.socket, certfile=sslPath, server_side=True)
+    print("Server is up and running on port %s" % port)
     try:
         httpd.serve_forever()
     except TypeError:
@@ -454,4 +450,10 @@ def setup_server():
     except NameError:
         httpd.shutdown()
 
-setup_server()
+if __name__ == '__main__':
+   parser = argparse.ArgumentParser(description='Start Apertium APY')
+   parser.add_argument('pairsPath', help='path to Apertium trunk')
+   parser.add_argument('-p', '--port', help='port to run server on', type=int, default=2737)
+   parser.add_argument('--ssl', help='path to SSL Certificate', default=False)
+   args = parser.parse_args()
+   setup_server(args.port, args.pairsPath, args.ssl)
