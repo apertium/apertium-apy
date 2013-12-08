@@ -394,13 +394,13 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         print(path)
         if path=="/listPairs":
             self.handleListPairs(data)
-        if path=="/listAnalyzers":
+        if path=="/listAnalyzers" or path=="/listAnalysers":
             self.handleListAnalyzers(data)
         if path=="/listGenerators":
             self.handleListGenerators(data)
         elif path=="/translate":
             self.handleTranslate(data)
-        elif path=="/analyze":
+        elif path=="/analyze" or path=="/analyse":
             self.handleAnalyze(data)
         elif path=="/generate":
             self.handleGenerate(data)
