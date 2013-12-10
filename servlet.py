@@ -51,20 +51,18 @@ def searchPath(pairsPath):
     return pairs, analyzers, generators
 
 def getLocalizedLanguages(locale, languages, dbPath):
-	output = []
+	output = {}
 	if os.path.exists(dbPath):
 		conn = sqlite3.connect(dbPath)
 		c = conn.cursor()
 		languageResults = c.execute('select * from languageNames where lg=?', (locale, )).fetchall()
 		for languageResult in languageResults:
 			try:
-				loc = languages.index(languageResult[1])
-				output.append((languageResult[1], languageResult[2]))
+				loc = languages.index(languageResult[2])
+				output[languageResult[2]] = languageResult[3]
 				del languages[loc]
 			except ValueError:
 				pass
-		for language in languages:
-			output.append((language, '*' + language))
 	return output
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
@@ -411,13 +409,13 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         print(path)
         if path=="/listPairs":
             self.handleListPairs(data)
-        if path=="/listAnalyzers" or path=="/listAnalysers":
+        if path=="/listAnalyzers" or path=="/listAnalysers"::
             self.handleListAnalyzers(data)
         if path=="/listGenerators":
             self.handleListGenerators(data)
         elif path=="/translate":
             self.handleTranslate(data)
-        elif path=="/analyze" or path=="/analyse":
+        elif path=="/analyze" or path=="/analyse"::
             self.handleAnalyze(data)
         elif path=="/generate":
             self.handleGenerate(data)
