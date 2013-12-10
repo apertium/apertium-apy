@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- indent-tabs-mode: t -*-
 
-import sys, threading, os, re, ssl, argparse
+import sys, threading, os, re, ssl, argparse, sqlite3
 import http.server, socketserver, urllib.parse, json
+from lxml import etree
 from subprocess import Popen, PIPE #call
 
 Handler = None
@@ -49,6 +50,22 @@ def searchPath(pairsPath):
                         
     return pairs, analyzers, generators
 
+def getLocalizedLanguages(locale, languages, dbPath):
+	output = []
+	if os.path.exists(dbPath):
+		conn = sqlite3.connect(dbPath)
+		c = conn.cursor()
+		languageResults = c.execute('select * from languageNames where lg=?', (locale, )).fetchall()
+		for languageResult in languageResults:
+			try:
+				loc = languages.index(languageResult[1])
+				output.append((languageResult[1], languageResult[2]))
+				del languages[loc]
+			except ValueError:
+				pass
+		for language in languages:
+			output.append((language, '*' + language))
+	return output
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass
