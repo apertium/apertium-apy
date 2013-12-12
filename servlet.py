@@ -50,20 +50,24 @@ def searchPath(pairsPath):
                         
     return pairs, analyzers, generators
 
-def getLocalizedLanguages(locale, languages, dbPath):
-	output = {}
-	if os.path.exists(dbPath):
-		conn = sqlite3.connect(dbPath)
-		c = conn.cursor()
-		languageResults = c.execute('select * from languageNames where lg=?', (locale, )).fetchall()
-		for languageResult in languageResults:
-			try:
-				loc = languages.index(languageResult[2])
-				output[languageResult[2]] = languageResult[3]
-				del languages[loc]
-			except ValueError:
-				pass
-	return output
+def getLocalizedLanguages(locale, dbPath, languages = False):
+    output = {}
+    if os.path.exists(dbPath):
+        conn = sqlite3.connect(dbPath)
+        c = conn.cursor()
+        languageResults = c.execute('select * from languageNames where lg=?', (locale, )).fetchall()
+        if languages:
+            for languageResult in languageResults:
+                try:
+                    loc = languages.index(languageResult[2])
+                    output[languageResult[2]] = languageResult[3]
+                    del languages[loc]
+                except ValueError:
+                    pass
+        else:
+            for languageResult in languageResults:
+                output[languageResult[2]] = languageResult[3]
+    return output
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass
@@ -404,26 +408,52 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             print('generator mode not found')
             toReturn = 'generator mode not found'
         self.sendResponse(status, toReturn, callback)
-
-    def routeAction(self, path, data):
+        
+    def handleListLanguageNames(self, data, headers):
+        if "callback" in data:
+            callback = data["callback"][0]
+        else:
+            callback = None
+            
+        if 'locale' in data:
+            if 'languages' in data:
+                print(data['languages'][0].split(' '))
+                self.sendResponse(200, getLocalizedLanguages(data['locale'][0], self.languageNamesDBPath, languages = data['languages'][0].split(' ')), callback)
+            else:
+                self.sendResponse(200, getLocalizedLanguages(data['locale'][0], self.languageNamesDBPath), callback)
+        elif 'Accept-Language' in headers:
+            locales = [locale.split(';')[0] for locale in headers['Accept-Language'].split(',')]
+            print(locales)
+            for locale in locales:
+                languageNames = getLocalizedLanguages(locale, self.languageNamesDBPath)
+                if languageNames:
+                    self.sendResponse(200, languageNames, callback)
+                    return
+            self.sendResponse(200, getLocalizedLanguages('en', self.languageNamesDBPath), callback)
+        else:
+            self.sendResponse(200, getLocalizedLanguages('en', self.languageNamesDBPath), callback)
+    
+    def routeAction(self, path, data, headers):
         print(path)
         if path=="/listPairs":
             self.handleListPairs(data)
-        if path=="/listAnalyzers" or path=="/listAnalysers"::
+        if path=="/listAnalyzers" or path=="/listAnalysers":
             self.handleListAnalyzers(data)
         if path=="/listGenerators":
             self.handleListGenerators(data)
         elif path=="/translate":
             self.handleTranslate(data)
-        elif path=="/analyze" or path=="/analyse"::
+        elif path=="/analyze" or path=="/analyse":
             self.handleAnalyze(data)
         elif path=="/generate":
             self.handleGenerate(data)
+        elif path=="/listLanguageNames":
+            self.handleListLanguageNames(data, headers)
 
     def do_GET(self):
         params_parsed = urllib.parse.urlparse(self.path)
         query_parsed = urllib.parse.parse_qs(params_parsed.query)
-        self.routeAction(params_parsed.path, query_parsed)
+        self.routeAction(params_parsed.path, query_parsed, self.headers)
 
 
     def do_POST(self):
@@ -435,10 +465,10 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         params_parsed = urllib.parse.urlparse(self.path)
         self.routeAction(params_parsed.path, query_parsed)
 
-
-def setup_server(port, pairsPath, sslPath):
+def setup_server(port, pairsPath, languageNamesDBPath, sslPath):
     global Handler, httpd
     Handler = MyHandler
+    Handler.languageNamesDBPath = languageNamesDBPath
 
     rawPairs, rawAnalyzers, rawGenerators = searchPath(pairsPath)
     for pair in rawPairs:
@@ -468,7 +498,8 @@ def setup_server(port, pairsPath, sslPath):
 if __name__ == '__main__':
    parser = argparse.ArgumentParser(description='Start Apertium APY')
    parser.add_argument('pairsPath', help='path to Apertium trunk')
+   parser.add_argument('languageNamesDBPath', help='path to localized language names sqlite database')
    parser.add_argument('-p', '--port', help='port to run server on', type=int, default=2737)
    parser.add_argument('--ssl', help='path to SSL Certificate', default=False)
    args = parser.parse_args()
-   setup_server(args.port, args.pairsPath, args.ssl)
+   setup_server(args.port, args.pairsPath, args.languageNamesDBPath, args.ssl)
