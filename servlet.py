@@ -50,7 +50,15 @@ def searchPath(pairsPath):
                         
     return pairs, analyzers, generators
 
-def getLocalizedLanguages(locale, dbPath, languages = False):
+def getLocalizedLanguages(locale, dbPath, languages = []):
+    iso639Codes = {"abk":"ab","aar":"aa","afr":"af","aka":"ak","sqi":"sq","amh":"am","ara":"ar","arg":"an","hye":"hy","asm":"as","ava":"av","ave":"ae","aym":"ay","aze":"az","bam":"bm","bak":"ba","eus":"eu","bel":"be","ben":"bn","bih":"bh","bis":"bi","bos":"bs","bre":"br","bul":"bg","mya":"my","cat":"ca","cha":"ch","che":"ce","nya":"ny","zho":"zh","chv":"cv","cor":"kw","cos":"co","cre":"cr","hrv":"hr","ces":"cs","dan":"da","div":"dv","nld":"nl","dzo":"dz","eng":"en","epo":"eo","est":"et","ewe":"ee","fao":"fo","fij":"fj","fin":"fi","fra":"fr","ful":"ff","glg":"gl","kat":"ka","deu":"de","ell":"el","grn":"gn","guj":"gu","hat":"ht","hau":"ha","heb":"he","her":"hz","hin":"hi","hmo":"ho","hun":"hu","ina":"ia","ind":"id","ile":"ie","gle":"ga","ibo":"ig","ipk":"ik","ido":"io","isl":"is","ita":"it","iku":"iu","jpn":"ja","jav":"jv","kal":"kl","kan":"kn","kau":"kr","kas":"ks","kaz":"kk","khm":"km","kik":"ki","kin":"rw","kir":"ky","kom":"kv","kon":"kg","kor":"ko","kur":"ku","kua":"kj","lat":"la","ltz":"lb","lug":"lg","lim":"li","lin":"ln","lao":"lo","lit":"lt","lub":"lu","lav":"lv","glv":"gv","mkd":"mk","mlg":"mg","msa":"ms","mal":"ml","mlt":"mt","mri":"mi","mar":"mr","mah":"mh","mon":"mn","nau":"na","nav":"nv","nob":"nb","nde":"nd","nep":"ne","ndo":"ng","nno":"nn","nor":"no","iii":"ii","nbl":"nr","oci":"oc","oji":"oj","chu":"cu","orm":"om","ori":"or","oss":"os","pan":"pa","pli":"pi","fas":"fa","pol":"pl","pus":"ps","por":"pt","que":"qu","roh":"rm","run":"rn","ron":"ro","rus":"ru","san":"sa","srd":"sc","snd":"sd","sme":"se","smo":"sm","sag":"sg","srp":"sr","gla":"gd","sna":"sn","sin":"si","slk":"sk","slv":"sl","som":"so","sot":"st","azb":"az","spa":"es","sun":"su","swa":"sw","ssw":"ss","swe":"sv","tam":"ta","tel":"te","tgk":"tg","tha":"th","tir":"ti","bod":"bo","tuk":"tk","tgl":"tl","tsn":"tn","ton":"to","tur":"tr","tso":"ts","tat":"tt","twi":"tw","tah":"ty","uig":"ug","ukr":"uk","urd":"ur","uzb":"uz","ven":"ve","vie":"vi","vol":"vo","wln":"wa","cym":"cy","wol":"wo","fry":"fy","xho":"xh","yid":"yi","yor":"yo","zha":"za","zul":"zu"}
+    if locale in iso639Codes:
+        locale = iso639Codes[locale]
+        
+    convertedLanguages = []
+    for language in languages:
+        convertedLanguages.append(iso639Codes[language] if language in iso639Codes else language)
+        
     output = {}
     if os.path.exists(dbPath):
         conn = sqlite3.connect(dbPath)
@@ -59,9 +67,9 @@ def getLocalizedLanguages(locale, dbPath, languages = False):
         if languages:
             for languageResult in languageResults:
                 try:
-                    loc = languages.index(languageResult[2])
-                    output[languageResult[2]] = languageResult[3]
-                    del languages[loc]
+                    loc = convertedLanguages.index(languageResult[2])
+                    output[languages[loc]] = languageResult[3]
+                    del languages[languages.index(languageResult[2])]
                 except ValueError:
                     pass
         else:
@@ -244,7 +252,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         else:
             return False
 
-
     def hardbreak(self):
         """If others are waiting on us, we send short requests, otherwise we
         try to minimise the number of requests, but without
@@ -414,24 +421,26 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             callback = data["callback"][0]
         else:
             callback = None
-            
-        if 'locale' in data:
-            if 'languages' in data:
-                print(data['languages'][0].split(' '))
-                self.sendResponse(200, getLocalizedLanguages(data['locale'][0], self.languageNamesDBPath, languages = data['languages'][0].split(' ')), callback)
+        
+        if self.languageNamesDBPath:
+            if 'locale' in data:
+                if 'languages' in data:
+                    self.sendResponse(200, getLocalizedLanguages(data['locale'][0], self.languageNamesDBPath, languages = data['languages'][0].split(' ')), callback)
+                else:
+                    self.sendResponse(200, getLocalizedLanguages(data['locale'][0], self.languageNamesDBPath), callback)
+            elif 'Accept-Language' in headers:
+                locales = [locale.split(';')[0] for locale in headers['Accept-Language'].split(',')]
+                print(locales)
+                for locale in locales:
+                    languageNames = getLocalizedLanguages(locale, self.languageNamesDBPath)
+                    if languageNames:
+                        self.sendResponse(200, languageNames, callback)
+                        return
+                self.sendResponse(200, getLocalizedLanguages('en', self.languageNamesDBPath), callback)
             else:
-                self.sendResponse(200, getLocalizedLanguages(data['locale'][0], self.languageNamesDBPath), callback)
-        elif 'Accept-Language' in headers:
-            locales = [locale.split(';')[0] for locale in headers['Accept-Language'].split(',')]
-            print(locales)
-            for locale in locales:
-                languageNames = getLocalizedLanguages(locale, self.languageNamesDBPath)
-                if languageNames:
-                    self.sendResponse(200, languageNames, callback)
-                    return
-            self.sendResponse(200, getLocalizedLanguages('en', self.languageNamesDBPath), callback)
+                self.sendResponse(200, getLocalizedLanguages('en', self.languageNamesDBPath), callback)
         else:
-            self.sendResponse(200, getLocalizedLanguages('en', self.languageNamesDBPath), callback)
+            self.sendResponse(200, {}, callback)
     
     def routeAction(self, path, data, headers):
         print(path)
@@ -498,7 +507,7 @@ def setup_server(port, pairsPath, languageNamesDBPath, sslPath):
 if __name__ == '__main__':
    parser = argparse.ArgumentParser(description='Start Apertium APY')
    parser.add_argument('pairsPath', help='path to Apertium trunk')
-   parser.add_argument('languageNamesDBPath', help='path to localized language names sqlite database')
+   parser.add_argument('-langNamesDB', '--languageNamesDBPath', help='path to localized language names sqlite database', default='')
    parser.add_argument('-p', '--port', help='port to run server on', type=int, default=2737)
    parser.add_argument('--ssl', help='path to SSL Certificate', default=False)
    args = parser.parse_args()
