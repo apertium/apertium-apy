@@ -430,7 +430,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     self.sendResponse(200, getLocalizedLanguages(data['locale'][0], self.languageNamesDBPath), callback)
             elif 'Accept-Language' in headers:
                 locales = [locale.split(';')[0] for locale in headers['Accept-Language'].split(',')]
-                print(locales)
                 for locale in locales:
                     languageNames = getLocalizedLanguages(locale, self.languageNamesDBPath)
                     if languageNames:
@@ -441,6 +440,16 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 self.sendResponse(200, getLocalizedLanguages('en', self.languageNamesDBPath), callback)
         else:
             self.sendResponse(200, {}, callback)
+            
+    def handleGetLocale(self, data, headers):
+        if "callback" in data:
+            callback = data["callback"][0]
+        else:
+            callback = None
+            
+        locales = [locale.split(';')[0] for locale in headers['Accept-Language'].split(',')]
+        self.sendResponse(200, locales, callback)
+        
     
     def routeAction(self, path, data, headers):
         print(path)
@@ -458,6 +467,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             self.handleGenerate(data)
         elif path=="/listLanguageNames":
             self.handleListLanguageNames(data, headers)
+        elif path=="/getLocale":
+            self.handleGetLocale(data, headers)
 
     def do_GET(self):
         params_parsed = urllib.parse.urlparse(self.path)
