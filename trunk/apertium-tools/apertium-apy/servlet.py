@@ -109,9 +109,12 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         else:
             return False
             
-    def morphAnalysis(self, toAnalyze, dir, mode):
+    def morphAnalysis(self, toAnalyze, dir, mode, formatting=None):
         p1 = Popen(["echo", toAnalyze], stdout=PIPE)
-        p2 = Popen(["apertium", "-d %s" % dir, mode], stdin=p1.stdout, stdout=PIPE)
+        if formatting:
+            p2 = Popen(["apertium", "-d %s -f %s" % (dir, formatting), mode], stdin=p1.stdout, stdout=PIPE)
+        else:
+            p2 = Popen(["apertium", "-d %s" % dir, mode], stdin=p1.stdout, stdout=PIPE)
         p1.stdout.close()
         output = p2.communicate()[0].decode('utf-8')
         return output
@@ -119,6 +122,13 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     def morphGeneration(self, toGenerate, dir, mode):
         p1 = Popen(["echo", toGenerate], stdout=PIPE)
         p2 = Popen(["apertium", "-f none -d %s" % dir, mode], stdin=p1.stdout, stdout=PIPE)
+        p1.stdout.close()
+        output = p2.communicate()[0].decode('utf-8')
+        return output
+        
+    def bilingualTranslate(self, toTranslate, dir, mode):
+        p1 = Popen(["echo", toTranslate], stdout=PIPE)
+        p2 = Popen(["lt-proc", "-b", mode], stdin=p1.stdout, stdout=PIPE, cwd=dir)
         p1.stdout.close()
         output = p2.communicate()[0].decode('utf-8')
         return output
@@ -211,7 +221,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 print("strpair not in pairs")
                 return False
 
-
     def translateModeDirect(self, toTranslate, pair):
         strPair = '%s-%s' % pair
         if strPair in self.pairs:
@@ -271,7 +280,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         print((threading.active_count(), hardbreak))
         return hardbreak
 
-
     def translateSplitting(self, toTranslate, pair):
         """Splitting it up a bit ensures we don't fill up FIFO buffers (leads
         to processes hanging on read/write)."""
@@ -309,9 +317,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         else:
             returner = callback+"("+outData+")"
             self.wfile.write(returner.encode('utf-8'))
-
-        #self.send_response(403)
-
 
     def handleListPairs(self, data):
         if "callback" in data:
@@ -441,6 +446,33 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         else:
             self.sendResponse(200, {}, callback)
             
+    def handleTranslatePerWord(self, data):
+        if "callback" in data:
+            callback = data["callback"][0]
+        else:
+            callback = None
+            
+        mode = data["mode"][0]
+        toTranslate = data["q"][0]
+        if mode in self.analyzers:
+            modeInfo = self.analyzers[mode]
+            status = 200
+            toReturn = []
+            analysis = self.morphAnalysis(toTranslate, modeInfo[0], modeInfo[1], formatting = 'none')
+            lexicalUnits = re.findall(r'\^([^\$]*)\$', analysis)
+            for lexicalUnit in lexicalUnits:
+                splitUnit = lexicalUnit.split('/')
+                originalWord = splitUnit[0]
+                forms = splitUnit[1:]
+                rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], mode + '.autobil.bin')
+                translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
+                toReturn.append({'input': originalWord, 'analyses': forms, 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
+        else:
+            status = 400
+            print('analyzer mode not found')
+            toReturn = 'analyzer mode not found'
+        self.sendResponse(status, toReturn, callback)
+            
     def handleGetLocale(self, data, headers):
         if "callback" in data:
             callback = data["callback"][0]
@@ -449,7 +481,6 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             
         locales = [locale.split(';')[0] for locale in headers['Accept-Language'].split(',')]
         self.sendResponse(200, locales, callback)
-        
     
     def routeAction(self, path, data, headers):
         print(path)
@@ -467,6 +498,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             self.handleGenerate(data)
         elif path=="/listLanguageNames":
             self.handleListLanguageNames(data, headers)
+        elif path=="/translatePerWord":
+            self.handleTranslatePerWord(data)
         elif path=="/getLocale":
             self.handleGetLocale(data, headers)
 
