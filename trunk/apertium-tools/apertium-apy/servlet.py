@@ -18,10 +18,12 @@ def searchPath(pairsPath):
     REmodeFile = re.compile("([a-z]{2,3})-([a-z]{2,3})\.mode")
     REmorphFile = re.compile("(([a-z]{2,3}(-[a-z]{2,3})?)-(an)?mor(ph)?)\.mode")
     REgenerFile = re.compile("(([a-z]{2,3}(-[a-z]{2,3})?)-gener[A-z]*)\.mode")
+    REtaggerFile = re.compile("(([a-z]{2,3}(-[a-z]{2,3})?)-tagger)\.mode")
 
     pairs = []
     analyzers = []
     generators = []
+    taggers = []
     
     contents = os.listdir(pairsPath)
     for content in contents:
@@ -47,8 +49,13 @@ def searchPath(pairsPath):
                         lang = REgenerFile.sub("\g<2>", modeFile) #en-es
                         generatorTuple = (curContent, mode, lang)
                         generators.append(generatorTuple)
+                    elif REtaggerFile.match(modeFile):
+                        mode = REtaggerFile.sub("\g<1>", modeFile) #en-es-tagger
+                        lang = REtaggerFile.sub("\g<2>", modeFile) #en-es
+                        taggerTuple = (curContent, mode, lang)
+                        taggers.append(taggerTuple)
                         
-    return pairs, analyzers, generators
+    return pairs, analyzers, generators, taggers
 
 def getLocalizedLanguages(locale, dbPath, languages = []):
     iso639Codes = {"abk":"ab","aar":"aa","afr":"af","aka":"ak","sqi":"sq","amh":"am","ara":"ar","arg":"an","hye":"hy","asm":"as","ava":"av","ave":"ae","aym":"ay","aze":"az","bam":"bm","bak":"ba","eus":"eu","bel":"be","ben":"bn","bih":"bh","bis":"bi","bos":"bs","bre":"br","bul":"bg","mya":"my","cat":"ca","cha":"ch","che":"ce","nya":"ny","zho":"zh","chv":"cv","cor":"kw","cos":"co","cre":"cr","hrv":"hr","ces":"cs","dan":"da","div":"dv","nld":"nl","dzo":"dz","eng":"en","epo":"eo","est":"et","ewe":"ee","fao":"fo","fij":"fj","fin":"fi","fra":"fr","ful":"ff","glg":"gl","kat":"ka","deu":"de","ell":"el","grn":"gn","guj":"gu","hat":"ht","hau":"ha","heb":"he","her":"hz","hin":"hi","hmo":"ho","hun":"hu","ina":"ia","ind":"id","ile":"ie","gle":"ga","ibo":"ig","ipk":"ik","ido":"io","isl":"is","ita":"it","iku":"iu","jpn":"ja","jav":"jv","kal":"kl","kan":"kn","kau":"kr","kas":"ks","kaz":"kk","khm":"km","kik":"ki","kin":"rw","kir":"ky","kom":"kv","kon":"kg","kor":"ko","kur":"ku","kua":"kj","lat":"la","ltz":"lb","lug":"lg","lim":"li","lin":"ln","lao":"lo","lit":"lt","lub":"lu","lav":"lv","glv":"gv","mkd":"mk","mlg":"mg","msa":"ms","mal":"ml","mlt":"mt","mri":"mi","mar":"mr","mah":"mh","mon":"mn","nau":"na","nav":"nv","nob":"nb","nde":"nd","nep":"ne","ndo":"ng","nno":"nn","nor":"no","iii":"ii","nbl":"nr","oci":"oc","oji":"oj","chu":"cu","orm":"om","ori":"or","oss":"os","pan":"pa","pli":"pi","fas":"fa","pol":"pl","pus":"ps","por":"pt","que":"qu","roh":"rm","run":"rn","ron":"ro","rus":"ru","san":"sa","srd":"sc","snd":"sd","sme":"se","smo":"sm","sag":"sg","srp":"sr","gla":"gd","sna":"sn","sin":"si","slk":"sk","slv":"sl","som":"so","sot":"st","azb":"az","spa":"es","sun":"su","swa":"sw","ssw":"ss","swe":"sv","tam":"ta","tel":"te","tgk":"tg","tha":"th","tir":"ti","bod":"bo","tuk":"tk","tgl":"tl","tsn":"tn","ton":"to","tur":"tr","tso":"ts","tat":"tt","twi":"tw","tah":"ty","uig":"ug","ukr":"uk","urd":"ur","uzb":"uz","ven":"ve","vie":"vi","vol":"vo","wln":"wa","cym":"cy","wol":"wo","fry":"fy","xho":"xh","yid":"yi","yor":"yo","zha":"za","zul":"zu"}
@@ -85,6 +92,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     pairs = {}
     analyzers = {}
     generators = {}
+    taggers = {}
     pipelines = {}
 
     # The lock is needed so we don't let two threads write
@@ -129,6 +137,16 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     def bilingualTranslate(self, toTranslate, dir, mode):
         p1 = Popen(["echo", toTranslate], stdout=PIPE)
         p2 = Popen(["lt-proc", "-b", mode], stdin=p1.stdout, stdout=PIPE, cwd=dir)
+        p1.stdout.close()
+        output = p2.communicate()[0].decode('utf-8')
+        return output
+        
+    def tagger(self, toTag, dir, mode, formatting=None):
+        p1 = Popen(["echo", toTag], stdout=PIPE)
+        if formatting:
+            p2 = Popen(["apertium", "-d %s -f %s" % (dir, formatting), mode], stdin=p1.stdout, stdout=PIPE)
+        else:
+            p2 = Popen(["apertium", "-d %s" % dir, mode], stdin=p1.stdout, stdout=PIPE)
         p1.stdout.close()
         output = p2.communicate()[0].decode('utf-8')
         return output
@@ -318,43 +336,35 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             returner = callback+"("+outData+")"
             self.wfile.write(returner.encode('utf-8'))
 
-    def handleListPairs(self, data):
-        if "callback" in data:
-            callback = data["callback"][0]
+    def handleList(self, data, path):
+        if 'callback' in data:
+            callback = data['callback'][0]
         else:
             callback = None
-        responseData = []
-        for pair in self.pairs:
-            (l1, l2) = pair.split('-')
-            responseData.append({"sourceLanguage": l1, "targetLanguage": l2})
+            
+        if 'q' in data:
+            query = data['q'][0]
         status = 200
-
-        toReturn = {"responseData": responseData,
-            "responseDetails": None,
-            "responseStatus": status}
-
-        self.sendResponse(status, toReturn, callback)
-
-    def handleListAnalyzers(self, data):
-        if "callback" in data:
-            callback = data["callback"][0]
-        else:
-            callback = None
-            
-        self.sendResponse(200, self.analyzers, callback)
         
-    def handleListGenerators(self, data):
-        if "callback" in data:
-            callback = data["callback"][0]
-        else:
-            callback = None
+        if path == '/listPairs' or query == 'pairs':
+            responseData = []
+            for pair in self.pairs:
+                (l1, l2) = pair.split('-')
+                responseData.append({'sourceLanguage': l1, 'targetLanguage': l2})
+            toReturn = {'responseData': responseData, 'responseDetails': None, 'responseStatus': status}
+        elif query == 'analyzers' or query == 'analysers':
+            toReturn = self.analyzers
+        elif query == 'generators':
+            toReturn = self.analyzers
+        elif query == 'taggers':
+            toReturn = self.taggers
             
-        self.sendResponse(200, self.generators, callback)
+        self.sendResponse(status, toReturn, callback)
 
     def handleTranslate(self, data):
         pair = data["langpair"][0]
-        if "callback" in data:
-            callback = data["callback"][0]
+        if 'callback' in data:
+            callback = data['callback'][0]
         else:
             callback = None
         (l1, l2) = pair.split('|')
@@ -382,8 +392,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.sendResponse(status, toReturn, callback)
         
     def handleAnalyze(self, data):
-        if "callback" in data:
-            callback = data["callback"][0]
+        if 'callback' in data:
+            callback = data['callback'][0]
         else:
             callback = None
             
@@ -401,8 +411,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.sendResponse(status, toReturn, callback)
     
     def handleGenerate(self, data):
-        if "callback" in data:
-            callback = data["callback"][0]
+        if 'callback' in data:
+            callback = data['callback'][0]
         else:
             callback = None
         
@@ -422,8 +432,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.sendResponse(status, toReturn, callback)
         
     def handleListLanguageNames(self, data, headers):
-        if "callback" in data:
-            callback = data["callback"][0]
+        if 'callback' in data:
+            callback = data['callback'][0]
         else:
             callback = None
         
@@ -446,36 +456,136 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         else:
             self.sendResponse(200, {}, callback)
             
-    def handleTranslatePerWord(self, data):
-        if "callback" in data:
-            callback = data["callback"][0]
+    def handlePerWord(self, data):
+        if 'callback' in data:
+            callback = data['callback'][0]
         else:
             callback = None
             
-        mode = data["mode"][0]
-        toTranslate = data["q"][0]
-        if mode in self.analyzers:
-            modeInfo = self.analyzers[mode]
-            status = 200
-            toReturn = []
-            analysis = self.morphAnalysis(toTranslate, modeInfo[0], modeInfo[1], formatting = 'none')
-            lexicalUnits = re.findall(r'\^([^\$]*)\$', analysis)
-            for lexicalUnit in lexicalUnits:
-                splitUnit = lexicalUnit.split('/')
-                originalWord = splitUnit[0]
-                forms = splitUnit[1:]
-                rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], mode + '.autobil.bin')
-                translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
-                toReturn.append({'input': originalWord, 'analyses': forms, 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
+        lang = data['lang'][0]
+        modes = data['modes'][0].split(' ')
+        query = data['q'][0]
+        
+        status = 200
+        toReturn = []
+        
+        if len(modes) == 1:
+            mode = modes[0]
+            if mode == 'morph':
+                if lang in self.analyzers:
+                    modeInfo = self.analyzers[lang]
+                    analysis = self.morphAnalysis(query, modeInfo[0], modeInfo[1], formatting = 'none')
+                    lexicalUnits = re.findall(r'\^([^\$]*)\$', analysis)
+                    for lexicalUnit in lexicalUnits:
+                        splitUnit = lexicalUnit.split('/')
+                        toReturn.append({'input': splitUnit[0], 'analyses': splitUnit[1:]})
+                else:
+                    status = 400
+                    toReturn = 'analyzer mode not found'
+                    print(toReturn)
+                    
+            elif mode == 'tagger' or mode == 'disambig':
+                if lang in self.taggers:
+                    modeInfo = self.taggers[lang]
+                    analysis = self.tagger(query, modeInfo[0], modeInfo[1], formatting = 'none')
+                    lexicalUnits = re.findall(r'\^([^\$]*)\$', analysis)
+                    for lexicalUnit in lexicalUnits:
+                        splitUnit = lexicalUnit.split('/')
+                        forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
+                        toReturn.append({'input': splitUnit[0], 'analyses': forms})
+                else:
+                    status = 400
+                    toReturn = 'tagger mode not found'
+                    print(toReturn)
+            
+            elif mode == 'biltrans':
+                if lang in self.analyzers:
+                    modeInfo = self.analyzers[lang]
+                    analysis = self.morphAnalysis(query, modeInfo[0], modeInfo[1], formatting = 'none')
+                    lexicalUnits = re.findall(r'\^([^\$]*)\$', analysis)
+                    for lexicalUnit in lexicalUnits:
+                        splitUnit = lexicalUnit.split('/')
+                        forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
+                        rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
+                        translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
+                        toReturn.append({'input': splitUnit[0], 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
+                else:
+                    status = 400
+                    toReturn = 'analyzer mode not found'
+                    print(toReturn)
+                    
+            elif mode == 'translate':
+                if lang in self.taggers:
+                    modeInfo = self.taggers[lang]
+                    analysis = self.tagger(query, modeInfo[0], modeInfo[1], formatting = 'none')
+                    lexicalUnits = re.findall(r'\^([^\$]*)\$', analysis)
+                    for lexicalUnit in lexicalUnits:
+                        splitUnit = lexicalUnit.split('/')
+                        forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
+                        rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
+                        translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
+                        toReturn.append({'input': splitUnit[0], 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
+                else:
+                    status = 400
+                    toReturn = 'analyzer mode not found'
+                    print(toReturn)
+
         else:
-            status = 400
-            print('analyzer mode not found')
-            toReturn = 'analyzer mode not found'
+            if set(modes) == set(['biltrans', 'morph']):
+                if lang in self.analyzers:
+                    modeInfo = self.analyzers[lang]
+                    analysis = self.morphAnalysis(query, modeInfo[0], modeInfo[1], formatting = 'none')
+                    lexicalUnits = re.findall(r'\^([^\$]*)\$', analysis)
+                    for lexicalUnit in lexicalUnits:
+                        splitUnit = lexicalUnit.split('/')
+                        forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
+                        rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
+                        translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
+                        toReturn.append({'input': splitUnit[0], 'analyses': forms, 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
+                else:
+                    status = 400
+                    toReturn = 'analyzer mode not found'
+                    print(toReturn)
+                    
+            elif set(modes) == set(['translate', 'tagger']) or set(modes) == set(['translate', 'disambig']):
+                if lang in self.taggers:
+                    modeInfo = self.taggers[lang]
+                    analysis = self.tagger(query, modeInfo[0], modeInfo[1], formatting = 'none')
+                    lexicalUnits = re.findall(r'\^([^\$]*)\$', analysis)
+                    for lexicalUnit in lexicalUnits:
+                        splitUnit = lexicalUnit.split('/')
+                        forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
+                        rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
+                        translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
+                        toReturn.append({'input': splitUnit[0], 'analyses': forms, 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
+                else:
+                    status = 400                    
+                    toReturn = 'tagger mode not found'
+                    print(toReturn)
+                    
+            elif set(modes) == set(['morph', 'tagger']) or set(modes) == set(['morph', 'disambig']):
+                if lang in self.taggers and lang in self.analyzers:
+                    analyzerModeInfo = self.analyzers[lang]
+                    taggerModeInfo = self.taggers[lang]
+                    ambiguousAnalysis = self.morphAnalysis(query, analyzerModeInfo[0], analyzerModeInfo[1], formatting = 'none')
+                    ambiguousLexicalUnits = re.findall(r'\^([^\$]*)\$', ambiguousAnalysis)
+                    disambiguousAnalysis = self.tagger(query, taggerModeInfo[0], taggerModeInfo[1], formatting = 'none')
+                    disambiguousLexicalUnits = re.findall(r'\^([^\$]*)\$', disambiguousAnalysis)
+                    for (ambiguousLexicalUnit, disambiguousLexicalUnit) in zip(ambiguousLexicalUnits, disambiguousLexicalUnits):
+                        ambiguousSplitUnit, disambiguousSplitUnit = ambiguousLexicalUnit.split('/'), disambiguousLexicalUnit.split('/')
+                        ambiguousForms = ambiguousSplitUnit[1:] if len(ambiguousSplitUnit) > 1 else ambiguousSplitUnit
+                        disambiguatedForms = disambiguousSplitUnit[1:] if len(disambiguousSplitUnit) > 1 else disambiguousSplitUnit
+                        toReturn.append({'input': ambiguousSplitUnit[0], 'ambiguousAnalyses': ambiguousForms, 'disambiguatedAnalyses': disambiguatedForms})
+                else:
+                    status = 400
+                    toReturn = 'analyzer/tagger mode not found'
+                    print(toReturn)
+
         self.sendResponse(status, toReturn, callback)
             
     def handleGetLocale(self, data, headers):
-        if "callback" in data:
-            callback = data["callback"][0]
+        if 'callback' in data:
+            callback = data['callback'][0]
         else:
             callback = None
             
@@ -484,23 +594,19 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     
     def routeAction(self, path, data, headers):
         print(path)
-        if path=="/listPairs":
-            self.handleListPairs(data)
-        if path=="/listAnalyzers" or path=="/listAnalysers":
-            self.handleListAnalyzers(data)
-        if path=="/listGenerators":
-            self.handleListGenerators(data)
-        elif path=="/translate":
+        if path == '/list' or path == '/listPairs':
+            self.handleList(data, path)
+        elif path == '/translate':
             self.handleTranslate(data)
-        elif path=="/analyze" or path=="/analyse":
+        elif path == '/analyze' or path == '/analyse':
             self.handleAnalyze(data)
-        elif path=="/generate":
+        elif path == '/generate':
             self.handleGenerate(data)
-        elif path=="/listLanguageNames":
+        elif path == '/listLanguageNames':
             self.handleListLanguageNames(data, headers)
-        elif path=="/translatePerWord":
-            self.handleTranslatePerWord(data)
-        elif path=="/getLocale":
+        elif path == '/perWord':
+            self.handlePerWord(data)
+        elif path == '/getLocale':
             self.handleGetLocale(data, headers)
 
     def do_GET(self):
@@ -508,10 +614,9 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         query_parsed = urllib.parse.parse_qs(params_parsed.query)
         self.routeAction(params_parsed.path, query_parsed, self.headers)
 
-
     def do_POST(self):
         cur_thread = threading.current_thread()
-        print("{}".format(cur_thread.name))
+        print('{}'.format(cur_thread.name))
         length = int(self.headers['Content-Length'])
         indata = self.rfile.read(length)
         query_parsed = urllib.parse.parse_qs(indata.decode('utf-8'))
@@ -523,22 +628,24 @@ def setup_server(port, pairsPath, languageNamesDBPath, sslPath):
     Handler = MyHandler
     Handler.languageNamesDBPath = languageNamesDBPath
 
-    rawPairs, rawAnalyzers, rawGenerators = searchPath(pairsPath)
+    rawPairs, rawAnalyzers, rawGenerators, rawTaggers = searchPath(pairsPath)
     for pair in rawPairs:
         (f, l1, l2) = pair
-        Handler.pairs["%s-%s" % (l1, l2)] = f
+        Handler.pairs['%s-%s' % (l1, l2)] = f
     for analyzer in rawAnalyzers:
         Handler.analyzers[analyzer[2]] = (analyzer[0], analyzer[1])
     for generator in rawGenerators:
         Handler.generators[generator[2]] = (generator[0], generator[1])
+    for tagger in rawTaggers:
+        Handler.taggers[tagger[2]] = (tagger[0], tagger[1])
 
     socketserver.TCPServer.allow_reuse_address = True
     # is useful when debugging, possibly risky: http://thread.gmane.org/gmane.comp.python.general/509706
 
-    httpd = ThreadedTCPServer(("", port), Handler)
+    httpd = ThreadedTCPServer(('', port), Handler)
     if sslPath:
         httpd.socket = ssl.wrap_socket(httpd.socket, certfile=sslPath, server_side=True)
-    print("Server is up and running on port %s" % port)
+    print('Server is up and running on port %s' % port)
     try:
         httpd.serve_forever()
     except TypeError:
