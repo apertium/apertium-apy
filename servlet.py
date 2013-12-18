@@ -356,7 +356,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
             toReturn = self.analyzers
         elif query == 'generators':
             toReturn = self.analyzers
-        elif query == 'taggers':
+        elif query == 'taggers' or query == 'disambiguators':
             toReturn = self.taggers
             
         self.sendResponse(status, toReturn, callback)
@@ -469,6 +469,12 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         status = 200
         toReturn = []
         
+        def stripTags(analysis):
+            if '<' in analysis:
+                return analysis[:analysis.index('<')]
+            else:
+                return analysis
+        
         if len(modes) == 1:
             mode = modes[0]
             if mode == 'morph':
@@ -478,7 +484,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     lexicalUnits = re.findall(r'\^([^\$]*)\$', analysis)
                     for lexicalUnit in lexicalUnits:
                         splitUnit = lexicalUnit.split('/')
-                        toReturn.append({'input': splitUnit[0], 'analyses': splitUnit[1:]})
+                        toReturn.append({'input': stripTags(splitUnit[0]), 'analyses': splitUnit[1:]})
                 else:
                     status = 400
                     toReturn = 'analyzer mode not found'
@@ -492,7 +498,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                     for lexicalUnit in lexicalUnits:
                         splitUnit = lexicalUnit.split('/')
                         forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
-                        toReturn.append({'input': splitUnit[0], 'analyses': forms})
+                        toReturn.append({'input': stripTags(splitUnit[0]), 'analyses': forms})
                 else:
                     status = 400
                     toReturn = 'tagger mode not found'
@@ -508,7 +514,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
                         rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
                         translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
-                        toReturn.append({'input': splitUnit[0], 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
+                        toReturn.append({'input': stripTags(splitUnit[0]), 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
                 else:
                     status = 400
                     toReturn = 'analyzer mode not found'
@@ -524,7 +530,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
                         rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
                         translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
-                        toReturn.append({'input': splitUnit[0], 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
+                        toReturn.append({'input': stripTags(splitUnit[0]), 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
                 else:
                     status = 400
                     toReturn = 'analyzer mode not found'
@@ -541,7 +547,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
                         rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
                         translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
-                        toReturn.append({'input': splitUnit[0], 'analyses': forms, 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
+                        toReturn.append({'input': stripTags(splitUnit[0]), 'analyses': forms, 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
                 else:
                     status = 400
                     toReturn = 'analyzer mode not found'
@@ -557,7 +563,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
                         rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
                         translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
-                        toReturn.append({'input': splitUnit[0], 'analyses': forms, 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
+                        toReturn.append({'input': stripTags(splitUnit[0]), 'analyses': forms, 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
                 else:
                     status = 400                    
                     toReturn = 'tagger mode not found'
@@ -575,7 +581,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         ambiguousSplitUnit, disambiguousSplitUnit = ambiguousLexicalUnit.split('/'), disambiguousLexicalUnit.split('/')
                         ambiguousForms = ambiguousSplitUnit[1:] if len(ambiguousSplitUnit) > 1 else ambiguousSplitUnit
                         disambiguatedForms = disambiguousSplitUnit[1:] if len(disambiguousSplitUnit) > 1 else disambiguousSplitUnit
-                        toReturn.append({'input': ambiguousSplitUnit[0], 'ambiguousAnalyses': ambiguousForms, 'disambiguatedAnalyses': disambiguatedForms})
+                        toReturn.append({'input': stripTags(ambiguousSplitUnit[0]), 'ambiguousAnalyses': ambiguousForms, 'disambiguatedAnalyses': disambiguatedForms})
                 else:
                     status = 400
                     toReturn = 'analyzer/tagger mode not found'
