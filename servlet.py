@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- indent-tabs-mode: t -*-
 
-import sys, threading, os, re, ssl, argparse, sqlite3
-import http.server, socketserver, urllib.parse, json
+import sys, threading, os, re, ssl, argparse, sqlite3, logging
 from lxml import etree
-from subprocess import Popen, PIPE #call
+from subprocess import Popen, PIPE
 
-Handler = None
-httpd = None
-
+import tornado, tornado.web, tornado.httpserver
+from tornado.options import enable_pretty_logging
+from tornado import escape
+from tornado.escape import utf8
 
 def searchPath(pairsPath):
     # TODO: this doesn't get es-en_GB and such. If it's supposed
@@ -82,18 +82,17 @@ def getLocalizedLanguages(locale, dbPath, languages = []):
         else:
             for languageResult in languageResults:
                 output[languageResult[2]] = languageResult[3]
+    else:
+        print('failed to locate language name DB')
     return output
 
-class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
-    pass
-
-class MyHandler(http.server.SimpleHTTPRequestHandler):
-
+class BaseHandler(tornado.web.RequestHandler):
     pairs = {}
     analyzers = {}
     generators = {}
     taggers = {}
     pipelines = {}
+    callback = None
 
     # The lock is needed so we don't let two threads write
     # simultaneously to a pipeline; then the first thread to read
@@ -104,6 +103,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
     # we don't need to wait just because mk-en is currently
     # translating. In that case, should also make hardbreak()
     # pipeline dependent.
+    
+    def initialize(self):
+        callbacks = self.get_arguments('callback')
+        if callbacks:
+            self.callback = callbacks[0]
 
     def translateApertium(self, toTranslate, pair):
         strPair = '%s-%s' % pair
@@ -323,157 +327,119 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         # TODO: should probably check whether we have the pair
         # here, instead of for each split …
         return self.translateSplitting(toTranslate, pair)
-
-    def sendResponse(self, status, data, callback=None):
-        outData = json.dumps(data)
-
-        self.send_response(status)
-        self.send_header("Content-type", "application/json")
-        self.end_headers()
-        if callback==None:
-            self.wfile.write(outData.encode('utf-8'))
-        else:
-            returner = callback+"("+outData+")"
-            self.wfile.write(returner.encode('utf-8'))
-
-    def handleList(self, data, path):
-        if 'callback' in data:
-            callback = data['callback'][0]
-        else:
-            callback = None
-            
-        if 'q' in data:
-            query = data['q'][0]
-        status = 200
         
-        if path == '/listPairs' or query == 'pairs':
+    def sendResponse(self, data):
+        if isinstance(data, dict) or isinstance(data, list):
+            data = escape.json_encode(data)
+            
+        self.set_header("Content-Type", "application/json; charset=UTF-8")
+        if self.callback:
+            self._write_buffer.append(utf8('%s(%s)' % (self.callback, data)))
+        else:
+            self._write_buffer.append(utf8(data))
+    
+    def post(self):
+        self.get()
+
+class ListHandler(BaseHandler):
+    def get(self):
+        query = self.get_arguments('q')
+        if query:
+            query = query[0]
+            
+        if self.request.path == '/listPairs' or query == 'pairs':
             responseData = []
             for pair in self.pairs:
                 (l1, l2) = pair.split('-')
                 responseData.append({'sourceLanguage': l1, 'targetLanguage': l2})
-            toReturn = {'responseData': responseData, 'responseDetails': None, 'responseStatus': status}
+            self.sendResponse({'responseData': responseData, 'responseDetails': None, 'responseStatus': 200})
         elif query == 'analyzers' or query == 'analysers':
-            toReturn = {pair: info[1] for (pair, info) in self.analyzers.items()}
+            self.sendResponse({pair: info[1] for (pair, info) in self.analyzers.items()})
         elif query == 'generators':
-            toReturn = {pair: info[1] for (pair, info) in self.generators.items()}
+            self.sendResponse({pair: info[1] for (pair, info) in self.generators.items()})
         elif query == 'taggers' or query == 'disambiguators':
-            toReturn = {pair: info[1] for (pair, info) in self.taggers.items()}
-            
-        self.sendResponse(status, toReturn, callback)
-
-    def handleTranslate(self, data):
-        pair = data["langpair"][0]
-        if 'callback' in data:
-            callback = data['callback'][0]
+            self.sendResponse({pair: info[1] for (pair, info) in self.taggers.items()})
         else:
-            callback = None
-        (l1, l2) = pair.split('|')
-        if "q" in data:
-            toTranslate = data["q"][0]
-            #print(toTranslate, l1, l2)
+            self.send_error(400)
 
-            translated = self.translate(toTranslate, (l1, l2))
-            if translated:
-                status = 200
-            else:
-                status = 404
-                print("nothing returned")
-        else:
-            status = 404
-            print("no query")
-            #print(data)
-            translated = False
-
-        toReturn = {"responseData":
-            {"translatedText": translated},
-            "responseDetails": None,
-            "responseStatus": status}
-
-        self.sendResponse(status, toReturn, callback)
+class TranslateHandler(BaseHandler):
+    def get(self):
+        (l1, l2) = self.get_argument('langpair').split('|')
+        query = self.get_argument('q')
         
-    def handleAnalyze(self, data):
-        if 'callback' in data:
-            callback = data['callback'][0]
+        toTranslate = query[0]
+        translated = self.translate(toTranslate, (l1, l2))
+        if not translated:
+            self.send_error(400)
         else:
-            callback = None
-            
-        mode = data["mode"][0]
-        toAnalyze = data["q"][0]
+            toReturn = {"responseData":
+                {"translatedText": translated},
+                "responseDetails": None,
+                "responseStatus": 200}
+            self.sendResponse(toReturn)
+        
+class AnalyzeHandler(BaseHandler):
+    def get(self):
+        mode = self.get_argument('mode')
+        toAnalyze = self.get_argument('q')
         if mode in self.analyzers:
-            status = 200
             analysis = self.morphAnalysis(toAnalyze, self.analyzers[mode][0], self.analyzers[mode][1])
             lexicalUnits = re.findall(r'\^([^\$]*)\$([^\^]*)', analysis)
-            toReturn = [(lexicalUnit[0], lexicalUnit[0].split('/')[0] + lexicalUnit[1]) for lexicalUnit in lexicalUnits]
+            self.sendResponse([(lexicalUnit[0], lexicalUnit[0].split('/')[0] + lexicalUnit[1]) for lexicalUnit in lexicalUnits])
         else:
-            status = 400
-            print('analyzer mode not found')
-            toReturn = 'analyzer mode not found'
-        self.sendResponse(status, toReturn, callback)
+            self.send_error(400)
     
-    def handleGenerate(self, data):
-        if 'callback' in data:
-            callback = data['callback'][0]
-        else:
-            callback = None
-        
-        mode = data["mode"][0]
-        toGenerate = data["q"][0]
+class GenerateHandler(BaseHandler):
+    def get(self):
+        mode = self.get_argument('mode')
+        toGenerate = self.get_argument('q')
         if mode in self.generators:
             status = 200
             lexicalUnits = re.findall(r'(\^[^\$]*\$[^\^]*)', toGenerate)
             if len(lexicalUnits) == 0:
                 lexicalUnits = ['^%s$' % toGenerate]
             generated = self.morphGeneration('[SEP]'.join(lexicalUnits), self.generators[mode][0], self.generators[mode][1])
-            toReturn = [(generation, lexicalUnits[index]) for (index, generation) in enumerate(generated.split('[SEP]'))]
+            self.sendResponse([(generation, lexicalUnits[index]) for (index, generation) in enumerate(generated.split('[SEP]'))])
         else:
-            status = 400
-            print('generator mode not found')
-            toReturn = 'generator mode not found'
-        self.sendResponse(status, toReturn, callback)
+            self.send_error(400)
         
-    def handleListLanguageNames(self, data, headers):
-        if 'callback' in data:
-            callback = data['callback'][0]
-        else:
-            callback = None
+class ListLanguageNamesHandler(BaseHandler):
+    def get(self):
+        localeArg = self.get_arguments('locale')
+        languagesArg = self.get_arguments('languages')
         
         if self.languageNamesDBPath:
-            if 'locale' in data:
-                if 'languages' in data:
-                    self.sendResponse(200, getLocalizedLanguages(data['locale'][0], self.languageNamesDBPath, languages = data['languages'][0].split(' ')), callback)
+            if localeArg:
+                if languagesArg:
+                    self.sendResponse(getLocalizedLanguages(localeArg[0], self.languageNamesDBPath, languages = languagesArg[0].split(' ')))
                 else:
-                    self.sendResponse(200, getLocalizedLanguages(data['locale'][0], self.languageNamesDBPath), callback)
-            elif 'Accept-Language' in headers:
-                locales = [locale.split(';')[0] for locale in headers['Accept-Language'].split(',')]
+                    self.sendResponse(getLocalizedLanguages(localeArg[0], self.languageNamesDBPath))
+            elif 'Accept-Language' in self.request.headers:
+                locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
                 for locale in locales:
                     languageNames = getLocalizedLanguages(locale, self.languageNamesDBPath)
                     if languageNames:
-                        self.sendResponse(200, languageNames, callback)
+                        self.sendResponse(languageNames)
                         return
-                self.sendResponse(200, getLocalizedLanguages('en', self.languageNamesDBPath), callback)
+                self.sendResponse(getLocalizedLanguages('en', self.languageNamesDBPath))
             else:
-                self.sendResponse(200, getLocalizedLanguages('en', self.languageNamesDBPath), callback)
+                self.sendResponse(getLocalizedLanguages('en', self.languageNamesDBPath))
         else:
-            self.sendResponse(200, {}, callback)
+            self.sendResponse({})
             
-    def handlePerWord(self, data):
-        if 'callback' in data:
-            callback = data['callback'][0]
-        else:
-            callback = None
-            
-        lang = data['lang'][0]
-        modes = data['modes'][0].split(' ')
-        query = data['q'][0]
-        
-        status = 200
-        toReturn = []
+class PerWordHandler(BaseHandler):
+    def get(self):
+        lang = self.get_argument('lang')
+        modes = self.get_argument('modes').split(' ')
+        query = self.get_argument('q')
         
         def stripTags(analysis):
             if '<' in analysis:
                 return analysis[:analysis.index('<')]
             else:
                 return analysis
+        
+        toReturn = []
         
         if len(modes) == 1:
             mode = modes[0]
@@ -486,9 +452,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         splitUnit = lexicalUnit.split('/')
                         toReturn.append({'input': stripTags(splitUnit[0]), 'analyses': splitUnit[1:]})
                 else:
-                    status = 400
-                    toReturn = 'analyzer mode not found'
-                    print(toReturn)
+                    self.send_error(400)
                     
             elif mode == 'tagger' or mode == 'disambig':
                 if lang in self.taggers:
@@ -500,9 +464,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
                         toReturn.append({'input': stripTags(splitUnit[0]), 'analyses': forms})
                 else:
-                    status = 400
-                    toReturn = 'tagger mode not found'
-                    print(toReturn)
+                    self.send_error(400)
             
             elif mode == 'biltrans':
                 if lang in self.analyzers:
@@ -516,9 +478,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
                         toReturn.append({'input': stripTags(splitUnit[0]), 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
                 else:
-                    status = 400
-                    toReturn = 'analyzer mode not found'
-                    print(toReturn)
+                    self.send_error(400)
                     
             elif mode == 'translate':
                 if lang in self.taggers:
@@ -532,9 +492,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
                         toReturn.append({'input': stripTags(splitUnit[0]), 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
                 else:
-                    status = 400
-                    toReturn = 'analyzer mode not found'
-                    print(toReturn)
+                    self.send_error(400)
 
         else:
             if set(modes) == set(['biltrans', 'morph']):
@@ -549,9 +507,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
                         toReturn.append({'input': stripTags(splitUnit[0]), 'analyses': forms, 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
                 else:
-                    status = 400
-                    toReturn = 'analyzer mode not found'
-                    print(toReturn)
+                    self.send_error(400)
                     
             elif set(modes) == set(['translate', 'tagger']) or set(modes) == set(['translate', 'disambig']):
                 if lang in self.taggers:
@@ -565,9 +521,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
                         toReturn.append({'input': stripTags(splitUnit[0]), 'analyses': forms, 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
                 else:
-                    status = 400                    
-                    toReturn = 'tagger mode not found'
-                    print(toReturn)
+                    self.send_error(400)
                     
             elif set(modes) == set(['morph', 'tagger']) or set(modes) == set(['morph', 'disambig']):
                 if lang in self.taggers and lang in self.analyzers:
@@ -583,55 +537,17 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                         disambiguatedForms = disambiguousSplitUnit[1:] if len(disambiguousSplitUnit) > 1 else disambiguousSplitUnit
                         toReturn.append({'input': stripTags(ambiguousSplitUnit[0]), 'ambiguousAnalyses': ambiguousForms, 'disambiguatedAnalyses': disambiguatedForms})
                 else:
-                    status = 400
-                    toReturn = 'analyzer/tagger mode not found'
-                    print(toReturn)
+                    self.send_error(400)
 
-        self.sendResponse(status, toReturn, callback)
+        self.sendResponse(toReturn)
             
-    def handleGetLocale(self, data, headers):
-        if 'callback' in data:
-            callback = data['callback'][0]
-        else:
-            callback = None
-            
-        locales = [locale.split(';')[0] for locale in headers['Accept-Language'].split(',')]
-        self.sendResponse(200, locales, callback)
-    
-    def routeAction(self, path, data, headers):
-        print(path)
-        if path == '/list' or path == '/listPairs':
-            self.handleList(data, path)
-        elif path == '/translate':
-            self.handleTranslate(data)
-        elif path == '/analyze' or path == '/analyse':
-            self.handleAnalyze(data)
-        elif path == '/generate':
-            self.handleGenerate(data)
-        elif path == '/listLanguageNames':
-            self.handleListLanguageNames(data, headers)
-        elif path == '/perWord':
-            self.handlePerWord(data)
-        elif path == '/getLocale':
-            self.handleGetLocale(data, headers)
+class GetLocaleHandler(BaseHandler):
+    def get(self): 
+        locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
+        self.sendResponse(locales)
 
-    def do_GET(self):
-        params_parsed = urllib.parse.urlparse(self.path)
-        query_parsed = urllib.parse.parse_qs(params_parsed.query)
-        self.routeAction(params_parsed.path, query_parsed, self.headers)
-
-    def do_POST(self):
-        cur_thread = threading.current_thread()
-        print('{}'.format(cur_thread.name))
-        length = int(self.headers['Content-Length'])
-        indata = self.rfile.read(length)
-        query_parsed = urllib.parse.parse_qs(indata.decode('utf-8'))
-        params_parsed = urllib.parse.urlparse(self.path)
-        self.routeAction(params_parsed.path, query_parsed, self.headers)
-
-def setup_server(port, pairsPath, languageNamesDBPath, sslPath):
-    global Handler, httpd
-    Handler = MyHandler
+def setup_server(port, pairsPath, languageNamesDBPath):
+    Handler = BaseHandler
     Handler.languageNamesDBPath = languageNamesDBPath
 
     rawPairs, rawAnalyzers, rawGenerators, rawTaggers = searchPath(pairsPath)
@@ -645,27 +561,36 @@ def setup_server(port, pairsPath, languageNamesDBPath, sslPath):
     for tagger in rawTaggers:
         Handler.taggers[tagger[2]] = (tagger[0], tagger[1])
 
-    socketserver.TCPServer.allow_reuse_address = True
-    # is useful when debugging, possibly risky: http://thread.gmane.org/gmane.comp.python.general/509706
-
-    httpd = ThreadedTCPServer(('', port), Handler)
-    if sslPath:
-        httpd.socket = ssl.wrap_socket(httpd.socket, certfile=sslPath, server_side=True)
-    print('Server is up and running on port %s' % port)
-    try:
-        httpd.serve_forever()
-    except TypeError:
-        httpd.shutdown()
-    except KeyboardInterrupt:
-        httpd.shutdown()
-    except NameError:
-        httpd.shutdown()
-
 if __name__ == '__main__':
-   parser = argparse.ArgumentParser(description='Start Apertium APY')
-   parser.add_argument('pairsPath', help='path to Apertium trunk')
-   parser.add_argument('-langNamesDB', '--languageNamesDBPath', help='path to localized language names sqlite database', default='')
-   parser.add_argument('-p', '--port', help='port to run server on', type=int, default=2737)
-   parser.add_argument('--ssl', help='path to SSL Certificate', default=False)
-   args = parser.parse_args()
-   setup_server(args.port, args.pairsPath, args.languageNamesDBPath, args.ssl)
+    parser = argparse.ArgumentParser(description='Start Apertium APY')
+    parser.add_argument('pairsPath', help='path to Apertium trunk')
+    parser.add_argument('-langNamesDB', '--languageNamesDBPath', help='path to localized language names sqlite database', default=None)
+    parser.add_argument('-p', '--port', help='port to run server on', type=int, default=2737)
+    parser.add_argument('--sslCert', help='path to SSL Certificate', default=None)
+    parser.add_argument('--sslKey', help='path to SSL Key File', default=None)
+    args = parser.parse_args()
+    
+    setup_server(args.port, args.pairsPath, args.languageNamesDBPath)
+   
+    logging.getLogger().setLevel(logging.INFO)
+    enable_pretty_logging()
+    application = tornado.web.Application([
+        (r'/list', ListHandler),
+        (r'/listPairs', ListHandler),
+        (r'/translate', TranslateHandler),
+        (r'/analy[sz]e', AnalyzeHandler),
+        (r'/generate', GenerateHandler),
+        (r'/listLanguageNames', ListLanguageNamesHandler),
+        (r'/perWord', PerWordHandler),
+        (r'/getLocale', GetLocaleHandler)
+    ])
+    
+    if args.sslCert and args.sslKey:
+        http_server = tornado.httpserver.HTTPServer(applicaton, ssl_options = {
+            'certfile': args.sslCert,
+            'keyfile': args.sslKey,
+        })
+    else:
+        http_server = tornado.httpserver.HTTPServer(application)
+    http_server.listen(args.port)
+    tornado.ioloop.IOLoop.instance().start()
