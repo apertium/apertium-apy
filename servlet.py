@@ -353,11 +353,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
                 responseData.append({'sourceLanguage': l1, 'targetLanguage': l2})
             toReturn = {'responseData': responseData, 'responseDetails': None, 'responseStatus': status}
         elif query == 'analyzers' or query == 'analysers':
-            toReturn = self.analyzers
+            toReturn = {pair: info[1] for (pair, info) in self.analyzers.items()}
         elif query == 'generators':
-            toReturn = self.analyzers
+            toReturn = {pair: info[1] for (pair, info) in self.generators.items()}
         elif query == 'taggers' or query == 'disambiguators':
-            toReturn = self.taggers
+            toReturn = {pair: info[1] for (pair, info) in self.taggers.items()}
             
         self.sendResponse(status, toReturn, callback)
 
@@ -627,7 +627,7 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         indata = self.rfile.read(length)
         query_parsed = urllib.parse.parse_qs(indata.decode('utf-8'))
         params_parsed = urllib.parse.urlparse(self.path)
-        self.routeAction(params_parsed.path, query_parsed)
+        self.routeAction(params_parsed.path, query_parsed, self.headers)
 
 def setup_server(port, pairsPath, languageNamesDBPath, sslPath):
     global Handler, httpd
