@@ -408,22 +408,22 @@ class ListLanguageNamesHandler(BaseHandler):
         localeArg = self.get_arguments('locale')
         languagesArg = self.get_arguments('languages')
         
-        if self.languageNamesDBPath:
+        if self.langnames:
             if localeArg:
                 if languagesArg:
-                    self.sendResponse(getLocalizedLanguages(localeArg[0], self.languageNamesDBPath, languages = languagesArg[0].split(' ')))
+                    self.sendResponse(getLocalizedLanguages(localeArg[0], self.langnames, languages = languagesArg[0].split(' ')))
                 else:
-                    self.sendResponse(getLocalizedLanguages(localeArg[0], self.languageNamesDBPath))
+                    self.sendResponse(getLocalizedLanguages(localeArg[0], self.langnames))
             elif 'Accept-Language' in self.request.headers:
                 locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
                 for locale in locales:
-                    languageNames = getLocalizedLanguages(locale, self.languageNamesDBPath)
+                    languageNames = getLocalizedLanguages(locale, self.langnames)
                     if languageNames:
                         self.sendResponse(languageNames)
                         return
-                self.sendResponse(getLocalizedLanguages('en', self.languageNamesDBPath))
+                self.sendResponse(getLocalizedLanguages('en', self.langnames))
             else:
-                self.sendResponse(getLocalizedLanguages('en', self.languageNamesDBPath))
+                self.sendResponse(getLocalizedLanguages('en', self.langnames))
         else:
             self.sendResponse({})
             
@@ -546,9 +546,9 @@ class GetLocaleHandler(BaseHandler):
         locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
         self.sendResponse(locales)
 
-def setup_server(port, pairsPath, languageNamesDBPath):
+def setup_server(port, pairsPath, langnames):
     Handler = BaseHandler
-    Handler.languageNamesDBPath = languageNamesDBPath
+    Handler.langnames = langnames
 
     rawPairs, rawAnalyzers, rawGenerators, rawTaggers = searchPath(pairsPath)
     for pair in rawPairs:
@@ -564,13 +564,13 @@ def setup_server(port, pairsPath, languageNamesDBPath):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Start Apertium APY')
     parser.add_argument('pairsPath', help='path to Apertium trunk')
-    parser.add_argument('-langNamesDB', '--languageNamesDBPath', help='path to localized language names sqlite database', default=None)
+    parser.add_argument('-l', '--langNames', help='path to localised language names sqlite database', default='unicode.db')
     parser.add_argument('-p', '--port', help='port to run server on', type=int, default=2737)
-    parser.add_argument('--sslCert', help='path to SSL Certificate', default=None)
-    parser.add_argument('--sslKey', help='path to SSL Key File', default=None)
+    parser.add_argument('-c', '--sslCert', help='path to SSL Certificate', default=None)
+    parser.add_argument('-k', '--sslKey', help='path to SSL Key File', default=None)
     args = parser.parse_args()
     
-    setup_server(args.port, args.pairsPath, args.languageNamesDBPath)
+    setup_server(args.port, args.pairsPath, args.langNames)
    
     logging.getLogger().setLevel(logging.INFO)
     enable_pretty_logging()
