@@ -118,19 +118,12 @@ class BaseHandler(tornado.web.RequestHandler):
         else:
             return False
             
-    def morphAnalysis(self, toAnalyze, dir, mode, formatting=None):
-        p1 = Popen(["echo", toAnalyze], stdout=PIPE)
+    def apertium(self, input, dir, mode, formatting=None):
+        p1 = Popen(['echo', input], stdout=PIPE)
         if formatting:
-            p2 = Popen(["apertium", "-d %s -f %s" % (dir, formatting), mode], stdin=p1.stdout, stdout=PIPE)
+            p2 = Popen(['apertium', '-d . -f %s' % formatting, mode], stdin=p1.stdout, stdout=PIPE, cwd=dir)
         else:
-            p2 = Popen(["apertium", "-d %s" % dir, mode], stdin=p1.stdout, stdout=PIPE)
-        p1.stdout.close()
-        output = p2.communicate()[0].decode('utf-8')
-        return output
-        
-    def morphGeneration(self, toGenerate, dir, mode):
-        p1 = Popen(["echo", toGenerate], stdout=PIPE)
-        p2 = Popen(["apertium", "-f none -d %s" % dir, mode], stdin=p1.stdout, stdout=PIPE)
+            p2 = Popen(['apertium', '-d .', mode], stdin=p1.stdout, stdout=PIPE, cwd=dir)
         p1.stdout.close()
         output = p2.communicate()[0].decode('utf-8')
         return output
@@ -138,16 +131,6 @@ class BaseHandler(tornado.web.RequestHandler):
     def bilingualTranslate(self, toTranslate, dir, mode):
         p1 = Popen(["echo", toTranslate], stdout=PIPE)
         p2 = Popen(["lt-proc", "-b", mode], stdin=p1.stdout, stdout=PIPE, cwd=dir)
-        p1.stdout.close()
-        output = p2.communicate()[0].decode('utf-8')
-        return output
-        
-    def tagger(self, toTag, dir, mode, formatting=None):
-        p1 = Popen(["echo", toTag], stdout=PIPE)
-        if formatting:
-            p2 = Popen(["apertium", "-d %s -f %s" % (dir, formatting), mode], stdin=p1.stdout, stdout=PIPE)
-        else:
-            p2 = Popen(["apertium", "-d %s" % dir, mode], stdin=p1.stdout, stdout=PIPE)
         p1.stdout.close()
         output = p2.communicate()[0].decode('utf-8')
         return output
@@ -329,14 +312,20 @@ class BaseHandler(tornado.web.RequestHandler):
         if isinstance(data, dict) or isinstance(data, list):
             data = escape.json_encode(data)
             
-        self.set_header("Content-Type", "application/json; charset=UTF-8")
         if self.callback:
+            self.set_header('Content-Type', 'application/javascript; charset=UTF-8')
             self._write_buffer.append(utf8('%s(%s)' % (self.callback, data)))
         else:
             self._write_buffer.append(utf8(data))
     
     def post(self):
         self.get()
+    
+    def removeLast(self, input, analyses):
+        if not input[-1] == '.':
+            return analyses[:-1]
+        else:
+            return analyses
 
 class ListHandler(BaseHandler):
     def get(self):
@@ -380,8 +369,8 @@ class AnalyzeHandler(BaseHandler):
         mode = self.get_argument('mode')
         toAnalyze = self.get_argument('q')
         if mode in self.analyzers:
-            analysis = self.morphAnalysis(toAnalyze, self.analyzers[mode][0], self.analyzers[mode][1])
-            lexicalUnits = re.findall(r'\^([^\$]*)\$([^\^]*)', analysis)
+            analysis = self.apertium(toAnalyze, self.analyzers[mode][0], self.analyzers[mode][1])
+            lexicalUnits = self.removeLast(toAnalyze, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
             self.sendResponse([(lexicalUnit[0], lexicalUnit[0].split('/')[0] + lexicalUnit[1]) for lexicalUnit in lexicalUnits])
         else:
             self.send_error(400)
@@ -395,7 +384,7 @@ class GenerateHandler(BaseHandler):
             lexicalUnits = re.findall(r'(\^[^\$]*\$[^\^]*)', toGenerate)
             if len(lexicalUnits) == 0:
                 lexicalUnits = ['^%s$' % toGenerate]
-            generated = self.morphGeneration('[SEP]'.join(lexicalUnits), self.generators[mode][0], self.generators[mode][1])
+            generated = self.removeLast(toGenerate, self.apertium('[SEP]'.join(lexicalUnits), self.generators[mode][0], self.generators[mode][1]))
             self.sendResponse([(generation, lexicalUnits[index]) for (index, generation) in enumerate(generated.split('[SEP]'))])
         else:
             self.send_error(400)
@@ -439,12 +428,6 @@ class PerWordHandler(BaseHandler):
                 return analysis[:analysis.index('<')]
             else:
                 return analysis
-                
-        def removeLast(input, analyses):
-            if not input[-1] == '.':
-                return analyses[:-1]
-            else:
-                return analyses
         
         outputs = {}
         morph_lexicalUnits = None
@@ -454,8 +437,8 @@ class PerWordHandler(BaseHandler):
         if 'morph' in modes or 'biltrans' in modes:
             if lang in self.analyzers:
                 modeInfo = self.analyzers[lang]
-                analysis = self.morphAnalysis(query, modeInfo[0], modeInfo[1])
-                morph_lexicalUnits = removeLast(query, re.findall(lexicalUnitRE, analysis))
+                analysis = self.apertium(query, modeInfo[0], modeInfo[1])
+                morph_lexicalUnits = self.removeLast(query, re.findall(lexicalUnitRE, analysis))
                 outputs['morph'] = [lexicalUnit.split('/')[1:] for lexicalUnit in morph_lexicalUnits]
             else:
                 self.send_error(400)
@@ -464,8 +447,8 @@ class PerWordHandler(BaseHandler):
         if 'tagger' in modes or 'disambig' in modes or 'translate' in modes:
             if lang in self.taggers:
                 modeInfo = self.taggers[lang]
-                analysis = self.tagger(query, modeInfo[0], modeInfo[1])
-                tagger_lexicalUnits = removeLast(query, re.findall(lexicalUnitRE, analysis))
+                analysis = self.apertium(query, modeInfo[0], modeInfo[1])
+                tagger_lexicalUnits = self.removeLast(query, re.findall(lexicalUnitRE, analysis))
                 outputs['tagger'] = [lexicalUnit.split('/')[1:] if '/' in lexicalUnit else lexicalUnit for lexicalUnit in tagger_lexicalUnits]
             else:
                 self.send_error(400)
@@ -505,8 +488,18 @@ class PerWordHandler(BaseHandler):
             for mode in modes:
                 unitToReturn[mode] = outputs[mode][index]
             toReturn.append(unitToReturn)
-
-        self.sendResponse(toReturn)
+            
+        if self.get_argument('pos', default=None):
+            requestedPos = int(self.get_argument('pos')) - 1
+            currentPos = 0
+            for unit in toReturn:
+                input = unit['input']
+                currentPos += len(input.split(' '))
+                if requestedPos < currentPos:
+                    self.sendResponse(unit)
+                    return
+        else:
+            self.sendResponse(toReturn)
             
 class GetLocaleHandler(BaseHandler):
     def get(self): 
