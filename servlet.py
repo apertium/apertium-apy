@@ -427,8 +427,12 @@ class ListLanguageNamesHandler(BaseHandler):
 class PerWordHandler(BaseHandler):
     def get(self):
         lang = self.get_argument('lang')
-        modes = self.get_argument('modes').split(' ')
+        modes = set(self.get_argument('modes').split(' '))
         query = self.get_argument('q')
+        
+        if not modes <= {'morph', 'biltrans', 'tagger', 'disambig', 'translate'}:
+            self.send_error(400)
+            return
         
         def stripTags(analysis):
             if '<' in analysis:
@@ -442,105 +446,65 @@ class PerWordHandler(BaseHandler):
             else:
                 return analyses
         
+        outputs = {}
+        morph_lexicalUnits = None
+        tagger_lexicalUnits = None
+        lexicalUnitRE = r'\^([^\$]*)\$'
+        
+        if 'morph' in modes or 'biltrans' in modes:
+            if lang in self.analyzers:
+                modeInfo = self.analyzers[lang]
+                analysis = self.morphAnalysis(query, modeInfo[0], modeInfo[1])
+                morph_lexicalUnits = removeLast(query, re.findall(lexicalUnitRE, analysis))
+                outputs['morph'] = [lexicalUnit.split('/')[1:] for lexicalUnit in morph_lexicalUnits]
+            else:
+                self.send_error(400)
+                return
+                
+        if 'tagger' in modes or 'disambig' in modes or 'translate' in modes:
+            if lang in self.taggers:
+                modeInfo = self.taggers[lang]
+                analysis = self.tagger(query, modeInfo[0], modeInfo[1])
+                tagger_lexicalUnits = removeLast(query, re.findall(lexicalUnitRE, analysis))
+                outputs['tagger'] = [lexicalUnit.split('/')[1:] if '/' in lexicalUnit else lexicalUnit for lexicalUnit in tagger_lexicalUnits]
+            else:
+                self.send_error(400)
+                return
+                
+        if 'biltrans' in modes:
+            if morph_lexicalUnits:
+                outputs['biltrans'] = []
+                for lexicalUnit in morph_lexicalUnits:
+                    splitUnit = lexicalUnit.split('/')
+                    forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
+                    rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
+                    translations = re.findall(lexicalUnitRE, rawTranslations)
+                    outputs['biltrans'].append(list(map(lambda x: '/'.join(x.split('/')[1:]), translations)))
+            else:
+                self.send_error(400)
+                return
+                
+        if 'translate' in modes:
+            if tagger_lexicalUnits:
+                outputs['translate'] = []
+                for lexicalUnit in tagger_lexicalUnits:
+                    splitUnit = lexicalUnit.split('/')
+                    forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
+                    rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
+                    translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
+                    outputs['translate'].append(list(map(lambda x: '/'.join(x.split('/')[1:]), translations)))
+            else:
+                self.send_error(400)
+                return
+                
         toReturn = []
         
-        if len(modes) == 1:
-            mode = modes[0]
-            if mode == 'morph':
-                if lang in self.analyzers:
-                    modeInfo = self.analyzers[lang]
-                    analysis = self.morphAnalysis(query, modeInfo[0], modeInfo[1])
-                    lexicalUnits = removeLast(query, re.findall(r'\^([^\$]*)\$', analysis))
-                    for lexicalUnit in lexicalUnits:
-                        splitUnit = lexicalUnit.split('/')
-                        toReturn.append({'input': stripTags(splitUnit[0]), 'analyses': splitUnit[1:]})
-                else:
-                    self.send_error(400)
-                    
-            elif mode == 'tagger' or mode == 'disambig':
-                if lang in self.taggers:
-                    modeInfo = self.taggers[lang]
-                    analysis = self.tagger(query, modeInfo[0], modeInfo[1])
-                    lexicalUnits = removeLast(query, re.findall(r'\^([^\$]*)\$', analysis))
-                    for lexicalUnit in lexicalUnits:
-                        splitUnit = lexicalUnit.split('/')
-                        forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
-                        toReturn.append({'input': stripTags(splitUnit[0]), 'analyses': forms})
-                else:
-                    self.send_error(400)
-            
-            elif mode == 'biltrans':
-                if lang in self.analyzers:
-                    modeInfo = self.analyzers[lang]
-                    analysis = self.morphAnalysis(query, modeInfo[0], modeInfo[1])
-                    lexicalUnits = removeLast(query, re.findall(r'\^([^\$]*)\$', analysis))
-                    for lexicalUnit in lexicalUnits:
-                        splitUnit = lexicalUnit.split('/')
-                        forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
-                        rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
-                        translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
-                        toReturn.append({'input': stripTags(splitUnit[0]), 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
-                else:
-                    self.send_error(400)
-                    
-            elif mode == 'translate':
-                if lang in self.taggers:
-                    modeInfo = self.taggers[lang]
-                    analysis = self.tagger(query, modeInfo[0], modeInfo[1])
-                    lexicalUnits = removeLast(query, re.findall(r'\^([^\$]*)\$', analysis))
-                    for lexicalUnit in lexicalUnits:
-                        splitUnit = lexicalUnit.split('/')
-                        forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
-                        rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
-                        translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
-                        toReturn.append({'input': stripTags(splitUnit[0]), 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
-                else:
-                    self.send_error(400)
-
-        else:
-            if set(modes) == set(['biltrans', 'morph']):
-                if lang in self.analyzers:
-                    modeInfo = self.analyzers[lang]
-                    analysis = self.morphAnalysis(query, modeInfo[0], modeInfo[1])
-                    lexicalUnits = removeLast(query, re.findall(r'\^([^\$]*)\$', analysis))
-                    for lexicalUnit in lexicalUnits:
-                        splitUnit = lexicalUnit.split('/')
-                        forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
-                        rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
-                        translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
-                        toReturn.append({'input': stripTags(splitUnit[0]), 'analyses': forms, 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
-                else:
-                    self.send_error(400)
-                    
-            elif set(modes) == set(['translate', 'tagger']) or set(modes) == set(['translate', 'disambig']):
-                if lang in self.taggers:
-                    modeInfo = self.taggers[lang]
-                    analysis = self.tagger(query, modeInfo[0], modeInfo[1])
-                    lexicalUnits = removeLast(query, re.findall(r'\^([^\$]*)\$', analysis))
-                    for lexicalUnit in lexicalUnits:
-                        splitUnit = lexicalUnit.split('/')
-                        forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
-                        rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
-                        translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
-                        toReturn.append({'input': stripTags(splitUnit[0]), 'analyses': forms, 'translations': list(map(lambda x: '/'.join(x.split('/')[1:]), translations))})
-                else:
-                    self.send_error(400)
-                    
-            elif set(modes) == set(['morph', 'tagger']) or set(modes) == set(['morph', 'disambig']):
-                if lang in self.taggers and lang in self.analyzers:
-                    analyzerModeInfo = self.analyzers[lang]
-                    taggerModeInfo = self.taggers[lang]
-                    ambiguousAnalysis = self.morphAnalysis(query, analyzerModeInfo[0], analyzerModeInfo[1], formatting = 'none')
-                    ambiguousLexicalUnits = removeLast(query, re.findall(r'\^([^\$]*)\$', ambiguousAnalysis))
-                    disambiguousAnalysis = self.tagger(query, taggerModeInfo[0], taggerModeInfo[1])
-                    disambiguousLexicalUnits = removeLast(query, re.findall(r'\^([^\$]*)\$', disambiguousAnalysis))
-                    for (ambiguousLexicalUnit, disambiguousLexicalUnit) in zip(ambiguousLexicalUnits, disambiguousLexicalUnits):
-                        ambiguousSplitUnit, disambiguousSplitUnit = ambiguousLexicalUnit.split('/'), disambiguousLexicalUnit.split('/')
-                        ambiguousForms = ambiguousSplitUnit[1:] if len(ambiguousSplitUnit) > 1 else ambiguousSplitUnit
-                        disambiguatedForms = disambiguousSplitUnit[1:] if len(disambiguousSplitUnit) > 1 else disambiguousSplitUnit
-                        toReturn.append({'input': stripTags(ambiguousSplitUnit[0]), 'ambiguousAnalyses': ambiguousForms, 'disambiguatedAnalyses': disambiguatedForms})
-                else:
-                    self.send_error(400)
+        for (index, lexicalUnit) in enumerate(tagger_lexicalUnits if tagger_lexicalUnits else morph_lexicalUnits):
+            unitToReturn = {}
+            unitToReturn['input'] = stripTags(lexicalUnit.split('/')[0])
+            for mode in modes:
+                unitToReturn[mode] = outputs[mode][index]
+            toReturn.append(unitToReturn)
 
         self.sendResponse(toReturn)
             
