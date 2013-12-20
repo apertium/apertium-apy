@@ -435,6 +435,12 @@ class PerWordHandler(BaseHandler):
                 return analysis[:analysis.index('<')]
             else:
                 return analysis
+                
+        def removeLast(input, analyses):
+            if not input[-1] == '.':
+                return analyses[:-1]
+            else:
+                return analyses
         
         toReturn = []
         
@@ -444,7 +450,7 @@ class PerWordHandler(BaseHandler):
                 if lang in self.analyzers:
                     modeInfo = self.analyzers[lang]
                     analysis = self.morphAnalysis(query, modeInfo[0], modeInfo[1])
-                    lexicalUnits = re.findall(r'\^([^\$]*)\$', analysis)
+                    lexicalUnits = removeLast(query, re.findall(r'\^([^\$]*)\$', analysis))
                     for lexicalUnit in lexicalUnits:
                         splitUnit = lexicalUnit.split('/')
                         toReturn.append({'input': stripTags(splitUnit[0]), 'analyses': splitUnit[1:]})
@@ -455,7 +461,7 @@ class PerWordHandler(BaseHandler):
                 if lang in self.taggers:
                     modeInfo = self.taggers[lang]
                     analysis = self.tagger(query, modeInfo[0], modeInfo[1])
-                    lexicalUnits = re.findall(r'\^([^\$]*)\$', analysis)
+                    lexicalUnits = removeLast(query, re.findall(r'\^([^\$]*)\$', analysis))
                     for lexicalUnit in lexicalUnits:
                         splitUnit = lexicalUnit.split('/')
                         forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
@@ -467,7 +473,7 @@ class PerWordHandler(BaseHandler):
                 if lang in self.analyzers:
                     modeInfo = self.analyzers[lang]
                     analysis = self.morphAnalysis(query, modeInfo[0], modeInfo[1])
-                    lexicalUnits = re.findall(r'\^([^\$]*)\$', analysis)
+                    lexicalUnits = removeLast(query, re.findall(r'\^([^\$]*)\$', analysis))
                     for lexicalUnit in lexicalUnits:
                         splitUnit = lexicalUnit.split('/')
                         forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
@@ -481,7 +487,7 @@ class PerWordHandler(BaseHandler):
                 if lang in self.taggers:
                     modeInfo = self.taggers[lang]
                     analysis = self.tagger(query, modeInfo[0], modeInfo[1])
-                    lexicalUnits = re.findall(r'\^([^\$]*)\$', analysis)
+                    lexicalUnits = removeLast(query, re.findall(r'\^([^\$]*)\$', analysis))
                     for lexicalUnit in lexicalUnits:
                         splitUnit = lexicalUnit.split('/')
                         forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
@@ -496,7 +502,7 @@ class PerWordHandler(BaseHandler):
                 if lang in self.analyzers:
                     modeInfo = self.analyzers[lang]
                     analysis = self.morphAnalysis(query, modeInfo[0], modeInfo[1])
-                    lexicalUnits = re.findall(r'\^([^\$]*)\$', analysis)
+                    lexicalUnits = removeLast(query, re.findall(r'\^([^\$]*)\$', analysis))
                     for lexicalUnit in lexicalUnits:
                         splitUnit = lexicalUnit.split('/')
                         forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
@@ -510,7 +516,7 @@ class PerWordHandler(BaseHandler):
                 if lang in self.taggers:
                     modeInfo = self.taggers[lang]
                     analysis = self.tagger(query, modeInfo[0], modeInfo[1])
-                    lexicalUnits = re.findall(r'\^([^\$]*)\$', analysis)
+                    lexicalUnits = removeLast(query, re.findall(r'\^([^\$]*)\$', analysis))
                     for lexicalUnit in lexicalUnits:
                         splitUnit = lexicalUnit.split('/')
                         forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
@@ -525,9 +531,9 @@ class PerWordHandler(BaseHandler):
                     analyzerModeInfo = self.analyzers[lang]
                     taggerModeInfo = self.taggers[lang]
                     ambiguousAnalysis = self.morphAnalysis(query, analyzerModeInfo[0], analyzerModeInfo[1], formatting = 'none')
-                    ambiguousLexicalUnits = re.findall(r'\^([^\$]*)\$', ambiguousAnalysis)
+                    ambiguousLexicalUnits = removeLast(query, re.findall(r'\^([^\$]*)\$', ambiguousAnalysis))
                     disambiguousAnalysis = self.tagger(query, taggerModeInfo[0], taggerModeInfo[1])
-                    disambiguousLexicalUnits = re.findall(r'\^([^\$]*)\$', disambiguousAnalysis)
+                    disambiguousLexicalUnits = removeLast(query, re.findall(r'\^([^\$]*)\$', disambiguousAnalysis))
                     for (ambiguousLexicalUnit, disambiguousLexicalUnit) in zip(ambiguousLexicalUnits, disambiguousLexicalUnits):
                         ambiguousSplitUnit, disambiguousSplitUnit = ambiguousLexicalUnit.split('/'), disambiguousLexicalUnit.split('/')
                         ambiguousForms = ambiguousSplitUnit[1:] if len(ambiguousSplitUnit) > 1 else ambiguousSplitUnit
@@ -583,11 +589,13 @@ if __name__ == '__main__':
     ])
     
     if args.sslCert and args.sslKey:
-        http_server = tornado.httpserver.HTTPServer(applicaton, ssl_options = {
+        http_server = tornado.httpserver.HTTPServer(application, ssl_options = {
             'certfile': args.sslCert,
             'keyfile': args.sslKey,
         })
+        print('Serving at https://localhost:%s' % args.port)
     else:
         http_server = tornado.httpserver.HTTPServer(application)
+        print('Serving at http://localhost:%s' % args.port)
     http_server.listen(args.port)
     tornado.ioloop.IOLoop.instance().start()
