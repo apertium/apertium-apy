@@ -4,6 +4,7 @@
 import sys, threading, os, re, ssl, argparse, sqlite3, logging
 from lxml import etree
 from subprocess import Popen, PIPE
+from multiprocessing import Pool
 
 import tornado, tornado.web, tornado.httpserver
 from tornado.options import enable_pretty_logging
@@ -83,6 +84,9 @@ def getLocalizedLanguages(locale, dbPath, languages = []):
         print('failed to locate language name DB')
     return output
 
+def apertium(*args, **kwargs):
+    return BaseHandler.apertium(None, *args, **kwargs)
+    
 class BaseHandler(tornado.web.RequestHandler):
     pairs = {}
     analyzers = {}
@@ -90,6 +94,7 @@ class BaseHandler(tornado.web.RequestHandler):
     taggers = {}
     pipelines = {}
     callback = None
+    timeout = None
 
     # The lock is needed so we don't let two threads write
     # simultaneously to a pipeline; then the first thread to read
@@ -117,7 +122,7 @@ class BaseHandler(tornado.web.RequestHandler):
             return output
         else:
             return False
-            
+
     def apertium(self, input, dir, mode, formatting=None):
         p1 = Popen(['echo', input], stdout=PIPE)
         if formatting:
@@ -318,8 +323,10 @@ class BaseHandler(tornado.web.RequestHandler):
         else:
             self._write_buffer.append(utf8(data))
     
+    @tornado.web.asynchronous
     def post(self):
         self.get()
+        self.finish()
     
     def removeLast(self, input, analyses):
         if not input[-1] == '.':
@@ -348,7 +355,7 @@ class ListHandler(BaseHandler):
         else:
             self.send_error(400)
 
-class TranslateHandler(BaseHandler):
+class TranslateHandler(BaseHandler): #TODO: Make Async
     def get(self):
         (l1, l2) = self.get_argument('langpair').split('|')
         query = self.get_argument('q')
@@ -363,29 +370,43 @@ class TranslateHandler(BaseHandler):
                 "responseDetails": None,
                 "responseStatus": 200}
             self.sendResponse(toReturn)
-        
+    
 class AnalyzeHandler(BaseHandler):
+    @tornado.web.asynchronous
     def get(self):
         mode = self.get_argument('mode')
         toAnalyze = self.get_argument('q')
-        if mode in self.analyzers:
-            analysis = self.apertium(toAnalyze, self.analyzers[mode][0], self.analyzers[mode][1])
+        
+        def handleAnalysis(analysis):
             lexicalUnits = self.removeLast(toAnalyze, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
             self.sendResponse([(lexicalUnit[0], lexicalUnit[0].split('/')[0] + lexicalUnit[1]) for lexicalUnit in lexicalUnits])
+            self.finish()
+        
+        if mode in self.analyzers:
+            with Pool(processes = 1) as pool:
+                result = pool.apply_async(apertium, [toAnalyze, self.analyzers[mode][0], self.analyzers[mode][1]], callback = handleAnalysis)
+                analysis = result.get(timeout = self.timeout)
         else:
             self.send_error(400)
-    
+
 class GenerateHandler(BaseHandler):
+    @tornado.web.asynchronous
     def get(self):
         mode = self.get_argument('mode')
         toGenerate = self.get_argument('q')
+        
+        def handleGeneration(generated):
+            generated = self.removeLast(toGenerate, generated)
+            self.sendResponse([(generation, lexicalUnits[index]) for (index, generation) in enumerate(generated.split('[SEP]'))])
+            self.finish()
+            
         if mode in self.generators:
-            status = 200
             lexicalUnits = re.findall(r'(\^[^\$]*\$[^\^]*)', toGenerate)
             if len(lexicalUnits) == 0:
                 lexicalUnits = ['^%s$' % toGenerate]
-            generated = self.removeLast(toGenerate, self.apertium('[SEP]'.join(lexicalUnits), self.generators[mode][0], self.generators[mode][1]))
-            self.sendResponse([(generation, lexicalUnits[index]) for (index, generation) in enumerate(generated.split('[SEP]'))])
+            with Pool(processes = 1) as pool:
+                result = pool.apply_async(apertium, ('[SEP]'.join(lexicalUnits), self.generators[mode][0], self.generators[mode][1]), {'formatting': 'none'}, callback = handleGeneration)
+                generated = result.get(timeout = self.timeout)
         else:
             self.send_error(400)
         
@@ -413,7 +434,7 @@ class ListLanguageNamesHandler(BaseHandler):
         else:
             self.sendResponse({})
             
-class PerWordHandler(BaseHandler):
+class PerWordHandler(BaseHandler): #TODO: Make Async
     def get(self):
         lang = self.get_argument('lang')
         modes = set(self.get_argument('modes').split(' '))
@@ -506,9 +527,10 @@ class GetLocaleHandler(BaseHandler):
         locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
         self.sendResponse(locales)
 
-def setup_server(port, pairsPath, langnames):
+def setupHandler(port, pairsPath, langnames, timeout):
     Handler = BaseHandler
     Handler.langnames = langnames
+    Handler.timeout = timeout
 
     rawPairs, rawAnalyzers, rawGenerators, rawTaggers = searchPath(pairsPath)
     for pair in rawPairs:
@@ -528,9 +550,10 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--port', help='port to run server on', type=int, default=2737)
     parser.add_argument('-c', '--sslCert', help='path to SSL Certificate', default=None)
     parser.add_argument('-k', '--sslKey', help='path to SSL Key File', default=None)
+    parser.add_argument('-t', '--timeout', help='timeout for requests', type=int, default=10)
     args = parser.parse_args()
     
-    setup_server(args.port, args.pairsPath, args.langNames)
+    setupHandler(args.port, args.pairsPath, args.langNames, args.timeout)
    
     logging.getLogger().setLevel(logging.INFO)
     enable_pretty_logging()
