@@ -316,6 +316,7 @@ class BaseHandler(tornado.web.RequestHandler):
     def sendResponse(self, data):
         if isinstance(data, dict) or isinstance(data, list):
             data = escape.json_encode(data)
+            self.set_header('Content-Type', 'application/json; charset=UTF-8')
             
         if self.callback:
             self.set_header('Content-Type', 'application/javascript; charset=UTF-8')
@@ -461,6 +462,7 @@ class PerWordHandler(BaseHandler): #TODO: Make Async
                 analysis = self.apertium(query, modeInfo[0], modeInfo[1])
                 morph_lexicalUnits = self.removeLast(query, re.findall(lexicalUnitRE, analysis))
                 outputs['morph'] = [lexicalUnit.split('/')[1:] for lexicalUnit in morph_lexicalUnits]
+                outputs['morph_inputs'] = [stripTags(lexicalUnit.split('/')[0]) for lexicalUnit in morph_lexicalUnits]
             else:
                 self.send_error(400)
                 return
@@ -471,6 +473,7 @@ class PerWordHandler(BaseHandler): #TODO: Make Async
                 analysis = self.apertium(query, modeInfo[0], modeInfo[1])
                 tagger_lexicalUnits = self.removeLast(query, re.findall(lexicalUnitRE, analysis))
                 outputs['tagger'] = [lexicalUnit.split('/')[1:] if '/' in lexicalUnit else lexicalUnit for lexicalUnit in tagger_lexicalUnits]
+                outputs['tagger_inputs'] = [stripTags(lexicalUnit.split('/')[0]) for lexicalUnit in tagger_lexicalUnits]
             else:
                 self.send_error(400)
                 return
@@ -484,6 +487,7 @@ class PerWordHandler(BaseHandler): #TODO: Make Async
                     rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
                     translations = re.findall(lexicalUnitRE, rawTranslations)
                     outputs['biltrans'].append(list(map(lambda x: '/'.join(x.split('/')[1:]), translations)))
+                    outputs['translate_inputs'] = outputs['morph_inputs']
             else:
                 self.send_error(400)
                 return
@@ -495,12 +499,24 @@ class PerWordHandler(BaseHandler): #TODO: Make Async
                     splitUnit = lexicalUnit.split('/')
                     forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
                     rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
-                    translations = re.findall(r'\^([^\$]*)\$', rawTranslations)
+                    translations = re.findall(lexicalUnitRE, rawTranslations)
                     outputs['translate'].append(list(map(lambda x: '/'.join(x.split('/')[1:]), translations)))
+                    outputs['translate_inputs'] = outputs['tagger_inputs']
             else:
                 self.send_error(400)
                 return
-                
+
+        '''toReturn = {}
+        for mode in modes:
+            toReturn[mode] = outputs[mode]
+        for mode in modes:
+            toReturn[mode] = {outputs[mode + '_inputs'][index]: output for (index, output) in enumerate(outputs[mode])}
+        for mode in modes:
+            toReturn[mode] = [(outputs[mode + '_inputs'][index], output) for (index, output) in enumerate(outputs[mode])]
+        for mode in modes:
+            toReturn[mode] = {'outputs': outputs[mode], 'inputs': outputs[mode + '_inputs']}
+        self.sendResponse(toReturn)'''
+        
         toReturn = []
         
         for (index, lexicalUnit) in enumerate(tagger_lexicalUnits if tagger_lexicalUnits else morph_lexicalUnits):
@@ -573,9 +589,9 @@ if __name__ == '__main__':
             'certfile': args.sslCert,
             'keyfile': args.sslKey,
         })
-        print('Serving at https://localhost:%s' % args.port)
+        logging.info('Serving at https://localhost:%s' % args.port)
     else:
         http_server = tornado.httpserver.HTTPServer(application)
-        print('Serving at http://localhost:%s' % args.port)
+        logging.info('Serving at http://localhost:%s' % args.port)
     http_server.listen(args.port)
     tornado.ioloop.IOLoop.instance().start()
