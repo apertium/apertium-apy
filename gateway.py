@@ -23,9 +23,15 @@ class roundRobinHandler(RequestHandler):
         http.fetch(server_port + path + "?" + query, self._on_download)
         
     def _on_download(self, response):
-        # assuming we don't need any headers
+        for (hname, hvalue) in response.headers.get_all():
+            self.set_header(hname, hvalue)
         self.set_status(response.code)
         self.write(response.body)
+        self.finish()
+    
+    @tornado.web.asynchronous
+    def post(self):
+        self.get()
         self.finish()
 
 class roundRobin:
