@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- indent-tabs-mode: t -*-
 
-import sys, threading, os, re, ssl, argparse, sqlite3, logging
+import sys, threading, os, re, ssl, argparse, logging
 from lxml import etree
 from subprocess import Popen, PIPE
 from multiprocessing import Pool
@@ -11,81 +11,8 @@ from tornado.options import enable_pretty_logging
 from tornado import escape
 from tornado.escape import utf8
 
-def searchPath(pairsPath):
-    # TODO: this doesn't get es-en_GB and such. If it's supposed
-    # to work on the SVN directories (as opposed to installed
-    # pairs), it should parse modes.xml and grab all and only
-    # modes that have install="yes"
-    REmodeFile = re.compile("([a-z]{2,3})-([a-z]{2,3})\.mode")
-    REmorphFile = re.compile("(([a-z]{2,3}(-[a-z]{2,3})?)-(an)?mor(ph)?)\.mode")
-    REgenerFile = re.compile("(([a-z]{2,3}(-[a-z]{2,3})?)-gener[A-z]*)\.mode")
-    REtaggerFile = re.compile("(([a-z]{2,3}(-[a-z]{2,3})?)-tagger)\.mode")
-
-    pairs = []
-    analyzers = []
-    generators = []
-    taggers = []
-    
-    contents = os.listdir(pairsPath)
-    for content in contents:
-        curContent = os.path.join(pairsPath, content)
-        if os.path.isdir(curContent):
-            curMode = os.path.join(curContent, "modes")
-            if os.path.isdir(curMode):
-                modeFiles = os.listdir(curMode)
-                for modeFile in modeFiles:
-                    if REmodeFile.match(modeFile):
-                        l1 = REmodeFile.sub("\g<1>", modeFile)
-                        l2 = REmodeFile.sub("\g<2>", modeFile)
-                        #pairTuple = (os.path.join(curMode, modeFile), l1, l2)
-                        pairTuple = (curContent, l1, l2)
-                        pairs.append(pairTuple)
-                    elif REmorphFile.match(modeFile):
-                        mode = REmorphFile.sub("\g<1>", modeFile) #en-es-anmorph
-                        lang = REmorphFile.sub("\g<2>", modeFile) #en-es
-                        analyzerTuple = (curContent, mode, lang)
-                        analyzers.append(analyzerTuple)
-                    elif REgenerFile.match(modeFile):
-                        mode = REgenerFile.sub("\g<1>", modeFile) #en-es-generador
-                        lang = REgenerFile.sub("\g<2>", modeFile) #en-es
-                        generatorTuple = (curContent, mode, lang)
-                        generators.append(generatorTuple)
-                    elif REtaggerFile.match(modeFile):
-                        mode = REtaggerFile.sub("\g<1>", modeFile) #en-es-tagger
-                        lang = REtaggerFile.sub("\g<2>", modeFile) #en-es
-                        taggerTuple = (curContent, mode, lang)
-                        taggers.append(taggerTuple)
-                        
-    return pairs, analyzers, generators, taggers
-
-def getLocalizedLanguages(locale, dbPath, languages = []):
-    iso639Codes = {"abk":"ab","aar":"aa","afr":"af","aka":"ak","sqi":"sq","amh":"am","ara":"ar","arg":"an","hye":"hy","asm":"as","ava":"av","ave":"ae","aym":"ay","aze":"az","bam":"bm","bak":"ba","eus":"eu","bel":"be","ben":"bn","bih":"bh","bis":"bi","bos":"bs","bre":"br","bul":"bg","mya":"my","cat":"ca","cha":"ch","che":"ce","nya":"ny","zho":"zh","chv":"cv","cor":"kw","cos":"co","cre":"cr","hrv":"hr","ces":"cs","dan":"da","div":"dv","nld":"nl","dzo":"dz","eng":"en","epo":"eo","est":"et","ewe":"ee","fao":"fo","fij":"fj","fin":"fi","fra":"fr","ful":"ff","glg":"gl","kat":"ka","deu":"de","ell":"el","grn":"gn","guj":"gu","hat":"ht","hau":"ha","heb":"he","her":"hz","hin":"hi","hmo":"ho","hun":"hu","ina":"ia","ind":"id","ile":"ie","gle":"ga","ibo":"ig","ipk":"ik","ido":"io","isl":"is","ita":"it","iku":"iu","jpn":"ja","jav":"jv","kal":"kl","kan":"kn","kau":"kr","kas":"ks","kaz":"kk","khm":"km","kik":"ki","kin":"rw","kir":"ky","kom":"kv","kon":"kg","kor":"ko","kur":"ku","kua":"kj","lat":"la","ltz":"lb","lug":"lg","lim":"li","lin":"ln","lao":"lo","lit":"lt","lub":"lu","lav":"lv","glv":"gv","mkd":"mk","mlg":"mg","msa":"ms","mal":"ml","mlt":"mt","mri":"mi","mar":"mr","mah":"mh","mon":"mn","nau":"na","nav":"nv","nob":"nb","nde":"nd","nep":"ne","ndo":"ng","nno":"nn","nor":"no","iii":"ii","nbl":"nr","oci":"oc","oji":"oj","chu":"cu","orm":"om","ori":"or","oss":"os","pan":"pa","pli":"pi","fas":"fa","pol":"pl","pus":"ps","por":"pt","que":"qu","roh":"rm","run":"rn","ron":"ro","rus":"ru","san":"sa","srd":"sc","snd":"sd","sme":"se","smo":"sm","sag":"sg","srp":"sr","gla":"gd","sna":"sn","sin":"si","slk":"sk","slv":"sl","som":"so","sot":"st","azb":"az","spa":"es","sun":"su","swa":"sw","ssw":"ss","swe":"sv","tam":"ta","tel":"te","tgk":"tg","tha":"th","tir":"ti","bod":"bo","tuk":"tk","tgl":"tl","tsn":"tn","ton":"to","tur":"tr","tso":"ts","tat":"tt","twi":"tw","tah":"ty","uig":"ug","ukr":"uk","urd":"ur","uzb":"uz","ven":"ve","vie":"vi","vol":"vo","wln":"wa","cym":"cy","wol":"wo","fry":"fy","xho":"xh","yid":"yi","yor":"yo","zha":"za","zul":"zu"}
-    if locale in iso639Codes:
-        locale = iso639Codes[locale]
-    languages = list(set(languages))
-    
-    convertedLanguages = {}
-    for language in languages:
-        convertedLanguages[iso639Codes[language] if language in iso639Codes else language] = language
-    
-    output = {}
-    if os.path.exists(dbPath):
-        conn = sqlite3.connect(dbPath)
-        c = conn.cursor()
-        languageResults = c.execute('select * from languageNames where lg=?', (locale, )).fetchall()
-        if languages:
-            for languageResult in languageResults:
-                if languageResult[2] in convertedLanguages:
-                    output[convertedLanguages[languageResult[2]]] = languageResult[3]
-        else:
-            for languageResult in languageResults:
-                output[languageResult[2]] = languageResult[3]
-    else:
-        print('failed to locate language name DB')
-    return output
-
-def apertium(*args, **kwargs):
-    return BaseHandler.apertium(None, *args, **kwargs)
+from modeSearch import searchPath
+from tools import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord
     
 class BaseHandler(tornado.web.RequestHandler):
     pairs = {}
@@ -122,23 +49,6 @@ class BaseHandler(tornado.web.RequestHandler):
             return output
         else:
             return False
-
-    def apertium(self, input, dir, mode, formatting=None):
-        p1 = Popen(['echo', input], stdout=PIPE)
-        if formatting:
-            p2 = Popen(['apertium', '-d . -f %s' % formatting, mode], stdin=p1.stdout, stdout=PIPE, cwd=dir)
-        else:
-            p2 = Popen(['apertium', '-d .', mode], stdin=p1.stdout, stdout=PIPE, cwd=dir)
-        p1.stdout.close()
-        output = p2.communicate()[0].decode('utf-8')
-        return output
-        
-    def bilingualTranslate(self, toTranslate, dir, mode):
-        p1 = Popen(["echo", toTranslate], stdout=PIPE)
-        p2 = Popen(["lt-proc", "-b", mode], stdin=p1.stdout, stdout=PIPE, cwd=dir)
-        p1.stdout.close()
-        output = p2.communicate()[0].decode('utf-8')
-        return output
 
     def getModeFileLine(self, modeFile):
         modeFileContents = open(modeFile, 'r').readlines()
@@ -323,19 +233,15 @@ class BaseHandler(tornado.web.RequestHandler):
             self._write_buffer.append(utf8('%s(%s)' % (self.callback, data)))
         else:
             self._write_buffer.append(utf8(data))
+        self.finish()
     
     @tornado.web.asynchronous
     def post(self):
         self.get()
         self.finish()
-    
-    def removeLast(self, input, analyses):
-        if not input[-1] == '.':
-            return analyses[:-1]
-        else:
-            return analyses
 
 class ListHandler(BaseHandler):
+    @tornado.web.asynchronous
     def get(self):
         query = self.get_arguments('q')
         if query:
@@ -379,9 +285,8 @@ class AnalyzeHandler(BaseHandler):
         toAnalyze = self.get_argument('q')
         
         def handleAnalysis(analysis):
-            lexicalUnits = self.removeLast(toAnalyze, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
+            lexicalUnits = removeLast(toAnalyze, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
             self.sendResponse([(lexicalUnit[0], lexicalUnit[0].split('/')[0] + lexicalUnit[1]) for lexicalUnit in lexicalUnits])
-            self.finish()
         
         if mode in self.analyzers:
             with Pool(processes = 1) as pool:
@@ -397,9 +302,8 @@ class GenerateHandler(BaseHandler):
         toGenerate = self.get_argument('q')
         
         def handleGeneration(generated):
-            generated = self.removeLast(toGenerate, generated)
+            generated = removeLast(toGenerate, generated)
             self.sendResponse([(generation, lexicalUnits[index]) for (index, generation) in enumerate(generated.split('[SEP]'))])
-            self.finish()
             
         if mode in self.generators:
             lexicalUnits = re.findall(r'(\^[^\$]*\$[^\^]*)', toGenerate)
@@ -412,6 +316,7 @@ class GenerateHandler(BaseHandler):
             self.send_error(400)
         
 class ListLanguageNamesHandler(BaseHandler):
+    @tornado.web.asynchronous
     def get(self):
         localeArg = self.get_arguments('locale')
         languagesArg = self.get_arguments('languages')
@@ -435,7 +340,8 @@ class ListLanguageNamesHandler(BaseHandler):
         else:
             self.sendResponse({})
             
-class PerWordHandler(BaseHandler): #TODO: Make Async
+class PerWordHandler(BaseHandler):
+    @tornado.web.asynchronous
     def get(self):
         lang = self.get_argument('lang')
         modes = set(self.get_argument('modes').split(' '))
@@ -445,100 +351,51 @@ class PerWordHandler(BaseHandler): #TODO: Make Async
             self.send_error(400)
             return
         
-        def stripTags(analysis):
-            if '<' in analysis:
-                return analysis[:analysis.index('<')]
-            else:
-                return analysis
-        
-        outputs = {}
-        morph_lexicalUnits = None
-        tagger_lexicalUnits = None
-        lexicalUnitRE = r'\^([^\$]*)\$'
-        
-        if 'morph' in modes or 'biltrans' in modes:
-            if lang in self.analyzers:
-                modeInfo = self.analyzers[lang]
-                analysis = self.apertium(query, modeInfo[0], modeInfo[1])
-                morph_lexicalUnits = self.removeLast(query, re.findall(lexicalUnitRE, analysis))
-                outputs['morph'] = [lexicalUnit.split('/')[1:] for lexicalUnit in morph_lexicalUnits]
-                outputs['morph_inputs'] = [stripTags(lexicalUnit.split('/')[0]) for lexicalUnit in morph_lexicalUnits]
-            else:
-                self.send_error(400)
-                return
-                
-        if 'tagger' in modes or 'disambig' in modes or 'translate' in modes:
-            if lang in self.taggers:
-                modeInfo = self.taggers[lang]
-                analysis = self.apertium(query, modeInfo[0], modeInfo[1])
-                tagger_lexicalUnits = self.removeLast(query, re.findall(lexicalUnitRE, analysis))
-                outputs['tagger'] = [lexicalUnit.split('/')[1:] if '/' in lexicalUnit else lexicalUnit for lexicalUnit in tagger_lexicalUnits]
-                outputs['tagger_inputs'] = [stripTags(lexicalUnit.split('/')[0]) for lexicalUnit in tagger_lexicalUnits]
-            else:
-                self.send_error(400)
-                return
-                
-        if 'biltrans' in modes:
-            if morph_lexicalUnits:
-                outputs['biltrans'] = []
-                for lexicalUnit in morph_lexicalUnits:
-                    splitUnit = lexicalUnit.split('/')
-                    forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
-                    rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
-                    translations = re.findall(lexicalUnitRE, rawTranslations)
-                    outputs['biltrans'].append(list(map(lambda x: '/'.join(x.split('/')[1:]), translations)))
-                    outputs['translate_inputs'] = outputs['morph_inputs']
-            else:
-                self.send_error(400)
-                return
-                
-        if 'translate' in modes:
-            if tagger_lexicalUnits:
-                outputs['translate'] = []
-                for lexicalUnit in tagger_lexicalUnits:
-                    splitUnit = lexicalUnit.split('/')
-                    forms = splitUnit[1:] if len(splitUnit) > 1 else splitUnit
-                    rawTranslations = self.bilingualTranslate(''.join(['^%s$' % form for form in forms]), modeInfo[0], lang + '.autobil.bin')
-                    translations = re.findall(lexicalUnitRE, rawTranslations)
-                    outputs['translate'].append(list(map(lambda x: '/'.join(x.split('/')[1:]), translations)))
-                    outputs['translate_inputs'] = outputs['tagger_inputs']
-            else:
-                self.send_error(400)
-                return
-
-        '''toReturn = {}
-        for mode in modes:
-            toReturn[mode] = outputs[mode]
-        for mode in modes:
-            toReturn[mode] = {outputs[mode + '_inputs'][index]: output for (index, output) in enumerate(outputs[mode])}
-        for mode in modes:
-            toReturn[mode] = [(outputs[mode + '_inputs'][index], output) for (index, output) in enumerate(outputs[mode])]
-        for mode in modes:
-            toReturn[mode] = {'outputs': outputs[mode], 'inputs': outputs[mode + '_inputs']}
-        self.sendResponse(toReturn)'''
-        
-        toReturn = []
-        
-        for (index, lexicalUnit) in enumerate(tagger_lexicalUnits if tagger_lexicalUnits else morph_lexicalUnits):
-            unitToReturn = {}
-            unitToReturn['input'] = stripTags(lexicalUnit.split('/')[0])
+        def handleOutput(output):
+            '''toReturn = {}
             for mode in modes:
-                unitToReturn[mode] = outputs[mode][index]
-            toReturn.append(unitToReturn)
+                toReturn[mode] = outputs[mode]
+            for mode in modes:
+                toReturn[mode] = {outputs[mode + '_inputs'][index]: output for (index, output) in enumerate(outputs[mode])}
+            for mode in modes:
+                toReturn[mode] = [(outputs[mode + '_inputs'][index], output) for (index, output) in enumerate(outputs[mode])]
+            for mode in modes:
+                toReturn[mode] = {'outputs': outputs[mode], 'inputs': outputs[mode + '_inputs']}
+            self.sendResponse(toReturn)'''
             
-        if self.get_argument('pos', default=None):
-            requestedPos = int(self.get_argument('pos')) - 1
-            currentPos = 0
-            for unit in toReturn:
-                input = unit['input']
-                currentPos += len(input.split(' '))
-                if requestedPos < currentPos:
-                    self.sendResponse(unit)
-                    return
-        else:
-            self.sendResponse(toReturn)
+            if not output:
+                self.send_error(400)
+                return
+            else:
+                outputs, tagger_lexicalUnits, morph_lexicalUnits = output
+
+            toReturn = []
+            
+            for (index, lexicalUnit) in enumerate(tagger_lexicalUnits if tagger_lexicalUnits else morph_lexicalUnits):
+                unitToReturn = {}
+                unitToReturn['input'] = stripTags(lexicalUnit.split('/')[0])
+                for mode in modes:
+                    unitToReturn[mode] = outputs[mode][index]
+                toReturn.append(unitToReturn)
+                
+            if self.get_argument('pos', default=None):
+                requestedPos = int(self.get_argument('pos')) - 1
+                currentPos = 0
+                for unit in toReturn:
+                    input = unit['input']
+                    currentPos += len(input.split(' '))
+                    if requestedPos < currentPos:
+                        self.sendResponse(unit)
+                        return
+            else:
+                self.sendResponse(toReturn)
+
+        with Pool(processes = 1) as pool:
+            result = pool.apply_async(processPerWord, (self.analyzers, self.taggers, lang, modes, query), callback = handleOutput)
+            outputs = result.get(timeout = 10)
             
 class GetLocaleHandler(BaseHandler):
+    @tornado.web.asynchronous
     def get(self): 
         locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
         self.sendResponse(locales)
@@ -562,14 +419,15 @@ def setupHandler(port, pairsPath, langnames, timeout):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Start Apertium APY')
     parser.add_argument('pairsPath', help='path to Apertium trunk')
-    parser.add_argument('-l', '--langNames', help='path to localised language names sqlite database', default='unicode.db')
-    parser.add_argument('-p', '--port', help='port to run server on', type=int, default=2737)
-    parser.add_argument('-c', '--sslCert', help='path to SSL Certificate', default=None)
-    parser.add_argument('-k', '--sslKey', help='path to SSL Key File', default=None)
-    parser.add_argument('-t', '--timeout', help='timeout for requests', type=int, default=10)
+    parser.add_argument('-l', '--lang-names', help='path to localised language names sqlite database (default = unicode.db)', default='unicode.db')
+    parser.add_argument('-p', '--port', help='port to run server on (default = 2737)', type=int, default=2737)
+    parser.add_argument('-c', '--ssl-cert', help='path to SSL Certificate', default=None)
+    parser.add_argument('-k', '--ssl-key', help='path to SSL Key File', default=None)
+    parser.add_argument('-t', '--timeout', help='timeout for requests (default = 10)', type=int, default=10)
+    parser.add_argument('-x', '--num-processes', help='number of processes to run (default = number of cores)', type=int, default=0)
     args = parser.parse_args()
     
-    setupHandler(args.port, args.pairsPath, args.langNames, args.timeout)
+    setupHandler(args.port, args.pairsPath, args.lang_names, args.timeout)
    
     logging.getLogger().setLevel(logging.INFO)
     enable_pretty_logging()
@@ -584,14 +442,15 @@ if __name__ == '__main__':
         (r'/getLocale', GetLocaleHandler)
     ])
     
-    if args.sslCert and args.sslKey:
+    if args.ssl_cert and args.ssl_key:
         http_server = tornado.httpserver.HTTPServer(application, ssl_options = {
-            'certfile': args.sslCert,
-            'keyfile': args.sslKey,
+            'certfile': args.ssl_cert,
+            'keyfile': args.ssl_key,
         })
         logging.info('Serving at https://localhost:%s' % args.port)
     else:
         http_server = tornado.httpserver.HTTPServer(application)
         logging.info('Serving at http://localhost:%s' % args.port)
-    http_server.listen(args.port)
+    http_server.bind(args.port)
+    http_server.start(args.num_processes)
     tornado.ioloop.IOLoop.instance().start()
