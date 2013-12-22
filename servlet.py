@@ -7,7 +7,10 @@ from subprocess import Popen, PIPE
 from multiprocessing import Pool
 
 import tornado, tornado.web, tornado.httpserver
-from tornado.options import enable_pretty_logging
+try: #3.1
+    from tornado.log import enable_pretty_logging
+except ImportError: #2.1
+    from tornado.options import enable_pretty_logging
 from tornado import escape
 from tornado.escape import utf8
 
@@ -389,9 +392,9 @@ class PerWordHandler(BaseHandler):
             else:
                 self.sendResponse(toReturn)
 
-        with Pool(processes = 1) as pool:
-            result = pool.apply_async(processPerWord, (self.analyzers, self.taggers, lang, modes, query), callback = handleOutput)
-            outputs = result.get(timeout = 10)
+        pool = Pool(processes = 1)
+        result = pool.apply_async(processPerWord, (self.analyzers, self.taggers, lang, modes, query), callback = handleOutput)
+        outputs = result.get(timeout = 10)
             
 class GetLocaleHandler(BaseHandler):
     @tornado.web.asynchronous

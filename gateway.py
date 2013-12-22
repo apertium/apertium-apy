@@ -3,7 +3,10 @@
 import argparse, logging, sys
 import tornado, tornado.httpserver, tornado.web, tornado.httpclient
 from tornado.web import RequestHandler
-from tornado.options import enable_pretty_logging
+try: #3.1
+    from tornado.log import enable_pretty_logging
+except ImportError: #2.1
+    from tornado.options import enable_pretty_logging
 
 class roundRobinHandler(RequestHandler):
     def initialize(self, roundRobin):
