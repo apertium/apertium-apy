@@ -238,7 +238,6 @@ class BaseHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     def post(self):
         self.get()
-        self.finish()
 
 class ListHandler(BaseHandler):
     @tornado.web.asynchronous
@@ -424,7 +423,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--ssl-cert', help='path to SSL Certificate', default=None)
     parser.add_argument('-k', '--ssl-key', help='path to SSL Key File', default=None)
     parser.add_argument('-t', '--timeout', help='timeout for requests (default = 10)', type=int, default=10)
-    parser.add_argument('-x', '--num-processes', help='number of processes to run (default = number of cores)', type=int, default=0)
+    parser.add_argument('-j', '--num-processes', help='number of processes to run (default = number of cores)', type=int, default=0)
     args = parser.parse_args()
     
     setupHandler(args.port, args.pairsPath, args.lang_names, args.timeout)
