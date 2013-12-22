@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse, logging, sys
+import argparse, logging, sys, json
 import tornado, tornado.httpserver, tornado.web, tornado.httpclient
 from tornado.web import RequestHandler
 try: #3.1
@@ -50,28 +50,43 @@ class roundRobin:
         self.current_number %= len(self.serverlist)
         return server_port
         
-def testServerPool(serverList, tests):
+def testServerPool(serverList):
+    tests = {
+        '/list?q=pairs': lambda x: isinstance(x, dict)
+                        and set(x.keys()) == {'responseStatus', 'responseData', 'responseDetails'}
+                        and isinstance(x['responseStatus'], int)
+                        and isinstance(x['responseData'], list)
+                        and all([isinstance(langPair, dict) for langPair in x['responseData']])
+                        and all([set(langPair.keys()) == {'sourceLanguage', 'targetLanguage'} for langPair in x['responseData']])
+                        and all([all(map(lambda y: isinstance(y, str), langPair.values())) for langPair in x['responseData']]),
+        '/list?q=analyzers': lambda x: isinstance(x, dict) and all(map(lambda y: isinstance(y, str), list(x.keys()) + list(x.values()))),
+        '/list?q=taggers': lambda x: isinstance(x, dict) and all(map(lambda y: isinstance(y, str), list(x.keys()) + list(x.values()))),
+        '/list?q=generators': lambda x: isinstance(x, dict) and all(map(lambda y: isinstance(y, str), list(x.keys()) + list(x.values())))
+    }
     testResults = {'%s:%s' % (domain, port): {} for (domain, port) in serverList}
     http = tornado.httpclient.HTTPClient()
     
-    def handleResult(result):
+    def handleResult(result, testFn):
         serverUrl, test = result.request.url.rsplit('/', 1)
         if not result.code == 200:
             testResults[serverUrl][test] = (result.code, result.request_time)
         else:
-            testResults[serverUrl][test] = (result.body, result.request_time)
+            try:
+                testResults[serverUrl][test] = (testFn(json.loads(result.body.decode('utf-8'))), result.request_time)
+            except ValueError:
+                testResults[serverUrl][test] = (False, result.request_time)
     
     for (domain, port) in serverList:
-        for test in tests:
-            requestURL = '%s:%s%s' % (domain, port, test)
-            handleResult(http.fetch(requestURL, request_timeout = 15)) #, validate_cert = False when testing locally
+        for (testPath, testFn) in tests.items():
+            requestURL = '%s:%s%s' % (domain, port, testPath)
+            handleResult(http.fetch(requestURL, request_timeout = 15), testFn) #, validate_cert = False when testing locally
                 
     return testResults
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Start Apertium APY Gateway")
     parser.add_argument('serverlist', help="path to file with list of servers and ports available")
-    parser.add_argument('-t', '--tests', help="path to file with APY tests", default=None)
+    parser.add_argument('-t', '--tests', help="perform tests on server pool", action='store_true', default=False)
     parser.add_argument('-p', '--port', help="port to run gateway on (default = 2738)", type=int, default=2738)
     parser.add_argument('-c', '--ssl-cert', help='path to SSL Certificate', default=None)
     parser.add_argument('-k', '--ssl-key', help='path to SSL Key File', default=None)
@@ -94,8 +109,7 @@ if __name__ == '__main__':
         sys.exit(-1)
     
     if args.tests:
-        with open(args.tests) as testsFile:
-            logging.info(testServerPool(server_port_list, testsFile.read().splitlines()))
+        logging.info(testServerPool(server_port_list))
       
     rR = roundRobin(server_port_list)
     logging.info("Server/port list used: " + str(server_port_list))
