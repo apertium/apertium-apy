@@ -16,6 +16,7 @@ from tornado.escape import utf8
 
 from modeSearch import searchPath
 from tools import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord
+from translation import translate
     
 class BaseHandler(tornado.web.RequestHandler):
     pairs = {}
@@ -41,191 +42,6 @@ class BaseHandler(tornado.web.RequestHandler):
         if callbacks:
             self.callback = callbacks[0]
 
-    def translateApertium(self, toTranslate, pair):
-        strPair = '%s-%s' % pair
-        if strPair in self.pairs:
-            p1 = Popen(["echo", toTranslate], stdout=PIPE)
-            p2 = Popen(["apertium", "-d %s" % self.pairs[strPair], strPair], stdin=p1.stdout, stdout=PIPE)
-            p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
-            output = p2.communicate()[0].decode('utf-8')
-            #print(output)
-            return output
-        else:
-            return False
-
-    def getModeFileLine(self, modeFile):
-        modeFileContents = open(modeFile, 'r').readlines()
-        modeFileLine = None
-        for line in modeFileContents:
-            if '|' in line:
-                modeFileLine = line
-        if modeFileLine != None:
-            commands = modeFileLine.split('|')
-            outCommands = []
-            for command in commands:
-                command = command.strip()
-                #if re.search('lrx-proc', command):
-                #	outCommand = command
-                #else:
-                #	outCommand = re.sub('^(.*?)\s(.*)$', '\g<1> -z \g<2>', command)
-
-                #print(command)
-
-                #if re.search('automorf', command) or re.search('cg-proc', command) or re.search('autobil', command) or re.search('lrx-proc', command):
-                #if not (re.search('lrx-proc', command) or re.search('transfer', command) or re.search('hfst-proc', command) or re.search('autopgen', command)):
-                #if re.search('automorf', command) or re.search('cg-proc', command) or re.search('autobil', command):
-                #if not re.search('apertium-pretransfer', command):
-                #if not (re.search('lrx-proc', command)):
-                if 1==1:
-                    if re.search('apertium-pretransfer', command):
-                        outCommand = command+" -z"
-                    else:
-                        outCommand = re.sub('^(.*?)\s(.*)$', '\g<1> -z \g<2>', command)
-                    outCommand = re.sub('\s{2,}', ' ', outCommand)
-                    outCommands.append(outCommand)
-                    #print(outCommand)
-            toReturn = ' | '.join(outCommands)
-            toReturn = re.sub('\s*\$2', '', re.sub('\$1', '-g', toReturn))
-            print(toReturn)
-            return toReturn
-        else:
-            return False
-
-    def translateNULFlush(self, toTranslate, pair):
-        with self.translock:
-            strPair = '%s-%s' % pair
-            #print(self.pairs, self.pipelines)
-            if strPair in self.pairs:
-                #print("DEBUG 0.6")
-                if strPair not in self.pipelines:
-                    #print("DEBUG 0.7")
-                    modeFile = "%s/modes/%s.mode" % (self.pairs[strPair], strPair)
-                    modeFileLine = self.getModeFileLine(modeFile)
-                    commandList = []
-                    if modeFileLine:
-                        commandList = [ c.strip().split() for c in
-                                modeFileLine.split('|') ]
-                        commandsDone = []
-                        for command in commandList:
-                            if len(commandsDone)>0:
-                                newP = Popen(command, stdin=commandsDone[-1].stdout, stdout=PIPE)
-                            else:
-                                newP = Popen(command, stdin=PIPE, stdout=PIPE)
-                            commandsDone.append(newP)
-
-                        self.pipelines[strPair] = (commandsDone[0], commandsDone[-1])
-
-                #print("DEBUG 0.8")
-                if strPair in self.pipelines:
-                    (procIn, procOut) = self.pipelines[strPair]
-                    deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
-                    deformat.stdin.write(bytes(toTranslate, 'utf-8'))
-                    procIn.stdin.write(deformat.communicate()[0])
-                    procIn.stdin.write(bytes('\0', "utf-8"))
-                    procIn.stdin.flush()
-                    #print("DEBUG 1 %s\\0" % toTranslate)
-                    d = procOut.stdout.read(1)
-                    #print("DEBUG 2 %s" % d)
-                    output = []
-                    while d and d != b'\0':
-                        output.append(d)
-                        d = procOut.stdout.read(1)
-                    #print("DEBUG 3 %s" % output)
-                    reformat = Popen("apertium-rehtml", stdin=PIPE, stdout=PIPE)
-                    reformat.stdin.write(b"".join(output))
-                    return reformat.communicate()[0].decode('utf-8')
-                else:
-                    print("no pair in pipelines")
-                    return False
-            else:
-                print("strpair not in pairs")
-                return False
-
-    def translateModeDirect(self, toTranslate, pair):
-        strPair = '%s-%s' % pair
-        if strPair in self.pairs:
-            modeFile = "%s/modes/%s.mode" % (self.pairs[strPair], strPair)
-            modeFileLine = self.getModeFileLine(modeFile)
-            commandList = []
-            if modeFileLine:
-                for command in modeFileLine.split('|'):
-                    thisCommand = command.strip().split(' ')
-                    commandList.append(thisCommand)
-                p1 = Popen(["echo", toTranslate], stdout=PIPE)
-                commandsDone = [p1]
-                for command in commandList:
-                    #print(command, commandsDone, commandsDone[-1])
-                    #print(command)
-                    newP = Popen(command, stdin=commandsDone[-1].stdout, stdout=PIPE)
-                    commandsDone.append(newP)
-
-                p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
-                output = commandsDone[-1].communicate()[0].decode('utf-8')
-                print(output)
-                return output
-            else:
-                return False
-        else:
-            return False
-
-    def translateModeSimple(self, toTranslate, pair):
-        strPair = '%s-%s' % pair
-        if strPair in self.pairs:
-            modeFile = "%s/modes/%s.mode" % (self.pairs[strPair], strPair)
-            p1 = Popen(["echo", toTranslate], stdout=PIPE)
-            p2 = Popen(["sh", modeFile, "-g"], stdin=p1.stdout, stdout=PIPE)
-            p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
-            output = p2.communicate()[0].decode('utf-8')
-            print(output)
-            return output
-        else:
-            return False
-
-    def hardbreak(self):
-        """If others are waiting on us, we send short requests, otherwise we
-        try to minimise the number of requests, but without
-        letting buffers fill up.
-
-        Unfortunately, if we've already started a long
-        request, the next one to come along will have to wait
-        one long request until they start getting shorter.
-
-        These numbers could probably be tweaked a lot.
-        """
-        if threading.active_count()>2:
-            hardbreak=10000
-            # (would prefer "self.translock.waiting_count", but doesn't seem exist)
-        else:
-            hardbreak=50000
-        print((threading.active_count(), hardbreak))
-        return hardbreak
-
-    def translateSplitting(self, toTranslate, pair):
-        """Splitting it up a bit ensures we don't fill up FIFO buffers (leads
-        to processes hanging on read/write)."""
-        allSplit = []	# [].append and join faster than str +=
-        last=0
-        while last<len(toTranslate):
-            hardbreak = self.hardbreak()
-            # We would prefer to split on a period seen before the
-            # hardbreak, if we can:
-            softbreak = int(hardbreak*0.9)
-            dot=toTranslate.find(".", last+softbreak, last+hardbreak)
-            if dot>-1:
-                next=dot
-            else:
-                next=last+hardbreak
-            print("toTranslate[%d:%d]" %(last,next))
-            allSplit.append(self.translateNULFlush(toTranslate[last:next],
-                                   pair))
-            last=next
-        return "".join(allSplit)
-
-    def translate(self, toTranslate, pair):
-        # TODO: should probably check whether we have the pair
-        # here, instead of for each split …
-        return self.translateSplitting(toTranslate, pair)
-        
     def sendResponse(self, data):
         if isinstance(data, dict) or isinstance(data, list):
             data = escape.json_encode(data)
@@ -264,22 +80,30 @@ class ListHandler(BaseHandler):
         else:
             self.send_error(400)
 
-class TranslateHandler(BaseHandler): #TODO: Make Async
+class TranslateHandler(BaseHandler):
     def get(self):
         (l1, l2) = self.get_argument('langpair').split('|')
         toTranslate = self.get_argument('q')
         
-        translated = self.translate(toTranslate, (l1, l2))
-        #translated = self.translateModeSimple(toTranslate, (l1, l2))
-        if not translated:
-            self.send_error(400)
+        def handleTranslation(translated):
+            if not translated:
+                self.send_error(400)
+            else:
+                toReturn = {"responseData":
+                    {"translatedText": translated},
+                    "responseDetails": None,
+                    "responseStatus": 200}
+                self.sendResponse(toReturn)
+        if '%s-%s' % (l1, l2) in self.pairs:
+            pool = Pool(processes = 1)
+            result = pool.apply_async(translate, [toTranslate, (l1, l2), self.translock, self.pipelines, self.pairs], callback = handleTranslation)
+            try:
+                translation = result.get(timeout = self.timeout)
+            except TimeoutError:
+                self.send_error(408)
         else:
-            toReturn = {"responseData":
-                {"translatedText": translated},
-                "responseDetails": None,
-                "responseStatus": 200}
-            self.sendResponse(toReturn)
-    
+            self.send_error(400)
+
 class AnalyzeHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
@@ -297,7 +121,6 @@ class AnalyzeHandler(BaseHandler):
                 analysis = result.get(timeout = self.timeout)
             except TimeoutError:
                 self.send_error(408)
-
         else:
             self.send_error(400)
 
