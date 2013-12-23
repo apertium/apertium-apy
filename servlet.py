@@ -267,10 +267,10 @@ class ListHandler(BaseHandler):
 class TranslateHandler(BaseHandler): #TODO: Make Async
     def get(self):
         (l1, l2) = self.get_argument('langpair').split('|')
-        query = self.get_argument('q')
+        toTranslate = self.get_argument('q')
         
-        toTranslate = query[0]
         translated = self.translate(toTranslate, (l1, l2))
+        #translated = self.translateModeSimple(toTranslate, (l1, l2))
         if not translated:
             self.send_error(400)
         else:
