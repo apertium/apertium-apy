@@ -19,12 +19,14 @@ class requestHandler(RequestHandler):
     def get(self):
         path = self.request.path
         query = self.request.query
+        headers = self.request.headers
         server, port = self.balancer.get_server()
         server_port = '%s:%s' % (server, port)
         logging.info('Redirecting %s?%s to %s%s?%s' % (path, query, server_port, path, query))
         
         http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch(server_port + path + "?" + query, functools.partial(self._on_download, (server, port)), validate_cert = verifySSLCert)
+        http.fetch(server_port + path + "?" + query, functools.partial(self._on_download, (server, port)), validate_cert = verifySSLCert,
+            headers = headers)
         self.balancer.inform('start', (server, port))
         
     def _on_download(self, server, response):
