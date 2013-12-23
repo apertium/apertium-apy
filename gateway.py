@@ -8,6 +8,8 @@ try: #3.1
     from tornado.log import enable_pretty_logging
 except ImportError: #2.1
     from tornado.options import enable_pretty_logging
+    
+global verifySSLCert
 
 class requestHandler(RequestHandler):
     def initialize(self, balancer):
@@ -22,7 +24,7 @@ class requestHandler(RequestHandler):
         logging.info('Redirecting %s?%s to %s%s?%s' % (path, query, server_port, path, query))
         
         http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch(server_port + path + "?" + query, functools.partial(self._on_download, (server, port))) #, validate_cert = False when testing locally
+        http.fetch(server_port + path + "?" + query, functools.partial(self._on_download, (server, port)), validate_cert = verifySSLCert)
         self.balancer.inform('start', (server, port))
         
     def _on_download(self, server, response):
@@ -145,8 +147,8 @@ def testServerPool(serverList):
         for (testPath, testFn) in tests.items():
             requestURL = '%s:%s%s' % (domain, port, testPath)
             try:
-                result = http.fetch(requestURL, request_timeout = 15)
-                handleResult(result, (testPath, testFn), (domain, port)) #, validate_cert = False when testing locally
+                result = http.fetch(requestURL, request_timeout = 15, validate_cert = verifySSLCert)
+                handleResult(result, (testPath, testFn), (domain, port))
             except:
                 handleResult(None, (testPath, testFn), (domain, port))
                 
@@ -159,9 +161,13 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--port', help="port to run gateway on (default = 2738)", type=int, default=2738)
     parser.add_argument('-c', '--ssl-cert', help='path to SSL Certificate', default=None)
     parser.add_argument('-k', '--ssl-key', help='path to SSL Key File', default=None)
+    parser.add_argument('-d', '--debug', help='debug mode (do not verify SSL certs)', action='store_false', default=True)
     parser.add_argument('-j', '--num-processes', help='number of processes to run (default = number of cores)', type=int, default=0)
     parser.add_argument('-i', '--test-interval', help="interval to perform tests in ms (default = 100000)", type=int, default=100000)
     args = parser.parse_args()
+    
+    global verifySSLCert
+    verifySSLCert = args.debug
     
     logging.getLogger().setLevel(logging.INFO)
     enable_pretty_logging()
@@ -172,10 +178,10 @@ if __name__ == '__main__':
             server_port_list = []
             for serverPortPair in serverlist:
                 if serverPortPair[0] != '#': #filter out the commented lines
-                    srv, port = serverPortPair.split()
+                    srv, port = serverPortPair.rsplit(':', 1)
                     server_port_list.append((srv, int(port)))
-    except:
-        logging.critical("Could not open serverlist " + args.serverlist)
+    except IOError:
+        logging.critical("Could not open serverlist: %s" % args.serverlist)
         sys.exit(-1)
       
     balancer = RoundRobin(server_port_list)
