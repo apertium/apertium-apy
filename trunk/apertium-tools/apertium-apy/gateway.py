@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse, logging, sys, json, itertools, functools, random
+import argparse, logging, sys, json, itertools, functools, random, socket
 from collections import OrderedDict
 import tornado, tornado.httpserver, tornado.web, tornado.httpclient
 from tornado.web import RequestHandler
@@ -193,6 +193,15 @@ if __name__ == '__main__':
         (r'/.*', requestHandler, {"balancer": balancer})
     ])
     
+    #find an open socket
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    result = 0
+    while result == 0:
+        result = sock.connect_ex(('localhost', args.port))
+        if result == 0:
+            logging.info("port %d already in use, trying next" % args.port)
+            args.port += 1
+    
     if args.ssl_cert and args.ssl_key:
         http_server = tornado.httpserver.HTTPServer(application, ssl_options = {
             'certfile': args.ssl_cert,
@@ -202,6 +211,7 @@ if __name__ == '__main__':
     else:
         http_server = tornado.httpserver.HTTPServer(application)
         logging.info('Gateway-ing at http://localhost:%s' % args.port)
+    
     http_server.bind(args.port)
     http_server.start(args.num_processes)
     main_loop = tornado.ioloop.IOLoop.instance()
