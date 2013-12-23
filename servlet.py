@@ -4,7 +4,7 @@
 import sys, threading, os, re, ssl, argparse, logging
 from lxml import etree
 from subprocess import Popen, PIPE
-from multiprocessing import Pool
+from multiprocessing import Pool, TimeoutError
 
 import tornado, tornado.web, tornado.httpserver
 try: #3.1
@@ -293,7 +293,11 @@ class AnalyzeHandler(BaseHandler):
         if mode in self.analyzers:
             pool = Pool(processes = 1)
             result = pool.apply_async(apertium, [toAnalyze, self.analyzers[mode][0], self.analyzers[mode][1]], callback = handleAnalysis)
-            analysis = result.get(timeout = self.timeout)
+            try:
+                analysis = result.get(timeout = self.timeout)
+            except TimeoutError:
+                self.send_error(408)
+
         else:
             self.send_error(400)
 
@@ -311,9 +315,12 @@ class GenerateHandler(BaseHandler):
             lexicalUnits = re.findall(r'(\^[^\$]*\$[^\^]*)', toGenerate)
             if len(lexicalUnits) == 0:
                 lexicalUnits = ['^%s$' % toGenerate]
-            pool =  Pool(processes = 1)
+            pool = Pool(processes = 1)
             result = pool.apply_async(apertium, ('[SEP]'.join(lexicalUnits), self.generators[mode][0], self.generators[mode][1]), {'formatting': 'none'}, callback = handleGeneration)
-            generated = result.get(timeout = self.timeout)
+            try:
+                generated = result.get(timeout = self.timeout)
+            except TimeoutError:
+                self.send_error(408)
         else:
             self.send_error(400)
         
@@ -394,13 +401,19 @@ class PerWordHandler(BaseHandler):
 
         pool = Pool(processes = 1)
         result = pool.apply_async(processPerWord, (self.analyzers, self.taggers, lang, modes, query), callback = handleOutput)
-        outputs = result.get(timeout = 10)
-            
+        try:
+            outputs = result.get(timeout = self.timeout)
+        except TimeoutError:
+            self.send_error(408)
+                
 class GetLocaleHandler(BaseHandler):
     @tornado.web.asynchronous
-    def get(self): 
-        locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
-        self.sendResponse(locales)
+    def get(self):
+        if 'Accept-Language' in self.request.headers:
+            locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
+            self.sendResponse(locales)
+        else:
+            self.send_error(400)
 
 def setupHandler(port, pairsPath, langnames, timeout):
     Handler = BaseHandler
