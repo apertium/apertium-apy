@@ -25,12 +25,18 @@ class requestHandler(RequestHandler):
         logging.info('Redirecting %s?%s to %s%s?%s' % (path, query, server_port, path, query))
         
         http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch(server_port + path + "?" + query, functools.partial(self._on_download, (server, port)), validate_cert = verifySSLCert,
-            headers = headers)
+        http.fetch(server_port + path + "?" + query, functools.partial(self._on_download, (server, port)), validate_cert = verifySSLCert, headers = headers)
         self.balancer.inform('start', (server, port))
         
     def _on_download(self, server, response):
         self.balancer.inform('complete', server)
+        #if the connection didn't go through, we drop the server and make a new request
+        if response.error is not None and response.error.code == 599:
+            self.balancer.inform("drop", server)
+            logging.info("request failed with code %d, trying next server after %s" % (response.error.code, str(server)))
+            self.get()
+            return
+        logging.info("finished request at %s"% str(server))
         for (hname, hvalue) in response.headers.get_all():
             self.set_header(hname, hvalue)
         self.set_status(response.code)
@@ -64,6 +70,14 @@ class RoundRobin(Balancer):
     
     def get_server(self):
         return next(self.generator)
+    
+    def inform(self, action, server):
+        if action == "drop":
+            serverlist = [x for x in self.serverlist if x != server]
+            self.serverlist = serverlist
+            if len(serverlist) == 0:
+                logging.critical("Empty serverlist")
+            self.generator = itertools.cycle(self.serverlist)        
         
 class LeastConnections(Balancer):
     def __init__(self, servers):
@@ -185,7 +199,9 @@ if __name__ == '__main__':
     except IOError:
         logging.critical("Could not open serverlist: %s" % args.serverlist)
         sys.exit(-1)
-      
+    if len(server_port_list) == 0:
+        logging.critical("serverlist must not be empty")
+        sys.exit(-1)
     balancer = RoundRobin(server_port_list)
     #balancer = LeastConnections(server_port_list)
     #balancer = WeightedRandom(server_port_list)
