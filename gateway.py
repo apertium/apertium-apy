@@ -194,13 +194,14 @@ if __name__ == '__main__':
     ])
     
     #find an open socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     result = 0
     while result == 0:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         result = sock.connect_ex(('localhost', args.port))
         if result == 0:
             logging.info("port %d already in use, trying next" % args.port)
             args.port += 1
+        sock.close()
     
     if args.ssl_cert and args.ssl_key:
         http_server = tornado.httpserver.HTTPServer(application, ssl_options = {
