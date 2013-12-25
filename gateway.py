@@ -62,12 +62,18 @@ class Random(Balancer):
 class RoundRobin(Balancer):
     '''Contains the list of the server / ports and keeps track
     of which was last used and which should be used next.'''
-    def __init__(self, servers):
+    def __init__(self, servers, langpairmap):
         super(RoundRobin, self).__init__(servers)
+        self.langpairmap = langpairmap
         self.generator = itertools.cycle(self.serverlist)
     
-    def get_server(self):
-        return next(self.generator)
+    def get_server(self, langPair):
+        if langPair not in self.langpairmap:
+            return None
+        server = next(self.generator)
+        while server not in self.langpairmap[langPair]:
+            server = next(self.generator)
+        return server
         
     def inform(self, action, server, *args, **kwargs):
         if action == 'drop':
@@ -229,6 +235,41 @@ def testServerPool(serverList):
                 
     return testResults
 
+def determineServerCapabilities(serverlist):
+    '''Find which APYs can do what.'''
+    http = tornado.httpclient.HTTPClient()
+    modes = ["pairs"]
+    mode = modes[0]
+    results = {}
+    for (domain, port) in serverlist:
+        requestURL = "%s:%s/list?q=%s" % (domain, port, mode)
+        logging.info("Getting information from %s" %requestURL)
+        # make the request
+        try:
+            result = http.fetch(requestURL, request_timeout = 15, validate_cert = verifySSLCert)
+        except:
+            logging.warning("Fetch for data from %s:%s for %s failed, dropping server" %(domain, port, mode))
+            continue
+        #parse the return
+        try:
+            response = json.loads(result.body.decode('utf-8'))
+        except ValueError: #Not valid JSON, we stop using the server
+            logging.warning("Received invalid JSON from %s:%s on query for %s, dropping server" %(domain, port, mode))
+            continue
+          
+        if "responseStatus" not in response or response["responseStatus"] != 200 or "responseData" not in response:
+            logging.warning("JSON return format unexpected from %s:%s on query for %s, dropping server"%(domain, port, mode))
+            continue
+        for lang_pair in response['responseData']:
+            lang_pair_tuple = (lang_pair["sourceLanguage"], lang_pair["targetLanguage"])
+            server = (domain, port)
+            if lang_pair_tuple in results:
+                results[lang_pair_tuple].append(server)
+            else:
+                results[lang_pair_tuple] = [server]
+    return results
+                    
+                
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Start Apertium APY Gateway")
     parser.add_argument('serverlist', help="path to file with list of servers and ports available")
@@ -262,16 +303,6 @@ if __name__ == '__main__':
     if len(server_port_list) == 0:
         logging.critical('Serverlist must not be empty')
         sys.exit(-1)  
-        
-    #balancer = RoundRobin(server_port_list)
-    #balancer = LeastConnections(server_port_list)
-    #balancer = WeightedRandom(server_port_list)
-    balancer = Fastest(server_port_list, 5)
-    logging.info("Server/port list used: " + str(server_port_list))
-    
-    application = tornado.web.Application([
-        (r'/.*', requestHandler, {"balancer": balancer})
-    ])
     
     #find an open socket
     result = 0
@@ -282,6 +313,19 @@ if __name__ == '__main__':
             logging.info('Port %d already in use, trying next' % args.port)
             args.port += 1
         sock.close()
+    
+    server_lang_pair_map = determineServerCapabilities(server_port_list)
+    logging.info("Using server language-pair mapping: %s" % str(server_lang_pair_map))
+    balancer = RoundRobin(server_port_list, server_lang_pair_map)
+    #balancer = LeastConnections(server_port_list)
+    #balancer = WeightedRandom(server_port_list)
+    #balancer = Fastest(server_port_list, 5)
+    logging.info("Server/port list used: " + str(server_port_list))
+    
+    
+    application = tornado.web.Application([
+        (r'/.*', requestHandler, {"balancer": balancer})
+    ])
     
     if args.ssl_cert and args.ssl_key:
         http_server = tornado.httpserver.HTTPServer(application, ssl_options = {
