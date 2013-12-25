@@ -101,6 +101,7 @@ class TranslateHandler(BaseHandler):
                 translation = result.get(timeout = self.timeout)
             except TimeoutError:
                 self.send_error(408)
+                pool.terminate()
         else:
             self.send_error(400)
 
@@ -121,6 +122,7 @@ class AnalyzeHandler(BaseHandler):
                 analysis = result.get(timeout = self.timeout)
             except TimeoutError:
                 self.send_error(408)
+                pool.terminate()
         else:
             self.send_error(400)
 
@@ -144,6 +146,7 @@ class GenerateHandler(BaseHandler):
                 generated = result.get(timeout = self.timeout)
             except TimeoutError:
                 self.send_error(408)
+                pool.terminate()
         else:
             self.send_error(400)
         
@@ -228,6 +231,7 @@ class PerWordHandler(BaseHandler):
             outputs = result.get(timeout = self.timeout)
         except TimeoutError:
             self.send_error(408)
+            pool.terminate()
                 
 class GetLocaleHandler(BaseHandler):
     @tornado.web.asynchronous
