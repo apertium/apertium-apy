@@ -26,21 +26,19 @@ class requestHandler(RequestHandler):
         
         http = tornado.httpclient.AsyncHTTPClient()
         http.fetch(server_port + path + "?" + query, functools.partial(self._on_download, (server, port)), validate_cert = verifySSLCert, headers = headers)
-        self.balancer.inform('start', (server, port))
+        self.balancer.inform('start', (server, port), url=path)
         
     def _on_download(self, server, response):
-        self.balancer.inform('complete', server)
-        #if the connection didn't go through, we drop the server and make a new request
+        responseBody = response.body
         if response.error is not None and response.error.code == 599:
-            self.balancer.inform("drop", server)
-            logging.info("request failed with code %d, trying next server after %s" % (response.error.code, str(server)))
-            self.get()
-            return
-        logging.info("finished request at %s"% str(server))
+            self.balancer.inform('drop', server)
+            logging.info('Request failed with code %d, trying next server after %s' % (response.error.code, str(server)))
+            return self.get()
+        self.balancer.inform('complete', server, url=response.request.url, requestTime=response.request_time, requestLen=len(responseBody))
         for (hname, hvalue) in response.headers.get_all():
             self.set_header(hname, hvalue)
         self.set_status(response.code)
-        self.write(response.body)
+        self.write(responseBody)
         self.finish()
     
     @tornado.web.asynchronous
@@ -54,7 +52,7 @@ class Balancer(object):
     def get_server(self):
         raise NotImplementedError
         
-    def inform(self, action, server):
+    def inform(self, action, server, *args, **kwargs):
         pass
         
 class Random(Balancer):
@@ -70,14 +68,14 @@ class RoundRobin(Balancer):
     
     def get_server(self):
         return next(self.generator)
-    
-    def inform(self, action, server):
-        if action == "drop":
+        
+    def inform(self, action, server, *args, **kwargs):
+        if action == 'drop':
             serverlist = [x for x in self.serverlist if x != server]
-            self.serverlist = serverlist
-            if len(serverlist) == 0:
-                logging.critical("Empty serverlist")
-            self.generator = itertools.cycle(self.serverlist)        
+            if not len(self.serverlist):
+                logging.critical('Empty serverlist')
+                sys.exit(-1)
+            self.generator = itertools.cycle(self.serverlist)
         
 class LeastConnections(Balancer):
     def __init__(self, servers):
@@ -86,7 +84,7 @@ class LeastConnections(Balancer):
     def get_server(self):
         return list(self.serverlist.items())[0][0]
         
-    def inform(self, action, server):
+    def inform(self, action, server, *args, **kwargs):
         actions = {'start': 1, 'complete': -1}
         if not action in actions:
             raise ValueError('invalid argument action: %s' % action)
@@ -106,12 +104,10 @@ class WeightedRandom(Balancer):
                 testScore = sum([result[1] for testPath, result in results.items()])
                 self.serverlist[server] += testScore / 5
         self.serverlist = OrderedDict(sorted(self.serverlist.items(), key = lambda x: x[1]))
-        print(self.serverlist)
     
     def get_server(self):
         servers = list(filter(lambda x: not x[1] == float('inf'), list(self.serverlist.items())))
         total = sum(weight for (server, weight) in servers)
-        print(list(servers))
         r = random.uniform(0, total)
         currentPos = 0
         for (server, weight) in servers:
@@ -120,13 +116,76 @@ class WeightedRandom(Balancer):
             currentPos += weight
         assert False, 'failed to get server'
         
-    def inform(self, action, server):
-        pass
-        #raise NotImplementedError
+    def inform(self, action, server, *args, **kwargs):
+        raise NotImplementedError
         
     def updateWeights(self):
-        pass
-        #raise NotImplementedError
+        raise NotImplementedError
+        
+class Fastest(Balancer):
+    def __init__(self, servers, numResponses):
+        self.servers = servers
+        self.serverlist = OrderedDict([(server, [0, {}]) for server in servers])
+        self.numResponses = numResponses
+        self.initWeights()
+    
+    def get_server(self):
+        if len(self.serverlist):
+            return list(self.serverlist.keys())[0]
+        else:
+            logging.critical('Empty serverlist')
+            sys.exit(-1)
+    
+    def inform(self, action, server, *args, **kwargs):
+        actions = {'start', 'complete', 'drop'}
+        validPaths = {'list', 'analyze', 'generate', 'translate'}
+        if not action in actions:
+            raise ValueError('invalid argument action: %s' % action)
+        elif action == 'start':
+            return
+        elif action == 'complete':
+            path = kwargs['url']
+            path = path.rsplit('/', 1)[1] if not '?' in path else path.rsplit('/', 1)[1].split('?')[0]  
+            
+            if path in validPaths:
+                serverAverages = self.serverlist[server][1]
+                if not path in self.serverlist[server][1]:
+                    serverAverages[path] = kwargs['requestTime']
+                if path == 'list':
+                    serverAverages[path] = (serverAverages[path] * (self.numResponses - 1) + kwargs['requestTime']) / self.numResponses
+                else:
+                    serverAverages[path] = (serverAverages[path] * (self.numResponses - 1) + kwargs['requestTime']/kwargs['requestLen']) / self.numResponses
+                self.calcAggregateScores()
+                self.sortServerList()
+            else:
+                return
+        elif action == 'drop':
+            self.initWeights()
+    
+    def sortServerList(self):
+        self.serverlist = OrderedDict(sorted(self.serverlist.items(), key = lambda x: x[1][0]))
+        print(self.serverlist)
+    
+    def calcAggregateScores(self):
+        for server, serverAverages in self.serverlist.items():
+            self.serverlist[server][0] = 0
+            for testPath, average in serverAverages[1].items():
+                self.serverlist[server][0] += average
+    
+    def initWeights(self):
+        self.serverlist = OrderedDict([(server, [0, {}]) for server in self.servers])
+        allTestResults = [testServerPool([server[0] for server in self.serverlist.items()]) for _ in range(0, self.numResponses)]
+        for testResults in allTestResults:
+            for testResult in testResults.items():
+                server = testResult[0]
+                results = testResult[1]
+                testSum = sum([result[1] for testPath, result in results.items()])
+                if not '/list' in self.serverlist[server][1]:
+                    self.serverlist[server][1]['list'] = 0
+                self.serverlist[server][1]['list'] += testSum / (self.numResponses * len(results.items()))
+        self.calcAggregateScores()
+        self.serverlist = OrderedDict(filter(lambda x: x[1][0] != float('inf'), self.serverlist.items()))
+        self.sortServerList()
         
 def testServerPool(serverList):
     tests = {
@@ -179,7 +238,7 @@ if __name__ == '__main__':
     parser.add_argument('-k', '--ssl-key', help='path to SSL Key File', default=None)
     parser.add_argument('-d', '--debug', help='debug mode (do not verify SSL certs)', action='store_false', default=True)
     parser.add_argument('-j', '--num-processes', help='number of processes to run (default = number of cores)', type=int, default=0)
-    parser.add_argument('-i', '--test-interval', help="interval to perform tests in ms (default = 100000)", type=int, default=100000)
+    parser.add_argument('-i', '--test-interval', help="interval to perform tests in ms (default = 1000000)", type=int, default=1000000)
     args = parser.parse_args()
     
     global verifySSLCert
@@ -199,12 +258,15 @@ if __name__ == '__main__':
     except IOError:
         logging.critical("Could not open serverlist: %s" % args.serverlist)
         sys.exit(-1)
+
     if len(server_port_list) == 0:
-        logging.critical("serverlist must not be empty")
-        sys.exit(-1)
-    balancer = RoundRobin(server_port_list)
+        logging.critical('Serverlist must not be empty')
+        sys.exit(-1)  
+        
+    #balancer = RoundRobin(server_port_list)
     #balancer = LeastConnections(server_port_list)
     #balancer = WeightedRandom(server_port_list)
+    balancer = Fastest(server_port_list, 5)
     logging.info("Server/port list used: " + str(server_port_list))
     
     application = tornado.web.Application([
@@ -217,7 +279,7 @@ if __name__ == '__main__':
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         result = sock.connect_ex(('localhost', args.port))
         if result == 0:
-            logging.info("port %d already in use, trying next" % args.port)
+            logging.info('Port %d already in use, trying next' % args.port)
             args.port += 1
         sock.close()
     
@@ -234,7 +296,7 @@ if __name__ == '__main__':
     http_server.bind(args.port)
     http_server.start(args.num_processes)
     main_loop = tornado.ioloop.IOLoop.instance()
-    if isinstance(balancer, WeightedRandom):
-        tornado.ioloop.PeriodicCallback(lambda: balancer.updateWeights(), args.test_interval, io_loop = main_loop).start()
+    if isinstance(balancer, Fastest):
+        tornado.ioloop.PeriodicCallback(lambda: balancer.initWeights(), args.test_interval, io_loop = main_loop).start()
     main_loop.start()
     
