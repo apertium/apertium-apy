@@ -44,8 +44,8 @@ def bilingualTranslate(toTranslate, dir, mode):
     output = p2.communicate()[0].decode('utf-8')
     return output
     
-def removeLast(input, analyses):
-    if not input[-1] == '.':
+def removeLast(query, analyses):
+    if not query[-1] == '.':
         return analyses[:-1]
     else:
         return analyses
@@ -55,6 +55,25 @@ def stripTags(analysis):
         return analysis[:analysis.index('<')]
     else:
         return analysis
+        
+def getCoverages(text, modes, penalize=False):
+    coverages = {}
+    for mode, modeTuple in modes.items():
+        coverages[mode] = getCoverage(text, modeTuple[0], modeTuple[1], penalize=penalize)
+    return coverages
+        
+def getCoverage(text, mode, modeDir, penalize=False):
+    analysis = apertium(text, mode, modeDir)
+    lexicalUnits = re.findall(r'\^([^\$]*)\$([^\^]*)', analysis)
+    analyzedLexicalUnits = list(filter(lambda x: x[0].split('/')[1][0] != '*', lexicalUnits))
+    if len(lexicalUnits) and not penalize:
+        return len(analyzedLexicalUnits) / len(lexicalUnits)
+    elif len(lexicalUnits) and penalize:
+        print((1 - sum([len(lexicalUnit[0].split('/')[0]) for lexicalUnit in lexicalUnits]) / len(text)))
+        return len(analyzedLexicalUnits) / len(lexicalUnits) - (1 - sum([len(lexicalUnit[0].split('/')[0]) for lexicalUnit in lexicalUnits]) / len(text))
+    else:
+        print(lexicalUnits, mode, modeDir)
+        return -1
         
 def processPerWord(analyzers, taggers, lang, modes, query):
     outputs = {}

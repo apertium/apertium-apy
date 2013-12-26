@@ -15,7 +15,7 @@ from tornado import escape
 from tornado.escape import utf8
 
 from modeSearch import searchPath
-from tools import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord
+from tools import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages
 from translation import translate
     
 class BaseHandler(tornado.web.RequestHandler):
@@ -232,6 +232,42 @@ class PerWordHandler(BaseHandler):
         except TimeoutError:
             self.send_error(408)
             pool.terminate()
+            
+class CoverageHandler(BaseHandler):
+    @tornado.web.asynchronous
+    def get(self):
+        mode = self.get_argument('mode')
+        text = self.get_argument('q')
+        
+        def handleCoverage(coverage):
+            self.sendResponse([coverage])
+        
+        if mode in self.analyzers:
+            pool = Pool(processes = 1)
+            result = pool.apply_async(getCoverage, [text, self.analyzers[mode][0], self.analyzers[mode][1]], callback = handleCoverage)
+            try:
+                analysis = result.get(timeout = self.timeout)
+            except TimeoutError:
+                self.send_error(408)
+                pool.terminate()
+        else:
+            self.send_error(400)
+            
+class IdentifyLangHandler(BaseHandler):
+    @tornado.web.asynchronous
+    def get(self):
+        text = self.get_argument('q')
+        
+        def handleCoverages(coverages):
+            self.sendResponse(coverages)
+        
+        pool = Pool(processes = 1)
+        result = pool.apply_async(getCoverages, [text, self.analyzers], {'penalize': True}, callback = handleCoverages)
+        try:
+            coverages = result.get(timeout = self.timeout)
+        except TimeoutError:
+            self.send_error(408)
+            pool.terminate()
                 
 class GetLocaleHandler(BaseHandler):
     @tornado.web.asynchronous
@@ -281,6 +317,8 @@ if __name__ == '__main__':
         (r'/generate', GenerateHandler),
         (r'/listLanguageNames', ListLanguageNamesHandler),
         (r'/perWord', PerWordHandler),
+        (r'/coverage', CoverageHandler),
+        (r'/identifyLang', IdentifyLangHandler),
         (r'/getLocale', GetLocaleHandler)
     ])
     
