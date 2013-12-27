@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse, logging, sys, json, itertools, functools, random, socket, servlet
+import argparse, logging, sys, json, itertools, functools, random, socket, servlet, pprint
 from collections import OrderedDict, defaultdict
 import tornado, tornado.httpserver, tornado.web, tornado.httpclient
 from tornado.web import RequestHandler
@@ -34,21 +34,26 @@ class requestHandler(RequestHandler):
             langPair = self.get_argument('lang')
         query = self.request.query
         headers = self.request.headers
-        server, port = self.balancer.get_server(langPair, mode)
+        
+        serverTuple = self.balancer.get_server(langPair, mode)
+        if serverTuple:
+            server, port = serverTuple
+        else:
+            return self.send_error(400)
         server_port = '%s:%s' % (server, port)
         logging.info('Redirecting %s?%s to %s%s?%s' % (path, query, server_port, path, query))
         
         http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch(server_port + path + "?" + query, functools.partial(self._on_download, (server, port)), validate_cert = verifySSLCert, headers = headers)
+        http.fetch(server_port + path + "?" + query, functools.partial(self._on_download, (server, port), langPair), validate_cert = verifySSLCert, headers = headers)
         self.balancer.inform('start', (server, port), url=path)
         
-    def _on_download(self, server, response):
+    def _on_download(self, server, langPair, response):
         responseBody = response.body
         if response.error is not None and response.error.code == 599:
-            self.balancer.inform('drop', server)
+            self.balancer.inform('drop', server, response=response, lang=langPair)
             logging.info('Request failed with code %d, trying next server after %s' % (response.error.code, str(server)))
             return self.get()
-        self.balancer.inform('complete', server, url=response.request.url, requestTime=response.request_time, requestLen=len(responseBody))
+        self.balancer.inform('complete', server, response=response, lang=langPair)
         for (hname, hvalue) in response.headers.get_all():
             self.set_header(hname, hvalue)
         self.set_status(response.code)
@@ -183,54 +188,62 @@ class WeightedRandom(Balancer):
         raise NotImplementedError
         
 class Fastest(Balancer):
-    def __init__(self, servers, numResponses):
+    def __init__(self, servers, serverCapabilities, numResponses):
         self.servers = servers
-        self.serverlist = OrderedDict([(server, [0, {}]) for server in servers])
         self.numResponses = numResponses
-        self.initWeights()
+        self.initServerList(serverCapabilities=serverCapabilities)
     
-    def get_server(self, *args, **kwargs):
+    def get_server(self, langPair, mode):
         if len(self.serverlist):
-            return list(self.serverlist.keys())[0]
+            modeToURL = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag'}
+            if self.serverlist[(modeToURL[mode], langPair)]:
+                return list(self.serverlist[(modeToURL[mode], langPair)])[0]
         else:
             logging.critical('Empty serverlist')
             sys.exit(-1)
     
     def inform(self, action, server, *args, **kwargs):
         actions = {'start', 'complete', 'drop'}
-        validPaths = {'list', 'analyze', 'generate', 'translate'}
         if not action in actions:
             raise ValueError('invalid argument action: %s' % action)
         elif action == 'start':
             return
-        elif action == 'complete':
-            path = kwargs['url']
-            path = path.rsplit('/', 1)[1] if not '?' in path else path.rsplit('/', 1)[1].split('?')[0]  
+        elif action == 'complete' or action == 'drop':
+            response = kwargs['response']
+            url = response.request.url
+            requestTime = response.request_time
+            if response.body:
+                responseLen = len(response.body)
+            path = url.rsplit('/', 1)[1] if not '?' in url else url.rsplit('/', 1)[1].split('?')[0]
+            mode = (path, kwargs['lang'])
             
-            if path in validPaths:
-                serverAverages = self.serverlist[server][1]
-                if not path in self.serverlist[server][1]:
-                    serverAverages[path] = kwargs['requestTime']
-                if path == 'list':
-                    serverAverages[path] = (serverAverages[path] * (self.numResponses - 1) + kwargs['requestTime']) / self.numResponses
+            if action == 'complete':
+                if self.serverlist[mode][server]:
+                    self.serverlist[mode][server] = (self.serverlist[mode][server] * (self.numResponses - 1) + requestTime/responseLen) / self.numResponses
                 else:
-                    serverAverages[path] = (serverAverages[path] * (self.numResponses - 1) + kwargs['requestTime']/kwargs['requestLen']) / self.numResponses
-                self.calcAggregateScores()
-                self.sortServerList()
+                    self.serverlist[mode][server] = requestTime/responseLen / self.numResponses
             else:
-                return
-        elif action == 'drop':
-            self.initWeights()
-    
-    def sortServerList(self):
-        self.serverlist = OrderedDict(sorted(self.serverlist.items(), key = lambda x: x[1][0]))
-        print(self.serverlist)
-    
-    def calcAggregateScores(self):
-        for server, serverAverages in self.serverlist.items():
-            self.serverlist[server][0] = 0
-            for testPath, average in serverAverages[1].items():
-                self.serverlist[server][0] += average
+                self.serverlist[mode][server] = float('inf')
+            
+            pprint.pprint(self.serverlist[mode])
+            print(self.serverlist[mode])
+            self.serverlist[mode] = OrderedDict(sorted(self.serverlist[mode].items(), key=lambda x: x[1]))
+                
+    def initServerList(self, serverCapabilities=None):
+        if serverCapabilities == None:
+            serverCapabilities = determineServerCapabilities()
+        self.serverlist = {}
+        
+        modeToURL = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag'}
+        for lang, servers in serverCapabilities['pairs'].items():
+            self.serverlist[(modeToURL['pairs'], lang)] = OrderedDict([(server, 0) for server in servers])
+        
+        for mode, capabiltities in serverCapabilities.items():
+            if mode != 'pairs':
+                for lang, servers in serverCapabilities[mode].items():
+                    self.serverlist[(modeToURL[mode], lang)] = OrderedDict([(server, 0) for server in servers[1]])
+                    
+        pprint.pprint(self.serverlist)
     
     def initWeights(self):
         self.serverlist = OrderedDict([(server, [0, {}]) for server in self.servers])
@@ -352,7 +365,7 @@ if __name__ == '__main__':
     parser.add_argument('-k', '--ssl-key', help='path to SSL Key File', default=None)
     parser.add_argument('-d', '--debug', help='debug mode (do not verify SSL certs)', action='store_false', default=True)
     parser.add_argument('-j', '--num-processes', help='number of processes to run (default = number of cores)', type=int, default=0)
-    parser.add_argument('-i', '--test-interval', help="interval to perform tests in ms (default = 1000000)", type=int, default=1000000)
+    parser.add_argument('-i', '--test-interval', help="interval to perform tests in ms (default = 3600000)", type=int, default=3600000)
     args = parser.parse_args()
     
     global verifySSLCert
@@ -393,7 +406,7 @@ if __name__ == '__main__':
     #balancer = RoundRobin(server_port_list, server_lang_pair_map)
     #balancer = LeastConnections(server_port_list)
     #balancer = WeightedRandom(server_port_list)
-    balancer = Fastest(server_port_list, 5)   
+    balancer = Fastest(server_port_list, server_lang_pair_map, 5)   
     
     application = tornado.web.Application([
         (r'/list', listRequestHandler, {"serverLangPairMap": server_lang_pair_map}),
@@ -415,6 +428,6 @@ if __name__ == '__main__':
     http_server.start(args.num_processes)
     main_loop = tornado.ioloop.IOLoop.instance()
     if isinstance(balancer, Fastest):
-        tornado.ioloop.PeriodicCallback(lambda: balancer.initWeights(), args.test_interval, io_loop = main_loop).start()
+        tornado.ioloop.PeriodicCallback(lambda: balancer.initServerList(), args.test_interval, io_loop = main_loop).start()
     main_loop.start()
     
