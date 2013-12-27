@@ -63,6 +63,9 @@ class listRequestHandler(servlet.BaseHandler):
     '''Handler for list requests. Takes a language-pair-server map and aggregates the language-pairs of all of the servers.'''
     def initialize(self, serverLangPairMap):
         self.serverLangPairMap = serverLangPairMap
+        callbacks = self.get_arguments('callback')
+        if callbacks:
+            self.callback = callbacks[0]
     
     @tornado.web.asynchronous
     def get(self):
