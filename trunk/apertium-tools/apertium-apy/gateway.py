@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse, logging, sys, json, itertools, functools, random, socket
+import argparse, logging, sys, json, itertools, functools, random, socket, servlet
 from collections import OrderedDict
 import tornado, tornado.httpserver, tornado.web, tornado.httpclient
 from tornado.web import RequestHandler
@@ -18,9 +18,27 @@ class requestHandler(RequestHandler):
     @tornado.web.asynchronous
     def get(self):
         path = self.request.path
+        mode = "pairs"
+        langPair = None
+        if path == "/translate":
+            langPair = self.get_argument('langpair')
+        elif path == "/analyze" or path == "/analyse":
+            langPair = self.get_argument('mode')
+            mode = "analyzers"
+        elif path == "/generate":
+            langPair = self.get_argument('mode')
+            mode = "generators"
+        elif path == "/perWord":
+            langPair = self.get_argument('lang')
         query = self.request.query
         headers = self.request.headers
-        server, port = self.balancer.get_server()
+        serverport = self.balancer.get_server(langPair, mode)
+        if serverport:
+            server, port = serverport
+        else:
+            logging.error("Could not find language-pair %s for mode %s" %(langPair, mode))
+            self.send_error(400)
+            return
         server_port = '%s:%s' % (server, port)
         logging.info('Redirecting %s?%s to %s%s?%s' % (path, query, server_port, path, query))
         
@@ -45,6 +63,35 @@ class requestHandler(RequestHandler):
     def post(self):
         self.get()
 
+class listRequestHandler(servlet.BaseHandler):
+    def initialize(self, serverLangPairMap):
+        self.serverLangPairMap = serverLangPairMap
+    
+    @tornado.web.asynchronous
+    def get(self):
+        logging.info("Overriding list call: %s %s" %(self.request.path, self.get_arguments('q')))
+        if self.request.path != '/listPairs' and self.request.path != '/list':
+            self.send_error(400)
+        else:
+            query = self.get_arguments('q')
+            if query:
+                query = query[0]
+            if self.request.path == '/listPairs' or query == 'pairs':
+                logging.info("Responding to request for pairs")
+                responseData = []
+                for pair in self.serverLangPairMap['pairs']:
+                    (l1, l2) = pair
+                    responseData.append({'sourceLanguage': l1, 'targetLanguage': l2})
+                self.sendResponse({'responseData': responseData, 'responseDetails': None, 'responseStatus': 200})
+            elif query == 'analyzers' or query == 'analysers':
+                self.sendResponse({pair: info for (pair, info) in self.serverLangPairMap['analyzers']})
+            elif query == 'generators':
+                self.sendResponse({pair: info for (pair, info) in self.serverLangPairMap['generators']})
+            elif query == 'taggers' or query == 'disambiguators':
+                self.sendResponse({pair: info for (pair, info) in self.serverLangPairMap['taggers']})
+            else:
+                self.send_error(400)
+
 class Balancer(object):
     def __init__(self, servers):
         self.serverlist = servers
@@ -67,11 +114,23 @@ class RoundRobin(Balancer):
         self.langpairmap = langpairmap
         self.generator = itertools.cycle(self.serverlist)
     
-    def get_server(self, langPair):
-        if langPair not in self.langpairmap:
-            return None
+    def get_server(self, langPair, mode = "pairs"):
+        def getCompleteKey(langPair, langPairMap, mode):
+            if mode == "pairs":
+                completeKey = tuple(langPair.split('-'))
+            elif mode == "analyzers" or mode == "taggers" or mode == "generators":
+                for langPairMapped in langPairMap[mode]:
+                    if langPairMapped[0] == langPair:
+                        completeKey = langPairMapped
+                        break
+            return completeKey
+        if langPair is not None:
+            langPairKey = getCompleteKey(langPair, self.langpairmap, mode)
+        if langPair is None or not langPairKey in self.langpairmap[mode]:
+            logging.error("Language pair %s for mode %s not found" %(langPair, mode))
+            return next(self.generator)
         server = next(self.generator)
-        while server not in self.langpairmap[langPair]:
+        while server not in self.langpairmap[mode][langPairKey]:
             server = next(self.generator)
         return server
         
@@ -238,37 +297,44 @@ def testServerPool(serverList):
 def determineServerCapabilities(serverlist):
     '''Find which APYs can do what.'''
     http = tornado.httpclient.HTTPClient()
-    modes = ["pairs"]
-    mode = modes[0]
-    results = {}
+    modes = ("pairs", "taggers", "generators", "analyzers")
+    capabilities = {}
     for (domain, port) in serverlist:
-        requestURL = "%s:%s/list?q=%s" % (domain, port, mode)
-        logging.info("Getting information from %s" %requestURL)
-        # make the request
-        try:
-            result = http.fetch(requestURL, request_timeout = 15, validate_cert = verifySSLCert)
-        except:
-            logging.warning("Fetch for data from %s:%s for %s failed, dropping server" %(domain, port, mode))
-            continue
-        #parse the return
-        try:
-            response = json.loads(result.body.decode('utf-8'))
-        except ValueError: #Not valid JSON, we stop using the server
-            logging.warning("Received invalid JSON from %s:%s on query for %s, dropping server" %(domain, port, mode))
-            continue
-          
-        if "responseStatus" not in response or response["responseStatus"] != 200 or "responseData" not in response:
-            logging.warning("JSON return format unexpected from %s:%s on query for %s, dropping server"%(domain, port, mode))
-            continue
-        for lang_pair in response['responseData']:
-            lang_pair_tuple = (lang_pair["sourceLanguage"], lang_pair["targetLanguage"])
-            server = (domain, port)
-            if lang_pair_tuple in results:
-                results[lang_pair_tuple].append(server)
+        server = (domain, port)
+        for mode in modes:
+            if mode not in capabilities:
+                capabilities[mode] = {}
+            requestURL = "%s:%s/list?q=%s" % (domain, port, mode)
+            logging.info("Getting information from %s" %requestURL)
+            # make the request
+            try:
+                result = http.fetch(requestURL, request_timeout = 15, validate_cert = verifySSLCert)
+            except:
+                logging.error("Fetch for data from %s:%s for %s failed, dropping server" %(domain, port, mode))
+                continue
+            #parse the return
+            try:
+                response = json.loads(result.body.decode('utf-8'))
+            except ValueError: #Not valid JSON, we stop using the server
+                logging.error("Received invalid JSON from %s:%s on query for %s, dropping server" %(domain, port, mode))
+                continue
+            if mode == "pairs": #pairs has a slightly different response format
+                if "responseStatus" not in response or response["responseStatus"] != 200 or "responseData" not in response:
+                    logging.error("JSON return format unexpected from %s:%s on query for %s, dropping server"%(domain, port, mode))
+                    continue
+                for lang_pair in response['responseData']:
+                    lang_pair_tuple = (lang_pair["sourceLanguage"], lang_pair["targetLanguage"])
+                    if lang_pair_tuple in capabilities[mode]:
+                        capabilities[mode][lang_pair_tuple].append(server)
+                    else:
+                        capabilities[mode][lang_pair_tuple] = [server]
             else:
-                results[lang_pair_tuple] = [server]
-    return results
-                    
+                for lang_pair in response:
+                    if (lang_pair, response[lang_pair]) in capabilities[mode]:
+                        capabilities[mode][(lang_pair, response[lang_pair])].append(server)
+                    else:
+                        capabilities[mode][(lang_pair, response[lang_pair])] = [server]
+    return capabilities
                 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Start Apertium APY Gateway")
@@ -313,18 +379,19 @@ if __name__ == '__main__':
             logging.info('Port %d already in use, trying next' % args.port)
             args.port += 1
         sock.close()
-    
+
+    logging.info("Server/port list used: " + str(server_port_list))    
     server_lang_pair_map = determineServerCapabilities(server_port_list)
     logging.info("Using server language-pair mapping: %s" % str(server_lang_pair_map))
     balancer = RoundRobin(server_port_list, server_lang_pair_map)
     #balancer = LeastConnections(server_port_list)
     #balancer = WeightedRandom(server_port_list)
-    #balancer = Fastest(server_port_list, 5)
-    logging.info("Server/port list used: " + str(server_port_list))
-    
+    #balancer = Fastest(server_port_list, 5)   
     
     application = tornado.web.Application([
-        (r'/.*', requestHandler, {"balancer": balancer})
+        (r'/list', listRequestHandler, {"serverLangPairMap": server_lang_pair_map}),
+        (r'/listPairs', listRequestHandler, {"serverLangPairMap": server_lang_pair_map}),
+        (r'/.*', requestHandler, {"balancer": balancer}),
     ])
     
     if args.ssl_cert and args.ssl_key:
