@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse, logging, sys, json, itertools, functools, random, socket, servlet
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 import tornado, tornado.httpserver, tornado.web, tornado.httpclient
 from tornado.web import RequestHandler
 try: #3.1
@@ -12,6 +12,7 @@ except ImportError: #2.1
 global verifySSLCert
 
 class requestHandler(RequestHandler):
+    '''Handler for non-list requests -- all requests that must be redirected.'''
     def initialize(self, balancer):
         self.balancer = balancer
     
@@ -22,6 +23,7 @@ class requestHandler(RequestHandler):
         langPair = None
         if path == "/translate":
             langPair = self.get_argument('langpair')
+            langPair = langPair.replace('|', '-') #langpair=lang|pair only in /translate
         elif path == "/analyze" or path == "/analyse":
             langPair = self.get_argument('mode')
             mode = "analyzers"
@@ -32,13 +34,7 @@ class requestHandler(RequestHandler):
             langPair = self.get_argument('lang')
         query = self.request.query
         headers = self.request.headers
-        serverport = self.balancer.get_server(langPair, mode)
-        if serverport:
-            server, port = serverport
-        else:
-            logging.error("Could not find language-pair %s for mode %s" %(langPair, mode))
-            self.send_error(400)
-            return
+        server, port = self.balancer.get_server(langPair, mode)
         server_port = '%s:%s' % (server, port)
         logging.info('Redirecting %s?%s to %s%s?%s' % (path, query, server_port, path, query))
         
@@ -64,6 +60,7 @@ class requestHandler(RequestHandler):
         self.get()
 
 class listRequestHandler(servlet.BaseHandler):
+    '''Handler for list requests. Takes a language-pair-server map and aggregates the language-pairs of all of the servers.'''
     def initialize(self, serverLangPairMap):
         self.serverLangPairMap = serverLangPairMap
     
@@ -84,11 +81,11 @@ class listRequestHandler(servlet.BaseHandler):
                     responseData.append({'sourceLanguage': l1, 'targetLanguage': l2})
                 self.sendResponse({'responseData': responseData, 'responseDetails': None, 'responseStatus': 200})
             elif query == 'analyzers' or query == 'analysers':
-                self.sendResponse({pair: info for (pair, info) in self.serverLangPairMap['analyzers']})
+                self.sendResponse({pair: self.serverLangPairMap['analyzers'][pair][0] for pair in self.serverLangPairMap['analyzers']})
             elif query == 'generators':
-                self.sendResponse({pair: info for (pair, info) in self.serverLangPairMap['generators']})
+                self.sendResponse({pair: self.serverLangPairMap['generators'][pair][0] for pair in self.serverLangPairMap['generators']})
             elif query == 'taggers' or query == 'disambiguators':
-                self.sendResponse({pair: info for (pair, info) in self.serverLangPairMap['taggers']})
+                self.sendResponse({pair: self.serverLangPairMap['taggers'][pair][0] for pair in self.serverLangPairMap['taggers']})
             else:
                 self.send_error(400)
 
@@ -107,30 +104,25 @@ class Random(Balancer):
         return random.choice(self.serverlist)
         
 class RoundRobin(Balancer):
-    '''Contains the list of the server / ports and keeps track
-    of which was last used and which should be used next.'''
+    '''Contains the list of the server / ports / their capabilities
+        and cycles between the available/possible ones.'''
     def __init__(self, servers, langpairmap):
         super(RoundRobin, self).__init__(servers)
         self.langpairmap = langpairmap
         self.generator = itertools.cycle(self.serverlist)
     
     def get_server(self, langPair, mode = "pairs"):
-        def getCompleteKey(langPair, langPairMap, mode):
-            if mode == "pairs":
-                completeKey = tuple(langPair.split('-'))
-            elif mode == "analyzers" or mode == "taggers" or mode == "generators":
-                for langPairMapped in langPairMap[mode]:
-                    if langPairMapped[0] == langPair:
-                        completeKey = langPairMapped
-                        break
-            return completeKey
-        if langPair is not None:
-            langPairKey = getCompleteKey(langPair, self.langpairmap, mode)
-        if langPair is None or not langPairKey in self.langpairmap[mode]:
+        if langPair is not None and mode == "pairs":
+            langPair = tuple(langPair.split('-'))
+        if langPair is None or not langPair in self.langpairmap[mode]:
             logging.error("Language pair %s for mode %s not found" %(langPair, mode))
             return next(self.generator)
         server = next(self.generator)
-        while server not in self.langpairmap[mode][langPairKey]:
+        if mode == "pairs":
+            serverlist = self.langpairmap[mode][langPair]
+        else:
+            serverlist = self.langpairmap[mode][langPair][1]
+        while server not in serverlist:
             server = next(self.generator)
         return server
         
@@ -295,7 +287,19 @@ def testServerPool(serverList):
     return testResults
 
 def determineServerCapabilities(serverlist):
-    '''Find which APYs can do what.'''
+    '''Find which APYs can do what.
+    
+    The return data from this function is a little complex, better illustrated than described:
+    capabilities = {
+        "pairs": { #note that pairs is a special mode compared to taggers/generators/analyzers
+            ("lang", "pair"): [(server1, port1), (server2, port2)]
+            }
+        "taggers|generators|analyzers": {
+            "lang-pair": ("lang-pair-moreinfo", [(server1, port1), (server2, port2)])
+            #"moreinfo" tends to be "anmor" or "generador" or "tagger"
+            }
+         }
+            '''
     http = tornado.httpclient.HTTPClient()
     modes = ("pairs", "taggers", "generators", "analyzers")
     capabilities = {}
@@ -330,10 +334,10 @@ def determineServerCapabilities(serverlist):
                         capabilities[mode][lang_pair_tuple] = [server]
             else:
                 for lang_pair in response:
-                    if (lang_pair, response[lang_pair]) in capabilities[mode]:
-                        capabilities[mode][(lang_pair, response[lang_pair])].append(server)
+                    if lang_pair in capabilities[mode]:
+                        capabilities[mode][lang_pair][1].append(server)
                     else:
-                        capabilities[mode][(lang_pair, response[lang_pair])] = [server]
+                        capabilities[mode][lang_pair] = (response[lang_pair], [server])
     return capabilities
                 
 if __name__ == '__main__':
