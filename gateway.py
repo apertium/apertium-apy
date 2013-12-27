@@ -141,7 +141,7 @@ class LeastConnections(Balancer):
     def __init__(self, servers):
         self.serverlist = OrderedDict([(server, 0) for server in servers])
     
-    def get_server(self):
+    def get_server(self, *args, **kwargs):
         return list(self.serverlist.items())[0][0]
         
     def inform(self, action, server, *args, **kwargs):
@@ -165,7 +165,7 @@ class WeightedRandom(Balancer):
                 self.serverlist[server] += testScore / 5
         self.serverlist = OrderedDict(sorted(self.serverlist.items(), key = lambda x: x[1]))
     
-    def get_server(self):
+    def get_server(self, *args, **kwargs):
         servers = list(filter(lambda x: not x[1] == float('inf'), list(self.serverlist.items())))
         total = sum(weight for (server, weight) in servers)
         r = random.uniform(0, total)
@@ -189,7 +189,7 @@ class Fastest(Balancer):
         self.numResponses = numResponses
         self.initWeights()
     
-    def get_server(self):
+    def get_server(self, *args, **kwargs):
         if len(self.serverlist):
             return list(self.serverlist.keys())[0]
         else:
@@ -390,10 +390,10 @@ if __name__ == '__main__':
     logging.info("Server/port list used: " + str(server_port_list))    
     server_lang_pair_map = determineServerCapabilities(server_port_list)
     logging.info("Using server language-pair mapping: %s" % str(server_lang_pair_map))
-    balancer = RoundRobin(server_port_list, server_lang_pair_map)
+    #balancer = RoundRobin(server_port_list, server_lang_pair_map)
     #balancer = LeastConnections(server_port_list)
     #balancer = WeightedRandom(server_port_list)
-    #balancer = Fastest(server_port_list, 5)   
+    balancer = Fastest(server_port_list, 5)   
     
     application = tornado.web.Application([
         (r'/list', listRequestHandler, {"serverLangPairMap": server_lang_pair_map}),
