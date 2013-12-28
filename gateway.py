@@ -352,6 +352,10 @@ def determineServerCapabilities(serverlist):
             }
          }
             '''
+    # TODO: scaleMT doesn't support /list?q=mode calls. Find a way to figure out which language-pairs each mode supports
+    # on scaleMT survers.
+    # You will probably need to batch-translate or batch-analyze with the language pairs from /listPairs and
+    # look at the return codes in order to do this.
     http = tornado.httpclient.HTTPClient()
     modes = ("pairs", "taggers", "generators", "analyzers")
     capabilities = {}
