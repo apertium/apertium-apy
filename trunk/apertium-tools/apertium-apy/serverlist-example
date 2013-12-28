@@ -1,0 +1,9 @@
+#Format: http[s]://host[/path]:portNumber
+#Notice that there is no trailing slash!
+#http://localhost:2737
+#http://api.apertium.org/json:80
+http://localhost:2738
+http://localhost:2739
+http://localhost:2740
+http://localhost:2741
+http://api.apertium.org/json:80
