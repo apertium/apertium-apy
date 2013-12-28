@@ -20,7 +20,9 @@ class requestHandler(RequestHandler):
     def get(self):
         path = self.request.path
         mode = "pairs"
+        modes = None
         langPair = None
+        perWordModes = {'morph': 'analyzers', 'biltrans': 'analyzers', 'tagger': 'taggers', 'translate': 'taggers'}
         if path == "/translate":
             langPair = self.get_argument('langpair')
             langPair = langPair.replace('|', '-') #langpair=lang|pair only in /translate
@@ -30,12 +32,17 @@ class requestHandler(RequestHandler):
         elif path == "/generate":
             langPair = self.get_argument('mode')
             mode = "generators"
+        elif path == "/coverage":
+            langPair = self.get_argument('mode')
+            mode = "analyzers"
         elif path == "/perWord":
             langPair = self.get_argument('lang')
+            modes = self.get_argument('modes').split()
+            modes = set(perWordModes[x] for x in modes if x in modes)
         query = self.request.query
         headers = self.request.headers
         
-        serverTuple = self.balancer.get_server(langPair, mode)
+        serverTuple = self.balancer.get_server(langPair, mode, modes = modes)
         if serverTuple:
             server, port = serverTuple
         else:
@@ -119,8 +126,28 @@ class RoundRobin(Balancer):
         self.langpairmap = langpairmap
         self.generator = itertools.cycle(self.serverlist)
     
-    def get_server(self, langPair, mode = "pairs"):
-        if langPair is not None and mode == "pairs":
+    def get_server(self, langPair, mode = "pairs", *args, **kwargs):
+        #when we get a /perWord request, we have multiple modes, all of which have to be on the server
+        #the modes will not be "pairs"
+        if 'modes' in kwargs and kwargs['modes'] is not None:
+            modes = kwargs['modes']
+            logging.info("Handling a /perWord request with modes %s for langpair %s" %(modes, langPair))
+            def isIn(modes, server):
+                for mode in modes:
+                    if langPair not in self.langpairmap[mode] or server not in self.langpairmap[mode][langPair][1]:
+                        return False
+                else:
+                    return True
+            if not any(isIn(modes, server) for server in self.serverlist):
+                logging.error("Language pair %s not found for modes %s" %(langPair, modes))
+                return next(self.generator)
+            else:
+                server = next(self.generator)
+                while not isIn(modes, server):
+                    server = next(self.generator)
+                return server
+        #for everything that isn't a /perWord call
+        if langPair is not None and mode == "pairs": #for mode "pairs", the key is ('lang', 'pair') rather than 'lang-pair'
             langPair = tuple(langPair.split('-'))
         if langPair is None or not langPair in self.langpairmap[mode]:
             logging.error("Language pair %s for mode %s not found" %(langPair, mode))
@@ -403,10 +430,10 @@ if __name__ == '__main__':
     logging.info("Server/port list used: " + str(server_port_list))    
     server_lang_pair_map = determineServerCapabilities(server_port_list)
     logging.info("Using server language-pair mapping: %s" % str(server_lang_pair_map))
-    #balancer = RoundRobin(server_port_list, server_lang_pair_map)
+    balancer = RoundRobin(server_port_list, server_lang_pair_map)
     #balancer = LeastConnections(server_port_list)
     #balancer = WeightedRandom(server_port_list)
-    balancer = Fastest(server_port_list, server_lang_pair_map, 5)   
+    #balancer = Fastest(server_port_list, server_lang_pair_map, 5)   
     
     application = tornado.web.Application([
         (r'/list', listRequestHandler, {"serverLangPairMap": server_lang_pair_map}),
