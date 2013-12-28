@@ -11,6 +11,14 @@ except ImportError: #2.1
     
 global verifySSLCert
 
+def genServerName(server, port):
+    if len(server.split('/')) > 3: #true if there's a separate "path" element
+        server = server.rsplit('/', 1)
+        server_port = '%s:%s/%s' %(server[0],port, server[1])
+    else:
+        server_port = '%s:%s' % (server, port)
+    return server_port
+
 class requestHandler(RequestHandler):
     '''Handler for non-list requests -- all requests that must be redirected.'''
     def initialize(self, balancer):
@@ -47,7 +55,8 @@ class requestHandler(RequestHandler):
             server, port = serverTuple
         else:
             return self.send_error(400)
-        server_port = '%s:%s' % (server, port)
+        server_port = genServerName(server, port)
+        
         logging.info('Redirecting %s?%s to %s%s?%s' % (path, query, server_port, path, query))
         
         http = tornado.httpclient.AsyncHTTPClient()
@@ -320,7 +329,7 @@ def testServerPool(serverList):
     
     for (domain, port) in serverList:
         for (testPath, testFn) in tests.items():
-            requestURL = '%s:%s%s' % (domain, port, testPath)
+            requestURL = '%s%s' % (genServerName(domain, port), testPath)
             try:
                 result = http.fetch(requestURL, request_timeout = 15, validate_cert = verifySSLCert)
                 handleResult(result, (testPath, testFn), (domain, port))
@@ -351,19 +360,22 @@ def determineServerCapabilities(serverlist):
         for mode in modes:
             if mode not in capabilities:
                 capabilities[mode] = {}
-            requestURL = "%s:%s/list?q=%s" % (domain, port, mode)
+            if mode == "pairs": # for compatibility with scaleMT, we request /listPairs
+                requestURL = "%s/listPairs" %genServerName(domain, port)
+            else:
+                requestURL = "%s/list?q=%s" % (genServerName(domain, port), mode)
             logging.info("Getting information from %s" %requestURL)
             # make the request
             try:
                 result = http.fetch(requestURL, request_timeout = 15, validate_cert = verifySSLCert)
             except:
-                logging.error("Fetch for data from %s:%s for %s failed, dropping server" %(domain, port, mode))
+                logging.error("Fetch for data from %s for %s failed, dropping server" %(genServerName(domain, port), mode))
                 continue
             #parse the return
             try:
                 response = json.loads(result.body.decode('utf-8'))
             except ValueError: #Not valid JSON, we stop using the server
-                logging.error("Received invalid JSON from %s:%s on query for %s, dropping server" %(domain, port, mode))
+                logging.error("Received invalid JSON from %s on query for %s, dropping server" %(genServerName(domain, port), mode))
                 continue
             if mode == "pairs": #pairs has a slightly different response format
                 if "responseStatus" not in response or response["responseStatus"] != 200 or "responseData" not in response:
