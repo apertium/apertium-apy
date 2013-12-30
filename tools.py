@@ -64,15 +64,13 @@ def getCoverages(text, modes, penalize=False):
         
 def getCoverage(text, mode, modeDir, penalize=False):
     analysis = apertium(text, mode, modeDir)
-    lexicalUnits = re.findall(r'\^([^\$]*)\$([^\^]*)', analysis)
-    analyzedLexicalUnits = list(filter(lambda x: x[0].split('/')[1][0] != '*', lexicalUnits))
+    lexicalUnits = removeLast(text, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
+    analyzedLexicalUnits = list(filter(lambda x: not x[0].split('/')[1][0] in '*&#', lexicalUnits))
     if len(lexicalUnits) and not penalize:
         return len(analyzedLexicalUnits) / len(lexicalUnits)
-    elif len(lexicalUnits) and penalize:
-        print((1 - sum([len(lexicalUnit[0].split('/')[0]) for lexicalUnit in lexicalUnits]) / len(text)))
+    elif len(lexicalUnits) and len(text) and penalize:
         return len(analyzedLexicalUnits) / len(lexicalUnits) - (1 - sum([len(lexicalUnit[0].split('/')[0]) for lexicalUnit in lexicalUnits]) / len(text))
     else:
-        print(lexicalUnits, mode, modeDir)
         return -1
         
 def processPerWord(analyzers, taggers, lang, modes, query):
