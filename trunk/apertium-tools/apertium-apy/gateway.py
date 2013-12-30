@@ -27,40 +27,45 @@ class requestHandler(RequestHandler):
     @tornado.web.asynchronous
     def get(self):
         path = self.request.path
-        mode = "pairs"
-        modes = None
-        langPair = None
-        perWordModes = {'morph': 'analyzers', 'biltrans': 'analyzers', 'tagger': 'taggers', 'translate': 'taggers'}
-        if path == "/translate":
+        mode, langPair, perWordModes = [None] * 3
+        if path == '/translate':
             langPair = self.get_argument('langpair')
             langPair = langPair.replace('|', '-') #langpair=lang|pair only in /translate
-        elif path == "/analyze" or path == "/analyse":
+        elif path == '/analyze' or path == '/analyse':
             langPair = self.get_argument('mode')
-            mode = "analyzers"
-        elif path == "/generate":
+            mode = 'analyzers'
+        elif path == '/generate':
             langPair = self.get_argument('mode')
-            mode = "generators"
-        elif path == "/coverage":
-            langPair = self.get_argument('mode')
-            mode = "analyzers"
-        elif path == "/perWord":
+            mode = 'generators'
+        elif path == '/listLanguageNames':
+            mode = 'languageNames'
+        elif path == '/perWord':
+            mode = 'perWord'
             langPair = self.get_argument('lang')
-            modes = self.get_argument('modes').split()
-            modes = set(perWordModes[x] for x in modes if x in modes)
+            perWordModes = self.get_argument('modes').split()
+        elif path == '/coverage':
+            mode = 'coverage'
+            langPair = self.get_argument('mode')
+        elif path == '/identifyLang':
+            mode = 'identifyLang'
+
+        if not mode:
+            return self.send_error(400)
+
         query = self.request.query
         headers = self.request.headers
         
-        serverTuple = self.balancer.get_server(langPair, mode, modes = modes)
+        serverTuple = self.balancer.get_server(langPair, mode, perWordModes=perWordModes)
         if serverTuple:
             server, port = serverTuple
         else:
+            logging.warning('No server available for request: %s' % self.request.uri)
             return self.send_error(400)
         server_port = genServerName(server, port)
-        
         logging.info('Redirecting %s?%s to %s%s?%s' % (path, query, server_port, path, query))
         
         http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch(server_port + path + "?" + query, functools.partial(self._on_download, (server, port), langPair), validate_cert = verifySSLCert, headers = headers)
+        http.fetch(server_port + path + "?" + query, functools.partial(self._on_download, (server, port), langPair), validate_cert=verifySSLCert, headers=headers)
         self.balancer.inform('start', (server, port), url=path)
         
     def _on_download(self, server, langPair, response):
@@ -69,11 +74,13 @@ class requestHandler(RequestHandler):
             self.balancer.inform('drop', server, response=response, lang=langPair)
             logging.info('Request failed with code %d, trying next server after %s' % (response.error.code, str(server)))
             return self.get()
-        self.balancer.inform('complete', server, response=response, lang=langPair)
+        if response.error is None:
+            self.balancer.inform('complete', server, response=response, lang=langPair)
+            self.write(responseBody)
+        else:
+            self.set_status(response.code)
         for (hname, hvalue) in response.headers.get_all():
             self.set_header(hname, hvalue)
-        self.set_status(response.code)
-        self.write(responseBody)
         self.finish()
     
     @tornado.web.asynchronous
@@ -138,8 +145,9 @@ class RoundRobin(Balancer):
     def get_server(self, langPair, mode = "pairs", *args, **kwargs):
         #when we get a /perWord request, we have multiple modes, all of which have to be on the server
         #the modes will not be "pairs"
-        if 'modes' in kwargs and kwargs['modes'] is not None:
-            modes = kwargs['modes']
+        if 'perWordModes' in kwargs and kwargs['perWordModes'] is not None:
+            perWordModes = {'morph': 'analyzers', 'biltrans': 'analyzers', 'tagger': 'taggers', 'translate': 'taggers'}
+            modes = set(map(lambda _: perWordModes[_], kwargs['perWordModes']))
             logging.info("Handling a /perWord request with modes %s for langpair %s" %(modes, langPair))
             def isIn(modes, server):
                 for mode in modes:
@@ -226,14 +234,33 @@ class WeightedRandom(Balancer):
 class Fastest(Balancer):
     def __init__(self, servers, serverCapabilities, numResponses):
         self.servers = servers
+        self.originalServers = servers
+        self.serverCycle = itertools.cycle(self.servers)
         self.numResponses = numResponses
         self.initServerList(serverCapabilities=serverCapabilities)
     
-    def get_server(self, langPair, mode):
+    def get_server(self, langPair, mode, *args, **kwargs):
         if len(self.serverlist):
-            modeToURL = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag'}
-            if self.serverlist[(modeToURL[mode], langPair)]:
-                return list(self.serverlist[(modeToURL[mode], langPair)])[0]
+            modeToURL = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag', 'coverage': 'analyze'}
+            if mode in modeToURL:
+                if (modeToURL[mode], langPair) in self.serverlist:
+                    possibleServers = list(self.serverlist[(modeToURL[mode], langPair)])
+                    if len(possibleServers):
+                        return possibleServers[0]
+            elif mode == 'languageNames' or mode == 'identifyLang':
+                return next(self.serverCycle)
+            elif mode == 'perWord':
+                modes = kwargs['perWordModes']
+                possibleServers = set()
+                if ('morph' in modes or 'biltrans' in modes) and ('analyze', langPair) in self.serverlist:
+                        possibleServers.update(self.serverlist[('analyze', langPair)])
+                elif ('tagger' in modes or 'disambig' in modes or 'translate' in modes) and ('tag', langPair) in self.serverlist:
+                    if possibleServers:
+                        possibleServers &= self.serverlist[('tag', langPair)]
+                    else:
+                        possibleServers.update(self.serverlist[('tag', langPair)])
+                if len(possibleServers):
+                    return list(possibleServers)[0]
         else:
             logging.critical('Empty serverlist')
             sys.exit(-1)
@@ -253,26 +280,29 @@ class Fastest(Balancer):
             path = url.rsplit('/', 1)[1] if not '?' in url else url.rsplit('/', 1)[1].split('?')[0]
             mode = (path, kwargs['lang'])
             
-            if action == 'complete':
-                if self.serverlist[mode][server]:
-                    self.serverlist[mode][server] = (self.serverlist[mode][server] * (self.numResponses - 1) + requestTime/responseLen) / self.numResponses
-                else:
-                    self.serverlist[mode][server] = requestTime/responseLen / self.numResponses
-            else:
-                self.serverlist[mode][server] = float('inf')
+            if mode in self.serverlist:
+                if action == 'complete':
+                    if self.serverlist[mode][server]:
+                        self.serverlist[mode][server] = (self.serverlist[mode][server] * (self.numResponses - 1) + requestTime/responseLen) / self.numResponses
+                    else:
+                        self.serverlist[mode][server] = requestTime/responseLen / self.numResponses
+                elif action == 'drop':
+                    logging.error('Dropping server: %s', repr(server))
+                    self.servers.remove(server)
+                    self.serverCycle = itertools.cycle(self.servers)
+                    del self.serverlist[mode][server]
             
-            pprint.pprint(self.serverlist[mode])
-            print(self.serverlist[mode])
-            self.serverlist[mode] = OrderedDict(sorted(self.serverlist[mode].items(), key=lambda x: x[1]))
+                pprint.pprint(self.serverlist[mode])
+                self.serverlist[mode] = OrderedDict(sorted(self.serverlist[mode].items(), key=lambda x: x[1]))
                 
     def initServerList(self, serverCapabilities=None):
         if serverCapabilities == None:
-            serverCapabilities = determineServerCapabilities()
+            serverCapabilities = determineServerCapabilities(self.originalServers)
         self.serverlist = {}
         
         modeToURL = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag'}
         for lang, servers in serverCapabilities['pairs'].items():
-            self.serverlist[(modeToURL['pairs'], lang)] = OrderedDict([(server, 0) for server in servers])
+            self.serverlist[(modeToURL['pairs'], '%s-%s' % lang)] = OrderedDict([(server, 0) for server in servers])
         
         for mode, capabiltities in serverCapabilities.items():
             if mode != 'pairs':
