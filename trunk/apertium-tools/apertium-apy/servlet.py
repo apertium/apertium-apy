@@ -95,13 +95,13 @@ class TranslateHandler(BaseHandler):
                     "responseStatus": 200}
                 self.sendResponse(toReturn)
         if '%s-%s' % (l1, l2) in self.pairs:
-            pool = Pool(processes = 1)
-            result = pool.apply_async(translate, [toTranslate, (l1, l2), self.translock, self.pipelines, self.pairs], callback = handleTranslation)
-            try:
-                translation = result.get(timeout = self.timeout)
-            except TimeoutError:
-                self.send_error(408)
-                pool.terminate()
+            with Pool(processes = 1) as pool:
+	            result = pool.apply_async(translate, [toTranslate, (l1, l2), self.translock, self.pipelines, self.pairs], callback = handleTranslation)
+	            try:
+	                translation = result.get(timeout = self.timeout)
+	            except TimeoutError:
+	                self.send_error(408)
+	                pool.terminate()
         else:
             self.send_error(400)
 
@@ -116,13 +116,13 @@ class AnalyzeHandler(BaseHandler):
             self.sendResponse([(lexicalUnit[0], lexicalUnit[0].split('/')[0] + lexicalUnit[1]) for lexicalUnit in lexicalUnits])
         
         if mode in self.analyzers:
-            pool = Pool(processes = 1)
-            result = pool.apply_async(apertium, [toAnalyze, self.analyzers[mode][0], self.analyzers[mode][1]], callback = handleAnalysis)
-            try:
-                analysis = result.get(timeout = self.timeout)
-            except TimeoutError:
-                self.send_error(408)
-                pool.terminate()
+            with Pool(processes = 1) as pool:
+	            result = pool.apply_async(apertium, [toAnalyze, self.analyzers[mode][0], self.analyzers[mode][1]], callback = handleAnalysis)
+	            try:
+	                analysis = result.get(timeout = self.timeout)
+	            except TimeoutError:
+	                self.send_error(408)
+	                pool.terminate()
         else:
             self.send_error(400)
 
@@ -140,13 +140,13 @@ class GenerateHandler(BaseHandler):
             lexicalUnits = re.findall(r'(\^[^\$]*\$[^\^]*)', toGenerate)
             if len(lexicalUnits) == 0:
                 lexicalUnits = ['^%s$' % toGenerate]
-            pool = Pool(processes = 1)
-            result = pool.apply_async(apertium, ('[SEP]'.join(lexicalUnits), self.generators[mode][0], self.generators[mode][1]), {'formatting': 'none'}, callback = handleGeneration)
-            try:
-                generated = result.get(timeout = self.timeout)
-            except TimeoutError:
-                self.send_error(408)
-                pool.terminate()
+            with Pool(processes = 1) as pool:
+	            result = pool.apply_async(apertium, ('[SEP]'.join(lexicalUnits), self.generators[mode][0], self.generators[mode][1]), {'formatting': 'none'}, callback = handleGeneration)
+	            try:
+	                generated = result.get(timeout = self.timeout)
+	            except TimeoutError:
+	                self.send_error(408)
+	                pool.terminate()
         else:
             self.send_error(400)
         
@@ -225,13 +225,13 @@ class PerWordHandler(BaseHandler):
             else:
                 self.sendResponse(toReturn)
 
-        pool = Pool(processes = 1)
-        result = pool.apply_async(processPerWord, (self.analyzers, self.taggers, lang, modes, query), callback = handleOutput)
-        try:
-            outputs = result.get(timeout = self.timeout)
-        except TimeoutError:
-            self.send_error(408)
-            pool.terminate()
+        with Pool(processes = 1) as pool:
+	        result = pool.apply_async(processPerWord, (self.analyzers, self.taggers, lang, modes, query), callback = handleOutput)
+	        try:
+	            outputs = result.get(timeout = self.timeout)
+	        except TimeoutError:
+	            self.send_error(408)
+	            pool.terminate()
             
 class CoverageHandler(BaseHandler):
     @tornado.web.asynchronous
@@ -243,13 +243,13 @@ class CoverageHandler(BaseHandler):
             self.sendResponse([coverage])
         
         if mode in self.analyzers:
-            pool = Pool(processes = 1)
-            result = pool.apply_async(getCoverage, [text, self.analyzers[mode][0], self.analyzers[mode][1]], callback = handleCoverage)
-            try:
-                analysis = result.get(timeout = self.timeout)
-            except TimeoutError:
-                self.send_error(408)
-                pool.terminate()
+            with Pool(processes = 1) as pool:
+	            result = pool.apply_async(getCoverage, [text, self.analyzers[mode][0], self.analyzers[mode][1]], callback = handleCoverage)
+	            try:
+	                analysis = result.get(timeout = self.timeout)
+	            except TimeoutError:
+	                self.send_error(408)
+	                pool.terminate()
         else:
             self.send_error(400)
             
@@ -261,13 +261,13 @@ class IdentifyLangHandler(BaseHandler):
         def handleCoverages(coverages):
             self.sendResponse(coverages)
         
-        pool = Pool(processes = 1)
-        result = pool.apply_async(getCoverages, [text, self.analyzers], {'penalize': True}, callback = handleCoverages)
-        try:
-            coverages = result.get(timeout = self.timeout)
-        except TimeoutError:
-            self.send_error(408)
-            pool.terminate()
+        with Pool(processes = 1) as pool:
+	        result = pool.apply_async(getCoverages, [text, self.analyzers], {'penalize': True}, callback = handleCoverages)
+	        try:
+	            coverages = result.get(timeout = self.timeout)
+	        except TimeoutError:
+	            self.send_error(408)
+	            pool.terminate()
                 
 class GetLocaleHandler(BaseHandler):
     @tornado.web.asynchronous

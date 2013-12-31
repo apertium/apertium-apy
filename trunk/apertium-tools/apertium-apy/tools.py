@@ -72,7 +72,7 @@ def getCoverage(text, mode, modeDir, penalize=False):
         return len(analyzedLexicalUnits) / len(lexicalUnits) - (1 - sum([len(lexicalUnit[0].split('/')[0]) for lexicalUnit in lexicalUnits]) / len(text))
     else:
         return -1
-        
+
 def processPerWord(analyzers, taggers, lang, modes, query):
     outputs = {}
     morph_lexicalUnits = None
