@@ -29,6 +29,7 @@ class requestHandler(RequestHandler):
         path = self.request.path
         mode, langPair, perWordModes = [None] * 3
         if path == '/translate':
+            mode = 'pairs'
             langPair = self.get_argument('langpair')
             langPair = langPair.replace('|', '-') #langpair=lang|pair only in /translate
         elif path == '/analyze' or path == '/analyse':
@@ -240,6 +241,7 @@ class Fastest(Balancer):
         self.initServerList(serverCapabilities=serverCapabilities)
     
     def get_server(self, langPair, mode, *args, **kwargs):
+        print(mode, langPair)
         if len(self.serverlist):
             modeToURL = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag', 'coverage': 'analyze'}
             if mode in modeToURL:
