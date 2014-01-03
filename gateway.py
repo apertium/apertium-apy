@@ -478,10 +478,10 @@ if __name__ == '__main__':
     logging.info("Server/port list used: " + str(server_port_list))    
     server_lang_pair_map = determineServerCapabilities(server_port_list)
     logging.info("Using server language-pair mapping: %s" % str(server_lang_pair_map))
-    balancer = RoundRobin(server_port_list, server_lang_pair_map)
+    #balancer = RoundRobin(server_port_list, server_lang_pair_map)
     #balancer = LeastConnections(server_port_list)
     #balancer = WeightedRandom(server_port_list)
-    #balancer = Fastest(server_port_list, server_lang_pair_map, 5)   
+    balancer = Fastest(server_port_list, server_lang_pair_map, 5)   
     
     application = tornado.web.Application([
         (r'/list', listRequestHandler, {"serverLangPairMap": server_lang_pair_map}),
