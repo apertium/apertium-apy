@@ -28,27 +28,27 @@ class requestHandler(RequestHandler):
     def get(self):
         path = self.request.path
         mode, langPair, perWordModes = [None] * 3
+        pathToMode = defaultdict(lambda: None, 
+            {'/translate': 'pairs', '/analyze': 'analyzers',
+             '/analyse': 'analyzers', '/generate': 'generators',
+             '/perWord': 'perWord', '/coverage': 'coverage',
+             '/listLanguageNames': 'languageNames', '/identifyLang': 'identifyLang',
+             '/getLocale': 'getLocale'
+        })
+        mode = pathToMode[path]
+
         if path == '/translate':
-            mode = 'pairs'
             langPair = self.get_argument('langpair')
             langPair = langPair.replace('|', '-') #langpair=lang|pair only in /translate
         elif path == '/analyze' or path == '/analyse':
             langPair = self.get_argument('mode')
-            mode = 'analyzers'
         elif path == '/generate':
             langPair = self.get_argument('mode')
-            mode = 'generators'
-        elif path == '/listLanguageNames':
-            mode = 'languageNames'
         elif path == '/perWord':
-            mode = 'perWord'
             langPair = self.get_argument('lang')
             perWordModes = self.get_argument('modes').split()
         elif path == '/coverage':
-            mode = 'coverage'
             langPair = self.get_argument('mode')
-        elif path == '/identifyLang':
-            mode = 'identifyLang'
 
         if not mode:
             return self.send_error(400)
@@ -241,7 +241,6 @@ class Fastest(Balancer):
         self.initServerList(serverCapabilities=serverCapabilities)
     
     def get_server(self, langPair, mode, *args, **kwargs):
-        print(mode, langPair)
         if len(self.serverlist):
             modeToURL = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag', 'coverage': 'analyze'}
             if mode in modeToURL:
@@ -249,7 +248,7 @@ class Fastest(Balancer):
                     possibleServers = list(self.serverlist[(modeToURL[mode], langPair)])
                     if len(possibleServers):
                         return possibleServers[0]
-            elif mode == 'languageNames' or mode == 'identifyLang':
+            elif mode == 'languageNames' or mode == 'identifyLang' or mode == 'getLocale':
                 return next(self.serverCycle)
             elif mode == 'perWord':
                 modes = kwargs['perWordModes']
