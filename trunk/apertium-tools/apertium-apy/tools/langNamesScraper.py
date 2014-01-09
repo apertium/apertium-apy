@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sqlite3, argparse, os, subprocess, re
 from lxml import etree
 
