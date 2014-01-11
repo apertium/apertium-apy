@@ -242,6 +242,8 @@ class CoverageHandler(BaseHandler):
     def get(self):
         mode = self.get_argument('mode')
         text = self.get_argument('q')
+        if not text:
+            return self.send_error(400)
         
         def handleCoverage(coverage):
             self.sendResponse([coverage])
@@ -262,6 +264,8 @@ class IdentifyLangHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
         text = self.get_argument('q')
+        if not text:
+            return self.send_error(400)
         
         def handleCoverages(coverages):
             self.sendResponse(coverages)
