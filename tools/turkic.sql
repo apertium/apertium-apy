@@ -749,5 +749,6 @@ INSERT INTO "languageNames" VALUES(857,'tt','kaa','каракалпакча');
 INSERT INTO "languageNames" VALUES(858,'tt','tyv','тувача');
 INSERT INTO "languageNames" VALUES(859,'tt','az','азәрбайҗанча');
 INSERT INTO "languageNames" VALUES(860,'tt','az','урысча');
+INSERT INTO "languageNames" VALUES(861,'ba','ba','башҡортса');
 COMMIT;
 
