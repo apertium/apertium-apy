@@ -18,6 +18,34 @@ from modeSearch import searchPath
 from tools import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages
 from translation import translate
     
+import time
+import signal
+
+MAX_WAIT_SECONDS_BEFORE_SHUTDOWN = 3
+
+def sig_handler(sig, frame):
+    logging.warning('Caught signal: %s', sig)
+    tornado.ioloop.IOLoop.instance().add_callback(shutdown)
+ 
+def shutdown():
+    logging.info('Stopping http server')
+    http_server.stop()
+ 
+    logging.info('Will shutdown in %s seconds ...', MAX_WAIT_SECONDS_BEFORE_SHUTDOWN)
+    io_loop = tornado.ioloop.IOLoop.instance()
+ 
+    deadline = time.time() + MAX_WAIT_SECONDS_BEFORE_SHUTDOWN
+ 
+    def stop_loop():
+        now = time.time()
+        if now < deadline and (io_loop._callbacks or io_loop._timeouts):
+            io_loop.add_timeout(now + 1, stop_loop)
+        else:
+            io_loop.stop()
+            logging.info('Shutdown')
+    stop_loop()
+
+
 class BaseHandler(tornado.web.RequestHandler):
     pairs = {}
     analyzers = {}
@@ -332,6 +360,7 @@ if __name__ == '__main__':
         (r'/getLocale', GetLocaleHandler)
     ])
     
+    global http_server
     if args.ssl_cert and args.ssl_key:
         http_server = tornado.httpserver.HTTPServer(application, ssl_options = {
             'certfile': args.ssl_cert,
@@ -341,6 +370,10 @@ if __name__ == '__main__':
     else:
         http_server = tornado.httpserver.HTTPServer(application)
         logging.info('Serving at http://localhost:%s' % args.port)
+
+    signal.signal(signal.SIGTERM, sig_handler)
+    signal.signal(signal.SIGINT, sig_handler)
+
     http_server.bind(args.port)
     http_server.start(args.num_processes)
     tornado.ioloop.IOLoop.instance().start()
