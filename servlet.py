@@ -327,7 +327,16 @@ if __name__ == '__main__':
     parser.add_argument('-k', '--ssl-key', help='path to SSL Key File', default=None)
     parser.add_argument('-t', '--timeout', help='timeout for requests (default = 10)', type=int, default=10)
     parser.add_argument('-j', '--num-processes', help='number of processes to run (default = number of cores)', type=int, default=0)
+    parser.add_argument('-d', '--daemon', help='daemon mode: redirects stdout and stderr to files apertium-apy.log and apertium-apy.err ; use with --log-path', action='store_true')
+    parser.add_argument('-P', '--log-path', help='path to log output files to in daemon mode; defaults to local directory', default='./')
     args = parser.parse_args()
+
+    if (args.daemon):
+        # regular content logs are output stderr
+        # python messages are mostly output to stdout
+        # hence swapping the filenames?
+        sys.stderr = open(os.path.join(args.log_path, "apertium-apy.log"), 'a+')
+        sys.stdout = open(os.path.join(args.log_path, "apertium-apy.err"), 'a+')
     
     setupHandler(args.port, args.pairsPath, args.lang_names, args.timeout)
    
