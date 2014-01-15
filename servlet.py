@@ -22,8 +22,6 @@ import time
 import signal
 from os import kill
 
-MAX_WAIT_SECONDS_BEFORE_SHUTDOWN = 3
-
 def sig_handler(sig, frame):
     if 'children' in frame.f_locals:
         for child in frame.f_locals['children']:
