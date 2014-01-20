@@ -34,7 +34,7 @@ def getModeFileLine(modeFile):
                 #print(outCommand)
         toReturn = ' | '.join(outCommands)
         toReturn = re.sub('\s*\$2', '', re.sub('\$1', '-g', toReturn))
-        print(toReturn)
+        #print(toReturn)
         return toReturn
     else:
         return False
@@ -54,12 +54,14 @@ def translateNULFlush(toTranslate, pair, translock, pipelines, pairs):
                         modeFileLine.split('|') ]
                 commandsDone = []
                 for command in commandList:
+                    #print(command)
                     if len(commandsDone)>0:
                         newP = Popen(command, stdin=commandsDone[-1].stdout, stdout=PIPE)
                     else:
                         newP = Popen(command, stdin=PIPE, stdout=PIPE)
                     commandsDone.append(newP)
 
+                #print(commandsDone)
                 pipelines[strPair] = (commandsDone[0], commandsDone[-1])
 
         #print("DEBUG 0.8")
@@ -67,22 +69,27 @@ def translateNULFlush(toTranslate, pair, translock, pipelines, pairs):
             (procIn, procOut) = pipelines[strPair]
             deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
             deformat.stdin.write(bytes(toTranslate, 'utf-8'))
-            procIn.stdin.write(deformat.communicate()[0])
+            y = deformat.communicate()[0]
+            #print("DEBUG 0.91: %s" % toTranslate)
+            #print("DEBUG 0.92:", repr(y))
+            procIn.stdin.write(y)
             procIn.stdin.write(bytes('\0', "utf-8"))
+            #procIn.stdin.write(bytes('\0', "utf-8"))
             procIn.stdin.flush()
-            #print("DEBUG 1 %s\\0" % toTranslate)
             d = procOut.stdout.read(1)
+            #print("DEBUG 1 %s" % (repr((procIn, procOut))))
             #print("DEBUG 2 %s" % d)
             output = []
-            while d and d != b'\0':
+            while d and d != b'\x00':
                 output.append(d)
                 d = procOut.stdout.read(1)
+                #print(d)
             #print("DEBUG 3 %s" % output)
             reformat = Popen("apertium-rehtml", stdin=PIPE, stdout=PIPE)
             reformat.stdin.write(b"".join(output))
             return reformat.communicate()[0].decode('utf-8')
         else:
-            print("no pair in pipelines")
+            #print("no pair in pipelines")
             return False
             
 def translateModeDirect(toTranslate, pair, pairs):
@@ -105,7 +112,7 @@ def translateModeDirect(toTranslate, pair, pairs):
 
             p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
             output = commandsDone[-1].communicate()[0].decode('utf-8')
-            print(output)
+            #print(output)
             return output
         else:
             return False
@@ -120,7 +127,7 @@ def translateModeSimple(toTranslate, pair, pairs):
         p2 = Popen(["sh", modeFile, "-g"], stdin=p1.stdout, stdout=PIPE)
         p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
         output = p2.communicate()[0].decode('utf-8')
-        print(output)
+        #print(output)
         return output
     else:
         return False
@@ -141,7 +148,7 @@ def hardbreakFn():
         # (would prefer "translock.waiting_count", but doesn't seem exist)
     else:
         hardbreak=50000
-    print((threading.active_count(), hardbreak))
+    #print((threading.active_count(), hardbreak))
     return hardbreak
     
 def translateSplitting(toTranslate, pair, translock, pipelines, pairs):
@@ -159,10 +166,14 @@ def translateSplitting(toTranslate, pair, translock, pipelines, pairs):
             next=dot
         else:
             next=last+hardbreak
-        print("toTranslate[%d:%d]" %(last,next))
+        #print("toTranslate[%d:%d]" %(last,next))
+        #print("DEBUG: translate.py: allSplit", repr(allSplit))
         allSplit.append(translateNULFlush(toTranslate[last:next], pair, translock, pipelines, pairs))
         last=next
     return "".join(allSplit)
     
 def translate(toTranslate, pair, translock, pipelines, pairs):
-    return translateSplitting(toTranslate, pair, translock, pipelines, pairs)
+    #print("DEBUG: translate.py:", repr(toTranslate))
+    x = translateSplitting(toTranslate, pair, translock, pipelines, pairs)
+    #print("DEBUG: translate.py: x", x)
+    return(x)
