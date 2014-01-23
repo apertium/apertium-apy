@@ -106,6 +106,7 @@ class TranslateHandler(BaseHandler):
                     "responseDetails": None,
                     "responseStatus": 200}
                 self.sendResponse(toReturn)
+
         if '%s-%s' % (l1, l2) in self.pairs:
             pool = Pool(processes = 1)
             result = pool.apply_async(translate, [toTranslate, (l1, l2), self.translock, self.pipelines, self.pairs], callback = handleTranslation)
