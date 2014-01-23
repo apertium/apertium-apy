@@ -1,4 +1,5 @@
 import re, os
+from tools import toAlpha3Code
 
 def searchPath(pairsPath):
     # TODO: this doesn't get es-en_GB and such. If it's supposed
@@ -26,22 +27,21 @@ def searchPath(pairsPath):
                     if REmodeFile.match(modeFile):
                         l1 = REmodeFile.sub("\g<1>", modeFile)
                         l2 = REmodeFile.sub("\g<2>", modeFile)
-                        #pairTuple = (os.path.join(curMode, modeFile), l1, l2)
-                        pairTuple = (curContent, l1, l2)
+                        pairTuple = (os.path.join(curContent, 'modes', modeFile), toAlpha3Code(l1), toAlpha3Code(l2))
                         pairs.append(pairTuple)
                     elif REmorphFile.match(modeFile):
                         mode = REmorphFile.sub("\g<1>", modeFile) #en-es-anmorph
-                        lang = REmorphFile.sub("\g<2>", modeFile) #en-es
+                        lang = '-'.join(map(toAlpha3Code, REmorphFile.sub("\g<2>", modeFile).split('-'))) #en-es
                         analyzerTuple = (curContent, mode, lang)
                         analyzers.append(analyzerTuple)
                     elif REgenerFile.match(modeFile):
                         mode = REgenerFile.sub("\g<1>", modeFile) #en-es-generador
-                        lang = REgenerFile.sub("\g<2>", modeFile) #en-es
+                        lang = '-'.join(map(toAlpha3Code, REgenerFile.sub("\g<2>", modeFile).split('-'))) #en-es
                         generatorTuple = (curContent, mode, lang)
                         generators.append(generatorTuple)
                     elif REtaggerFile.match(modeFile):
                         mode = REtaggerFile.sub("\g<1>", modeFile) #en-es-tagger
-                        lang = REtaggerFile.sub("\g<2>", modeFile) #en-es
+                        lang = '-'.join(map(toAlpha3Code, REtaggerFile.sub("\g<2>", modeFile).split('-'))) #en-es
                         taggerTuple = (curContent, mode, lang)
                         taggers.append(taggerTuple)
                         
