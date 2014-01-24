@@ -64,7 +64,7 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--apertiumLangs', help='scrape localized names in all Apertium languages', action='store_true', default=False)
     args = parser.parse_args()
     
-    if not len(args.languages) or args.apertiumNames or args.apertiumLangs:
+    if not (len(args.languages) or args.apertiumNames or args.apertiumLangs):
         parser.print_help()
     
     if args.apertiumNames or args.apertiumLangs:
