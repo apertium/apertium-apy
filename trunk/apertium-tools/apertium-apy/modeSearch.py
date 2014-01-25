@@ -1,5 +1,5 @@
 import re, os
-from tools import toAlpha3Code
+from util import toAlpha3Code
 
 def searchPath(path):
     modes = {
@@ -31,5 +31,4 @@ def searchPath(path):
 
             del dirnames[:]
 
-    print({mode: result[1] for mode, result in modes.items()})
     return {mode: result[1] for mode, result in modes.items()}

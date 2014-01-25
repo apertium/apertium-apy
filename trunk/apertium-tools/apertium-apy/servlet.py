@@ -15,7 +15,7 @@ from tornado import escape
 from tornado.escape import utf8
 
 from modeSearch import searchPath
-from tools import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages
+from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages
 from translation import translate
     
 import time
