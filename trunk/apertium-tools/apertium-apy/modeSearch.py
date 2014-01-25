@@ -10,7 +10,7 @@ def searchPath(path):
     }
     langDirRE = re.compile(r'apertium-([a-z]{2,3})(-([a-z]{2,3}))?$')
 
-    for (dirpath, dirnames, filenames) in os.walk(path):
+    for (dirpath, dirnames, filenames) in os.walk(path, followlinks=True):
         currentDir = os.path.normpath(dirpath).split(os.sep)[-1]
         if langDirRE.match(currentDir):
             if any([filename == 'modes.xml' for filename in filenames]):
@@ -29,6 +29,8 @@ def searchPath(path):
                             lang = '-'.join(map(toAlpha3Code, info[0].sub('\g<2>', filename).split('-'))) #e.g. en-es
                             info[1].append((dirpath, mode, lang))
 
+            del dirnames[:]
+        elif len(os.path.normpath(dirpath).replace(os.path.normpath(path), '').split(os.sep)) > 5:
             del dirnames[:]
 
     return {mode: result[1] for mode, result in modes.items()}
