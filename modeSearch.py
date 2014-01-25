@@ -8,15 +8,18 @@ def searchPath(path):
         'generator': (re.compile(r'(([a-z]{2,3}(-[a-z]{2,3})?)-gener[A-z]*)\.mode'), []),
         'tagger': (re.compile(r'(([a-z]{2,3}(-[a-z]{2,3})?)-tagger)\.mode'), [])
     }
+    langDirRE = re.compile(r'apertium-([a-z]{2,3})(-([a-z]{2,3}))?$')
 
     for (dirpath, dirnames, filenames) in os.walk(path):
-        if any([filename == 'modes.xml' for filename in filenames]):
-            for filename in filenames:
-                if modes['pair'][0].match(filename):
-                    l1, l2 = modes['pair'][0].sub('\g<1>', filename), modes['pair'][0].sub('\g<2>', filename)
-                    pairTuple = (dirpath, toAlpha3Code(l1), toAlpha3Code(l2))
-                    modes['pair'][1].append(pairTuple)
-        elif dirpath.endswith('modes'):
+        currentDir = os.path.normpath(dirpath).split(os.sep)[-1]
+        if langDirRE.match(currentDir):
+            if any([filename == 'modes.xml' for filename in filenames]):
+                for filename in filenames:
+                    if modes['pair'][0].match(filename):
+                        l1, l2 = modes['pair'][0].sub('\g<1>', filename), modes['pair'][0].sub('\g<2>', filename)
+                        pairTuple = (dirpath, toAlpha3Code(l1), toAlpha3Code(l2))
+                        modes['pair'][1].append(pairTuple)
+        elif currentDir == 'modes':
             for filename in filenames:
                 for mode, info in modes.items():
                     if mode != 'pair' and info[0].match(filename):
