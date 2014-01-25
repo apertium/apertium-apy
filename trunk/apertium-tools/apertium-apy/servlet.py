@@ -306,7 +306,8 @@ def setupHandler(port, pairsPath, langnames, timeout):
     Handler.langnames = langnames
     Handler.timeout = timeout
 
-    rawPairs, rawAnalyzers, rawGenerators, rawTaggers = searchPath(pairsPath)
+    modes = searchPath(pairsPath)
+    rawPairs, rawAnalyzers, rawGenerators, rawTaggers = modes['pair'], modes['analyzer'], modes['generator'], modes['tagger']
     for pair in rawPairs:
         (f, l1, l2) = pair
         Handler.pairs['%s-%s' % (l1, l2)] = f
@@ -319,7 +320,7 @@ def setupHandler(port, pairsPath, langnames, timeout):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Start Apertium APY')
-    parser.add_argument('pairsPath', help='path to Apertium trunk')
+    parser.add_argument('pairsPath', help='path to Apertium SVN')
     parser.add_argument('-l', '--lang-names', help='path to localised language names sqlite database (default = unicode.db)', default='unicode.db')
     parser.add_argument('-p', '--port', help='port to run server on (default = 2737)', type=int, default=2737)
     parser.add_argument('-c', '--ssl-cert', help='path to SSL Certificate', default=None)
