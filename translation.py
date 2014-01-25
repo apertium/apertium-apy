@@ -46,7 +46,7 @@ def translateNULFlush(toTranslate, pair, translock, pipelines, pairs):
         #print("DEBUG 0.6")
         if strPair not in pipelines:
             #print("DEBUG 0.7")
-            modeFile = "%s/modes/%s.mode" % (pairs[strPair], strPair)
+            modeFile = pairs[strPair]
             modeFileLine = getModeFileLine(modeFile)
             commandList = []
             if modeFileLine:
@@ -95,7 +95,7 @@ def translateNULFlush(toTranslate, pair, translock, pipelines, pairs):
 def translateModeDirect(toTranslate, pair, pairs):
     strPair = '%s-%s' % pair
     if strPair in pairs:
-        modeFile = "%s/modes/%s.mode" % (pairs[strPair], strPair)
+        modeFile = pairs[strPair]
         modeFileLine = getModeFileLine(modeFile)
         commandList = []
         if modeFileLine:
@@ -122,7 +122,7 @@ def translateModeDirect(toTranslate, pair, pairs):
 def translateModeSimple(toTranslate, pair, pairs):
     strPair = '%s-%s' % pair
     if strPair in pairs:
-        modeFile = "%s/modes/%s.mode" % (pairs[strPair], strPair)
+        modeFile = pairs[strPair]
         p1 = Popen(["echo", toTranslate], stdout=PIPE)
         p2 = Popen(["sh", modeFile, "-g"], stdin=p1.stdout, stdout=PIPE)
         p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.

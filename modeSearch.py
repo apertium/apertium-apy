@@ -17,14 +17,19 @@ def searchPath(path):
                 for filename in filenames:
                     if modes['pair'][0].match(filename):
                         l1, l2 = modes['pair'][0].sub('\g<1>', filename), modes['pair'][0].sub('\g<2>', filename)
-                        pairTuple = (dirpath, toAlpha3Code(l1), toAlpha3Code(l2))
+                        pairTuple = (os.path.join(dirpath, filename), toAlpha3Code(l1), toAlpha3Code(l2))
                         modes['pair'][1].append(pairTuple)
-        elif currentDir == 'modes':
-            for filename in filenames:
-                for mode, info in modes.items():
-                    if mode != 'pair' and info[0].match(filename):
-                        mode = info[0].sub('\g<1>', filename) #e.g. en-es-anmorph
-                        lang = '-'.join(map(toAlpha3Code, info[0].sub('\g<2>', filename).split('-'))) #e.g. en-es
-                        info[1].append((dirpath, mode, lang))
-    
+
+            modesPath = os.path.join(dirpath, 'modes')
+            if os.path.isdir(modesPath):
+                for filename in next(os.walk(modesPath))[2]:
+                    for mode, info in modes.items():
+                        if mode != 'pair' and info[0].match(filename):
+                            mode = info[0].sub('\g<1>', filename) #e.g. en-es-anmorph
+                            lang = '-'.join(map(toAlpha3Code, info[0].sub('\g<2>', filename).split('-'))) #e.g. en-es
+                            info[1].append((dirpath, mode, lang))
+
+            del dirnames[:]
+
+    print({mode: result[1] for mode, result in modes.items()})
     return {mode: result[1] for mode, result in modes.items()}
