@@ -1,50 +1,27 @@
 import re, os
 from tools import toAlpha3Code
 
-def searchPath(pairsPath):
-    # TODO: this doesn't get es-en_GB and such. If it's supposed
-    # to work on the SVN directories (as opposed to installed
-    # pairs), it should parse modes.xml and grab all and only
-    # modes that have install="yes"
-    REmodeFile = re.compile("([a-z]{2,3})-([a-z]{2,3})\.mode")
-    REmorphFile = re.compile("(([a-z]{2,3}(-[a-z]{2,3})?)-(an)?mor(ph)?)\.mode")
-    REgenerFile = re.compile("(([a-z]{2,3}(-[a-z]{2,3})?)-gener[A-z]*)\.mode")
-    REtaggerFile = re.compile("(([a-z]{2,3}(-[a-z]{2,3})?)-tagger)\.mode")
+def searchPath(path):
+    modes = {
+        'pair': (re.compile(r'([a-z]{2,3})-([a-z]{2,3})\.mode'), []),
+        'analyzer': (re.compile(r'(([a-z]{2,3}(-[a-z]{2,3})?)-(an)?mor(ph)?)\.mode'), []),
+        'generator': (re.compile(r'(([a-z]{2,3}(-[a-z]{2,3})?)-gener[A-z]*)\.mode'), []),
+        'tagger': (re.compile(r'(([a-z]{2,3}(-[a-z]{2,3})?)-tagger)\.mode'), [])
+    }
 
-    pairs = []
-    analyzers = []
-    generators = []
-    taggers = []
+    for (dirpath, dirnames, filenames) in os.walk(path):
+        if any([filename == 'modes.xml' for filename in filenames]):
+            for filename in filenames:
+                if modes['pair'][0].match(filename):
+                    l1, l2 = modes['pair'][0].sub('\g<1>', filename), modes['pair'][0].sub('\g<2>', filename)
+                    pairTuple = (dirpath, toAlpha3Code(l1), toAlpha3Code(l2))
+                    modes['pair'][1].append(pairTuple)
+
+        for filename in filenames:
+            for mode, info in modes.items():
+                if mode != 'pair' and info[0].match(filename):
+                    mode = info[0].sub('\g<1>', filename) #e.g. en-es-anmorph
+                    lang = '-'.join(map(toAlpha3Code, info[0].sub('\g<2>', filename).split('-'))) #e.g. en-es
+                    info[1].append((dirpath, mode, lang))
     
-    contents = os.listdir(pairsPath)
-    for content in contents:
-        curContent = os.path.join(pairsPath, content)
-        if os.path.isdir(curContent):
-            curMode = os.path.join(curContent, "modes")
-            if os.path.isdir(curMode):
-                modeFiles = os.listdir(curMode)
-                for modeFile in modeFiles:
-                    if REmodeFile.match(modeFile):
-                        l1 = REmodeFile.sub("\g<1>", modeFile)
-                        l2 = REmodeFile.sub("\g<2>", modeFile)
-                        pairTuple = (os.path.join(curContent, 'modes', modeFile), toAlpha3Code(l1), toAlpha3Code(l2))
-                        pairs.append(pairTuple)
-                    elif REmorphFile.match(modeFile):
-                        mode = REmorphFile.sub("\g<1>", modeFile) #en-es-anmorph
-                        lang = '-'.join(map(toAlpha3Code, REmorphFile.sub("\g<2>", modeFile).split('-'))) #en-es
-                        analyzerTuple = (curContent, mode, lang)
-                        analyzers.append(analyzerTuple)
-                    elif REgenerFile.match(modeFile):
-                        mode = REgenerFile.sub("\g<1>", modeFile) #en-es-generador
-                        lang = '-'.join(map(toAlpha3Code, REgenerFile.sub("\g<2>", modeFile).split('-'))) #en-es
-                        generatorTuple = (curContent, mode, lang)
-                        generators.append(generatorTuple)
-                    elif REtaggerFile.match(modeFile):
-                        mode = REtaggerFile.sub("\g<1>", modeFile) #en-es-tagger
-                        lang = '-'.join(map(toAlpha3Code, REtaggerFile.sub("\g<2>", modeFile).split('-'))) #en-es
-                        taggerTuple = (curContent, mode, lang)
-                        taggers.append(taggerTuple)
-                        
-    return pairs, analyzers, generators, taggers
-    
-    
+    return {mode: result[1] for mode, result in modes.items()}
