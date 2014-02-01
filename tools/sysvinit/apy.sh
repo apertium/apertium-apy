@@ -16,14 +16,13 @@
 # Short-Description:	Apertium APY, Apertium API in Python
 ### END INIT INFO
 
-PKG_CONFIG_PATH=/traductors/lib/pkgconfig
-LD_LIBRARY_PATH=/traductors/lib/
-PATH=/traductors/bin:/usr/bin:/bin:$PATH
-LD_LIBRARY_PATH="/traductors/lib:$LD_LIBRARY_PATH"
+export PKG_CONFIG_PATH=/traductors/lib/pkgconfig
+export PATH=/traductors/bin:/usr/bin:/bin:$PATH
+export LD_LIBRARY_PATH=/traductors/lib:$LD_LIBRARY_PATH
 
 SERVLET="servlet.py"
 EXEC="/traductors/apertium-apy/"
-ARGS="-l tools/turkic.db ../pairs -d -P /var/log"
+ARGS="-l tools/apertiumlangs.db ../pairs -d -P /var/log"
 USER="www-data"
 
 start_apy() {
