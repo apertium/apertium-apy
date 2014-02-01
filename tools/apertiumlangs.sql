@@ -7644,4 +7644,5 @@ INSERT INTO "fixes" VALUES(NULL,'en','kaa','Karakalpak');
 INSERT INTO "fixes" VALUES(NULL,'en','ky','Kyrgyz');
 INSERT INTO "fixes" VALUES(NULL,'en','os','Ossetian');
 INSERT INTO "fixes" VALUES(NULL,'ba','ba','башҡортса');
+INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
 COMMIT;
