@@ -7656,6 +7656,7 @@ INSERT INTO "fixes" VALUES(NULL,'tt','tk','төрекмәнчә');
 INSERT INTO "fixes" VALUES(NULL,'tt','kaa','каракалпакча');
 INSERT INTO "fixes" VALUES(NULL,'tt','tyv','тувача');
 INSERT INTO "fixes" VALUES(NULL,'tt','az','азәрбайҗанча');
-INSERT INTO "fixes" VALUES(NULL,'tt','az','урысча');
+INSERT INTO "fixes" VALUES(NULL,'tt','ru','урысча');
+INSERT INTO "fixes" VALUES(NULL,'ru','ky','кыргызский');
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
 COMMIT;
