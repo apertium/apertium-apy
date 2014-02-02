@@ -16,7 +16,8 @@ def openDB(dbPath):
     if not dbConn:
         if os.path.exists(dbPath):
             dbConn = sqlite3.connect(dbPath)
-
+        else:
+            logging.error('Failed to locate language name DB: %s' % dbPath)
 
 def toAlpha2Code(code):
     return iso639Codes[code] if code in iso639Codes else code
@@ -38,24 +39,22 @@ def getLocalizedLanguages(locale, dbPath, languages=[]):
         convertedLanguages[toAlpha2Code(language)] = language
 
     output = {}
-    #if os.path.exists(dbPath):
-    #    conn = sqlite3.connect(dbPath)
     openDB(dbPath)
-        c = dbConn.cursor()
-        languageResults = c.execute('select * from languageNames where lg=?', (locale, )).fetchall()
-        if languages:
-            for languageResult in languageResults:
-                if languageResult[2] in convertedLanguages:
-                    language, languageName = languageResult[2], languageResult[3]
-                    output[convertedLanguages[language]] = languageName
-                    if language in duplicatedLanguages:
-                        output[language] = languageName
-                        output[duplicatedLanguages[language]] = languageName
-        else:
-            for languageResult in languageResults:
-                output[languageResult[2]] = languageResult[3]
+
+    c = dbConn.cursor()
+    languageResults = c.execute('select * from languageNames where lg=?', (locale, )).fetchall()
+    if languages:
+        for languageResult in languageResults:
+            if languageResult[2] in convertedLanguages:
+                language, languageName = languageResult[2], languageResult[3]
+                output[convertedLanguages[language]] = languageName
+                if language in duplicatedLanguages:
+                    output[language] = languageName
+                    output[duplicatedLanguages[language]] = languageName
     else:
-        logging.error('Failed to locate language name DB: %s' % dbPath)
+        for languageResult in languageResults:
+            output[languageResult[2]] = languageResult[3]
+    
     return output
     
 def apertium(input, dir, mode, formatting=None):
