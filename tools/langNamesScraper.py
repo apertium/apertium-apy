@@ -6,13 +6,13 @@ from lxml import etree
 sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)), '..'))
 from util import toAlpha2Code
 
-apertiumLanguages = set()
+apertiumLanguages = {'sr', 'bs', 'hr'} # Add more manually as necessary
 
 def getApertiumLanguages():
     dirs = [('incubator', r'<name>apertium-(\w{2,3})(?:-(\w{2,3}))?</name>'), 
             ('nursery', r'<name>apertium-(\w{2,3})(?:-(\w{2,3}))?</name>'), 
             ('staging', r'<name>apertium-(\w{2,3})(?:-(\w{2,3}))?</name>'), 
-            ('trunk', r'<name>(apertium)-(\w{2,3})-(?:\w{2,3})</name>'), 
+            ('trunk', r'<name>(apertium)-(\w{2,3})-(\w{2,3})</name>'), 
             ('languages', r'<name>(apertium)-(\w{3})</name>'), 
            ]
     for (dirPath, dirRegex) in dirs:
@@ -20,7 +20,7 @@ def getApertiumLanguages():
         for langCodes in re.findall(dirRegex, svnData, re.DOTALL):
             apertiumLanguages.update([convertISOCode(langCode)[1] for langCode in langCodes if not langCode == 'apertium'])
             
-    print('Scraped %s apertium languages' % len(apertiumLanguages))
+    print('Found %s apertium languages' % len(apertiumLanguages))
     return apertiumLanguages
 
 def convertISOCode(code):
