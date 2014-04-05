@@ -8910,6 +8910,8 @@ INSERT INTO "fixes" VALUES(NULL,'en','kaa','Karakalpak');
 INSERT INTO "fixes" VALUES(NULL,'en','ky','Kyrgyz');
 INSERT INTO "fixes" VALUES(NULL,'en','os','Ossetian');
 INSERT INTO "fixes" VALUES(NULL,'ba','ba','башҡортса');
+INSERT INTO "fixes" VALUES(NULL,'tt','en','инглизчә');
+INSERT INTO "fixes" VALUES(NULL,'tt','es','испанча');
 INSERT INTO "fixes" VALUES(NULL,'tt','kk','казакъча');
 INSERT INTO "fixes" VALUES(NULL,'tt','tt','татарча');
 INSERT INTO "fixes" VALUES(NULL,'tt','ky','кыргызча');
