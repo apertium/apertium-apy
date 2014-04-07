@@ -2,12 +2,12 @@ import re, os
 from util import toAlpha3Code
 
 def searchPath(path):
-    variant_mode = re.compile(r'([a-z]{2,3})(_[a-zA-Z]+)?-([a-z]{2,3})(_[a-zA-Z]+)?\.mode');
+    langCode = r'[a-z]{2,3}(?:_[A-Za-z]+)?'
     modes = {
-        'pair': (re.compile(r'([a-z]{2,3})-([a-z]{2,3})\.mode'), []),
-        'analyzer': (re.compile(r'(([a-z]{2,3}(-[a-z]{2,3})?)-(an)?mor(ph)?)\.mode'), []),
-        'generator': (re.compile(r'(([a-z]{2,3}(-[a-z]{2,3})?)-gener[A-z]*)\.mode'), []),
-        'tagger': (re.compile(r'(([a-z]{2,3}(-[a-z]{2,3})?)-tagger)\.mode'), [])
+        'pair': (re.compile(r'({0})-({0})\.mode'.format(langCode)), []),
+        'analyzer': (re.compile(r'(({0}(-{0})?)-(an)?mor(ph)?)\.mode'.format(langCode)), []),
+        'generator': (re.compile(r'(({0}(-{0})?)-gener[A-z]*)\.mode'.format(langCode)), []),
+        'tagger': (re.compile(r'(({0}(-{0})?)-tagger)\.mode'.format(langCode)), [])
     }
     langDirRE = re.compile(r'apertium-([a-z]{2,3})(-([a-z]{2,3}))?$')
 
@@ -19,34 +19,6 @@ def searchPath(path):
                     if modes['pair'][0].match(filename):
                         l1, l2 = modes['pair'][0].sub('\g<1>', filename), modes['pair'][0].sub('\g<2>', filename)
                         pairTuple = (os.path.join(dirpath, filename), toAlpha3Code(l1), toAlpha3Code(l2))
-                        modes['pair'][1].append(pairTuple)
-                    elif variant_mode.match(filename): 
-                        l1 = filename.replace('.mode', '').split('-')[0];
-                        l2 = filename.replace('.mode', '').split('-')[1];
-                        l1code = '';
-                        l2code = '';
-                        l1variant = '';
-                        l2variant = '';
-                        print('var:', filename, 'l1:',l1,'l2:',l2);
-                        if '_' in l1: #{
-                            l1code = toAlpha3Code(l1.split('_')[0])
-                            l1variant = l1.split('_')[1];
-                        else: #{
-                            l1code = toAlpha3Code(l1);
-                        #}
-                        if '_' in l2: #{
-                            l2code = toAlpha3Code(l2.split('_')[0])
-                            l2variant = l2.split('_')[1];
-                        else: #{
-                            l2code = toAlpha3Code(l2);
-                        #}
-                        if l1variant != '': #{
-                            l1code = l1code + '_' + l1variant;
-                        #}
-                        if l2variant != '': #{
-                            l2code = l2code + '_' + l2variant;
-                        #}
-                        pairTuple = (os.path.join(dirpath, filename), l1code, l2code)
                         modes['pair'][1].append(pairTuple)
 
             modesPath = os.path.join(dirpath, 'modes')
