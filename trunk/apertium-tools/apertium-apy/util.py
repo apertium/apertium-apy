@@ -25,7 +25,7 @@ def openDB(dbPath):
 def toAlpha2Code(code):
     if '_' in code:
         code, variant = code.split('_')
-        return '%s_%s' % (iso639Codes[code], variant) if code in iso639Codes else  (code, variant)
+        return '%s_%s' % ((iso639Codes[code], variant) if code in iso639Codes else  (code, variant))
     else:
         return iso639Codes[code] if code in iso639Codes else code
 
@@ -33,7 +33,7 @@ def toAlpha3Code(code):
     iso639CodesInverse = {v: k for k, v in iso639Codes.items()}
     if '_' in code:
         code, variant = code.split('_')
-        return '%s_%s' % (iso639CodesInverse[code], variant) if code in iso639CodesInverse else  (code, variant)
+        return '%s_%s' % ((iso639CodesInverse[code], variant) if code in iso639CodesInverse else  (code, variant))
     else:
         return iso639CodesInverse[code] if code in iso639CodesInverse else code
 
