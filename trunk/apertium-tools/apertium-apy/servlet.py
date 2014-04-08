@@ -84,11 +84,11 @@ class ListHandler(BaseHandler):
                 responseData.append({'sourceLanguage': l1, 'targetLanguage': l2})
             self.sendResponse({'responseData': responseData, 'responseDetails': None, 'responseStatus': 200})
         elif query == 'analyzers' or query == 'analysers':
-            self.sendResponse({pair: info[1] for (pair, info) in self.analyzers.items()})
+            self.sendResponse({pair: modename for (pair, (path,modename)) in self.analyzers.items()})
         elif query == 'generators':
-            self.sendResponse({pair: info[1] for (pair, info) in self.generators.items()})
+            self.sendResponse({pair: modename for (pair, (path,modename)) in self.generators.items()})
         elif query == 'taggers' or query == 'disambiguators':
-            self.sendResponse({pair: info[1] for (pair, info) in self.taggers.items()})
+            self.sendResponse({pair: modename for (pair, (path,modename)) in self.taggers.items()})
         else:
             self.send_error(400)
 
@@ -301,26 +301,33 @@ class GetLocaleHandler(BaseHandler):
         else:
             self.send_error(400)
 
-def setupHandler(port, pairsPath, langnames, timeout):
+def setupHandler(port, pairs_path, nonpairs_path, langnames, timeout, verbosity=0):
     Handler = BaseHandler
     Handler.langnames = langnames
     Handler.timeout = timeout
 
-    modes = searchPath(pairsPath)
-    rawPairs, rawAnalyzers, rawGenerators, rawTaggers = modes['pair'], modes['analyzer'], modes['generator'], modes['tagger']
-    for pair in rawPairs:
-        (f, l1, l2) = pair
-        Handler.pairs['%s-%s' % (l1, l2)] = f
-    for analyzer in rawAnalyzers:
-        Handler.analyzers[analyzer[2]] = (analyzer[0], analyzer[1])
-    for generator in rawGenerators:
-        Handler.generators[generator[2]] = (generator[0], generator[1])
-    for tagger in rawTaggers:
-        Handler.taggers[tagger[2]] = (tagger[0], tagger[1])
+    modes = searchPath(pairs_path, verbosity=verbosity)
+    if nonpairs_path:
+        src_modes = searchPath(nonpairs_path, include_pairs=False, verbosity=verbosity)
+        for mtype in modes:
+            modes[mtype] += src_modes[mtype]
+
+    [logging.info("%d %s modes found" % (len(modes[mtype]), mtype)) for mtype in modes]
+
+    for path, lang_src, lang_trg in modes['pair']:
+        Handler.pairs['%s-%s' % (lang_src, lang_trg)] = path
+    for dirpath, modename, lang_pair in modes['analyzer']:
+        Handler.analyzers[lang_pair] = (dirpath, modename)
+    for dirpath, modename, lang_pair in modes['generator']:
+        Handler.generators[lang_pair] = (dirpath, modename)
+    for dirpath, modename, lang_pair in modes['tagger']:
+        Handler.taggers[lang_pair] = (dirpath, modename)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Start Apertium APY')
-    parser.add_argument('pairsPath', help='path to Apertium SVN')
+    parser.add_argument('pairs-path', help='path to Apertium installed pairs (all modes files in this path are included)')
+    parser.add_argument('-s', '--nonpairs-path', help='path to Apertium SVN (only non-translator debug modes are included from this path)')
     parser.add_argument('-l', '--lang-names', help='path to localised language names sqlite database (default = unicode.db)', default='unicode.db')
     parser.add_argument('-p', '--port', help='port to run server on (default = 2737)', type=int, default=2737)
     parser.add_argument('-c', '--ssl-cert', help='path to SSL Certificate', default=None)
@@ -329,6 +336,7 @@ if __name__ == '__main__':
     parser.add_argument('-j', '--num-processes', help='number of processes to run (default = number of cores)', type=int, default=0)
     parser.add_argument('-d', '--daemon', help='daemon mode: redirects stdout and stderr to files apertium-apy.log and apertium-apy.err ; use with --log-path', action='store_true')
     parser.add_argument('-P', '--log-path', help='path to log output files to in daemon mode; defaults to local directory', default='./')
+    parser.add_argument('-v', '--verbosity', help='logging verbosity', type=int, default=0)
     args = parser.parse_args()
 
     if (args.daemon):
@@ -338,10 +346,11 @@ if __name__ == '__main__':
         sys.stderr = open(os.path.join(args.log_path, "apertium-apy.log"), 'a+')
         sys.stdout = open(os.path.join(args.log_path, "apertium-apy.err"), 'a+')
     
-    setupHandler(args.port, args.pairsPath, args.lang_names, args.timeout)
-   
     logging.getLogger().setLevel(logging.INFO)
     enable_pretty_logging()
+
+    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.timeout, args.verbosity)
+   
     application = tornado.web.Application([
         (r'/list', ListHandler),
         (r'/listPairs', ListHandler),
