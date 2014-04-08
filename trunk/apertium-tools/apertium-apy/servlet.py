@@ -326,7 +326,7 @@ def setupHandler(port, pairs_path, nonpairs_path, langnames, timeout, verbosity=
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Start Apertium APY')
-    parser.add_argument('pairs-path', help='path to Apertium installed pairs (all modes files in this path are included)')
+    parser.add_argument('pairs_path', help='path to Apertium installed pairs (all modes files in this path are included)')
     parser.add_argument('-s', '--nonpairs-path', help='path to Apertium SVN (only non-translator debug modes are included from this path)')
     parser.add_argument('-l', '--lang-names', help='path to localised language names sqlite database (default = unicode.db)', default='unicode.db')
     parser.add_argument('-p', '--port', help='port to run server on (default = 2737)', type=int, default=2737)
