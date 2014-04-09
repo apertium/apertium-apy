@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 # -*- indent-tabs-mode: nil -*-
 
-import sys, threading, os, re, ssl, argparse, logging
+import sys, threading, os, re, ssl, argparse, logging, time, signal
 from lxml import etree
 from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
+from threading import Thread
+from functools import wraps
+from os import kill
 
-import tornado, tornado.web, tornado.httpserver
+import tornado, tornado.web, tornado.httpserver, tornado.gen
 try: #3.1
     from tornado.log import enable_pretty_logging
 except ImportError: #2.1
@@ -17,10 +20,6 @@ from tornado.escape import utf8
 from modeSearch import searchPath
 from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages
 from translation import translate
-    
-import time
-import signal
-from os import kill
 
 def sig_handler(sig, frame):
     if 'children' in frame.f_locals:
@@ -29,6 +28,15 @@ def sig_handler(sig, frame):
     # else: we are one of the children
     logging.warning('Caught signal: %s', sig)
     exit()
+
+def run_async(func):
+    @wraps(func)
+    def async_func(*args, **kwargs):
+        func_hl = Thread(target = func, args = args, kwargs = kwargs)
+        func_hl.start()
+        return func_hl
+
+    return async_func
 
 class BaseHandler(tornado.web.RequestHandler):
     pairs = {}
@@ -93,76 +101,106 @@ class ListHandler(BaseHandler):
             self.send_error(400)
 
 class TranslateHandler(BaseHandler):
+    @tornado.web.asynchronous
+    @tornado.gen.coroutine
     def get(self):
         (l1, l2) = self.get_argument('langpair').split('|')
         toTranslate = self.get_argument('q')
         
         def handleTranslation(translated):
-            if not translated:
+            if translated is None:
+                self.send_error(408)
+            elif not translated:
                 self.send_error(400)
             else:
-                toReturn = {"responseData":
+                self.sendResponse({"responseData":
                     {"translatedText": translated},
                     "responseDetails": None,
                     "responseStatus": 200}
-                self.sendResponse(toReturn)
+                )
 
         if '%s-%s' % (l1, l2) in self.pairs:
             pool = Pool(processes = 1)
-            result = pool.apply_async(translate, [toTranslate, (l1, l2), self.translock, self.pipelines, self.pairs], callback = handleTranslation)
+            result = pool.apply_async(translate, [toTranslate, (l1, l2), self.translock, self.pipelines, self.pairs])
             pool.close()
-            try:
-                translation = result.get(timeout = self.timeout)
-            except TimeoutError:
-                self.send_error(408)
-                pool.terminate()
+
+            @run_async
+            def worker(callback):
+                try:
+                    callback(result.get(timeout = self.timeout))
+                except TimeoutError:
+                    pool.terminate()
+                    callback(None)
+
+            translation = yield tornado.gen.Task(worker)
+            handleTranslation(translation)
         else:
             self.send_error(400)
 
 class AnalyzeHandler(BaseHandler):
     @tornado.web.asynchronous
+    @tornado.gen.coroutine
     def get(self):
         mode = self.get_argument('mode')
         toAnalyze = self.get_argument('q')
         
         def handleAnalysis(analysis):
-            lexicalUnits = removeLast(toAnalyze, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
-            self.sendResponse([(lexicalUnit[0], lexicalUnit[0].split('/')[0] + lexicalUnit[1]) for lexicalUnit in lexicalUnits])
-        
+            if analysis is None:
+                self.send_error(408)
+            else:
+                lexicalUnits = removeLast(toAnalyze, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
+                self.sendResponse([(lexicalUnit[0], lexicalUnit[0].split('/')[0] + lexicalUnit[1]) for lexicalUnit in lexicalUnits])
+
         if mode in self.analyzers:
             pool = Pool(processes = 1)
-            result = pool.apply_async(apertium, [toAnalyze, self.analyzers[mode][0], self.analyzers[mode][1]], callback = handleAnalysis)
+            result = pool.apply_async(apertium, [toAnalyze, self.analyzers[mode][0], self.analyzers[mode][1]])
             pool.close()
-            try:
-                analysis = result.get(timeout = self.timeout)
-            except TimeoutError:
-                self.send_error(408)
-                pool.terminate()
+
+            @run_async
+            def worker(callback):
+                try:
+                    callback(result.get(timeout = self.timeout))
+                except TimeoutError:
+                    pool.terminate()
+                    callback(None)
+
+            analysis = yield tornado.gen.Task(worker)
+            handleAnalysis(analysis)
         else:
             self.send_error(400)
 
 class GenerateHandler(BaseHandler):
     @tornado.web.asynchronous
+    @tornado.gen.coroutine
     def get(self):
         mode = self.get_argument('mode')
         toGenerate = self.get_argument('q')
         
         def handleGeneration(generated):
-            generated = removeLast(toGenerate, generated)
-            self.sendResponse([(generation, lexicalUnits[index]) for (index, generation) in enumerate(generated.split('[SEP]'))])
+            if generated is None:
+                self.send_error(408)
+            else:
+                generated = removeLast(toGenerate, generated)
+                self.sendResponse([(generation, lexicalUnits[index]) for (index, generation) in enumerate(generated.split('[SEP]'))])
             
         if mode in self.generators:
             lexicalUnits = re.findall(r'(\^[^\$]*\$[^\^]*)', toGenerate)
             if len(lexicalUnits) == 0:
                 lexicalUnits = ['^%s$' % toGenerate]
             pool = Pool(processes = 1)
-            result = pool.apply_async(apertium, ('[SEP]'.join(lexicalUnits), self.generators[mode][0], self.generators[mode][1]), {'formatting': 'none'}, callback = handleGeneration)
+            result = pool.apply_async(apertium, ('[SEP]'.join(lexicalUnits), self.generators[mode][0], self.generators[mode][1]), {'formatting': 'none'})
             pool.close()
-            try:
-                generated = result.get(timeout = self.timeout)
-            except TimeoutError:
-                self.send_error(408)
-                pool.terminate()
+
+            @run_async
+            def worker(callback):
+                try:
+                    callback(result.get(timeout = self.timeout))
+                except TimeoutError:
+                    pool.terminate()
+                    callback(None)
+
+            generated = yield tornado.gen.Task(worker)
+            handleGeneration(generated)
         else:
             self.send_error(400)
         
@@ -193,6 +231,7 @@ class ListLanguageNamesHandler(BaseHandler):
             
 class PerWordHandler(BaseHandler):
     @tornado.web.asynchronous
+    @tornado.gen.coroutine
     def get(self):
         lang = self.get_argument('lang')
         modes = set(self.get_argument('modes').split(' '))
@@ -214,7 +253,10 @@ class PerWordHandler(BaseHandler):
                 toReturn[mode] = {'outputs': outputs[mode], 'inputs': outputs[mode + '_inputs']}
             self.sendResponse(toReturn)'''
             
-            if not output:
+            if output is None:
+                self.send_error(408)
+                return
+            elif not output:
                 self.send_error(400)
                 return
             else:
@@ -242,16 +284,24 @@ class PerWordHandler(BaseHandler):
                 self.sendResponse(toReturn)
 
         pool = Pool(processes = 1)
-        result = pool.apply_async(processPerWord, (self.analyzers, self.taggers, lang, modes, query), callback = handleOutput)
+        result = pool.apply_async(processPerWord, (self.analyzers, self.taggers, lang, modes, query))
         pool.close()
-        try:
-            outputs = result.get(timeout = self.timeout)
-        except TimeoutError:
-            self.send_error(408)
-            pool.terminate()
+
+        @run_async
+        def worker(callback):
+            try:
+                callback(result.get(timeout = self.timeout))
+            except TimeoutError:
+                pool.terminate()
+                callback(None)
+
+        output = yield tornado.gen.Task(worker)
+        print(output)
+        handleOutput(output)
             
 class CoverageHandler(BaseHandler):
     @tornado.web.asynchronous
+    @tornado.gen.coroutine
     def get(self):
         mode = self.get_argument('mode')
         text = self.get_argument('q')
@@ -259,22 +309,32 @@ class CoverageHandler(BaseHandler):
             return self.send_error(400)
         
         def handleCoverage(coverage):
-            self.sendResponse([coverage])
+            if coverage is None:
+                self.send_error(408)
+            else:
+                self.sendResponse([coverage])
         
         if mode in self.analyzers:
             pool = Pool(processes = 1)
-            result = pool.apply_async(getCoverage, [text, self.analyzers[mode][0], self.analyzers[mode][1]], callback = handleCoverage)
+            result = pool.apply_async(getCoverage, [text, self.analyzers[mode][0], self.analyzers[mode][1]])
             pool.close()
-            try:
-                analysis = result.get(timeout = self.timeout)
-            except TimeoutError:
-                self.send_error(408)
-                pool.terminate()
+
+            @run_async
+            def worker(callback):
+                try:
+                    callback(result.get(timeout = self.timeout))
+                except TimeoutError:
+                    pool.terminate()
+                    callback(None)
+
+            coverage = yield tornado.gen.Task(worker)
+            handleCoverage(coverage)
         else:
             self.send_error(400)
             
 class IdentifyLangHandler(BaseHandler):
     @tornado.web.asynchronous
+    @tornado.gen.coroutine
     def get(self):
         text = self.get_argument('q')
         if not text:
@@ -284,13 +344,19 @@ class IdentifyLangHandler(BaseHandler):
             self.sendResponse(coverages)
         
         pool = Pool(processes = 1)
-        result = pool.apply_async(getCoverages, [text, self.analyzers], {'penalize': True}, callback = handleCoverages)
+        result = pool.apply_async(getCoverages, [text, self.analyzers], {'penalize': True})
         pool.close()
-        try:
-            coverages = result.get(timeout = self.timeout)
-        except TimeoutError:
-            self.send_error(408)
-            pool.terminate()
+
+        @run_async
+        def worker(callback):
+            try:
+                callback(result.get(timeout = self.timeout))
+            except TimeoutError:
+                pool.terminate()
+                callback(None)
+
+        coverages = yield tornado.gen.Task(worker)
+        handleCoverages(coverages)
                 
 class GetLocaleHandler(BaseHandler):
     @tornado.web.asynchronous
