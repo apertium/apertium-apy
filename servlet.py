@@ -43,11 +43,7 @@ class BaseHandler(tornado.web.RequestHandler):
     # simultaneously to a pipeline; then the first thread to read
     # might read translations of text put there by the second
     # thread …
-    translock = threading.RLock()
-    # TODO: one lock per pipeline, if the es-ca pipeline is free,
-    # we don't need to wait just because mk-en is currently
-    # translating. In that case, should also make hardbreak()
-    # pipeline dependent.
+    pipeline_locks = {}     # (l1,l2): threading.RLock() for (l1,l2) in pairs
 
     def initialize(self):
         callbacks = self.get_arguments('callback')
@@ -156,10 +152,13 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                         newP = Popen(command, stdin=PIPE, stdout=PIPE)
                     commandsDone.append(newP)
 
+                self.pipeline_locks[(l1,l2)] = threading.RLock()
                 self.pipelines[(l1,l2)] = (commandsDone[0], commandsDone[-1])
 
     def _worker (self, toTranslate, l1, l2):
-        self.res = translate(toTranslate, l1, l2, self.translock, self.pipelines, self.pairs)
+        self.res = translate(toTranslate,
+                             self.pipeline_locks[(l1,l2)],
+                             self.pipelines[(l1,l2)])
 
     @tornado.web.asynchronous
     def get(self):
