@@ -171,10 +171,10 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                 self.send_error (self.get_status ())
                 return
             if hasattr(self, 'res'):
-                self.finish({"responseData":
-                             {"translatedText": self.res},
-                             "responseDetails": None,
-                             "responseStatus": 200})
+                self.sendResponse({"responseData":
+                                   {"translatedText": self.res},
+                                   "responseDetails": None,
+                                   "responseStatus": 200})
                 return
             if hasattr(self, 'redir'):
                 self.redirect(self.redir)
