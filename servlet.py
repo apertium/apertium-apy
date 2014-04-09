@@ -100,6 +100,7 @@ class ThreadableMixin:
 
     """
     def start_worker(self, *args):
+        # TODO: max threads, using https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor
         threading.Thread(target=self.run_worker, args=args).start()
 
     def run_worker(self, result_handler, *worker_args):
@@ -133,7 +134,8 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
             toReturn = ' | '.join(outCommands)
             toReturn = re.sub('\s*\$2', '', re.sub('\$1', '-g', toReturn))
             return toReturn
-        # TODO: on failure?
+        else:
+            self.send_error(400)
 
     def runPipeline(self, l1, l2):
         if (l1,l2) not in self.pipelines:
@@ -184,7 +186,6 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
         if '%s-%s' % (l1, l2) in self.pairs:
             self.runPipeline(l1, l2)
             self.start_worker(handleTranslation, toTranslate, l1, l2)
-            # TODO real callback
         else:
             self.send_error(400)
 
