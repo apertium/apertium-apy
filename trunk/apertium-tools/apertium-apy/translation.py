@@ -1,24 +1,23 @@
 import re, threading
 from subprocess import Popen, PIPE
         
-def translateNULFlush(toTranslate, l1, l2, translock, pipelines, pairs):
+def translateNULFlush(toTranslate, translock, pipeline):
     with translock:
-        if (l1,l2) in pipelines:
-            (procIn, procOut) = pipelines[(l1,l2)]
-            deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
-            deformat.stdin.write(bytes(toTranslate, 'utf-8'))
-            y = deformat.communicate()[0]
-            procIn.stdin.write(y)
-            procIn.stdin.write(bytes('\0', "utf-8"))
-            procIn.stdin.flush()
+        (procIn, procOut) = pipeline
+        deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
+        deformat.stdin.write(bytes(toTranslate, 'utf-8'))
+        y = deformat.communicate()[0]
+        procIn.stdin.write(y)
+        procIn.stdin.write(bytes('\0', "utf-8"))
+        procIn.stdin.flush()
+        d = procOut.stdout.read(1)
+        output = []
+        while d and d != b'\x00':
+            output.append(d)
             d = procOut.stdout.read(1)
-            output = []
-            while d and d != b'\x00':
-                output.append(d)
-                d = procOut.stdout.read(1)
-            reformat = Popen("apertium-rehtml", stdin=PIPE, stdout=PIPE)
-            reformat.stdin.write(b"".join(output))
-            return reformat.communicate()[0].decode('utf-8')
+        reformat = Popen("apertium-rehtml", stdin=PIPE, stdout=PIPE)
+        reformat.stdin.write(b"".join(output))
+        return reformat.communicate()[0].decode('utf-8')
             
 def hardbreakFn():
     """If others are waiting on us, we send short requests, otherwise we
@@ -38,7 +37,7 @@ def hardbreakFn():
         hardbreak=5000
     return hardbreak
     
-def translateSplitting(toTranslate, l1, l2, translock, pipelines, pairs):
+def translateSplitting(toTranslate, translock, pipeline):
     """Splitting it up a bit ensures we don't fill up FIFO buffers (leads
     to processes hanging on read/write)."""
     allSplit = []	# [].append and join faster than str +=
@@ -57,9 +56,9 @@ def translateSplitting(toTranslate, l1, l2, translock, pipelines, pairs):
                 next=space
             else:
                 next=last+hardbreak
-        allSplit.append(translateNULFlush(toTranslate[last:next], l1, l2, translock, pipelines, pairs))
+        allSplit.append(translateNULFlush(toTranslate[last:next], translock, pipeline))
         last=next
     return "".join(allSplit)
-    
-def translate(toTranslate, l1, l2, translock, pipelines, pairs):
-    return translateSplitting(toTranslate, l1, l2, translock, pipelines, pairs)
+
+def translate(toTranslate, translock, pipeline):
+    return translateSplitting(toTranslate, translock, pipeline)
