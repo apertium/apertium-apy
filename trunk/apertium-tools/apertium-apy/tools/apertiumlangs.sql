@@ -9048,5 +9048,54 @@ INSERT INTO "fixes" VALUES(NULL,'an','vi','vietnamita');
 INSERT INTO "fixes" VALUES(NULL,'an','xh','xosa');
 INSERT INTO "fixes" VALUES(NULL,'an','zh','chino');
 INSERT INTO "fixes" VALUES(NULL,'an','zu','zulú');
+/*INSERT INTO "fixes" VALUES(NULL,'av','af','afrikaans');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','an','aragonés');*/
+INSERT INTO "fixes" VALUES(NULL,'av','ar','гӏараб');
+/*INSERT INTO "fixes" VALUES(NULL,'av','ast','asturiano');*/
+INSERT INTO "fixes" VALUES(NULL,'av','av','магӏарул');
+INSERT INTO "fixes" VALUES(NULL,'av','az','азарбижан');
+/*INSERT INTO "fixes" VALUES(NULL,'av','ba','baixkir');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','be','belorruso');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','bg','bulgaro');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','br','bretón');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','bs','bosnio');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','ca','catalán');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','cv','chuvaixo');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','cy','уэльс');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','da','danés');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','el','грек');*/
+INSERT INTO "fixes" VALUES(NULL,'av','en','ингилис');
+INSERT INTO "fixes" VALUES(NULL,'av','eo','эсперанто');
+/*INSERT INTO "fixes" VALUES(NULL,'av','es','espanyol');
+/*INSERT INTO "fixes" VALUES(NULL,'av','et','estonio');*/
+INSERT INTO "fixes" VALUES(NULL,'av','eu','баск');
+INSERT INTO "fixes" VALUES(NULL,'av','fr','паранг');
+/*INSERT INTO "fixes" VALUES(NULL,'av','gl','gallego');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','hr','crovata');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','id','indonesio');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','is','islandés');*/
+INSERT INTO "fixes" VALUES(NULL,'av','it','итал');
+/*INSERT INTO "fixes" VALUES(NULL,'av','kk','kazakho');*/
+INSERT INTO "fixes" VALUES(NULL,'av','kum','лъарагӏ'); 
+/*INSERT INTO "fixes" VALUES(NULL,'av','ky','kirguíz');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','mk','macedonio');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','ms','malayo');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','mt','maltés');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','nb','noruego bokmål');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','nl','neerlandés');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','nn','noruego nynorsk');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','oc','occitán');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','pt','portugués');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','ro','rumano');*/
+INSERT INTO "fixes" VALUES(NULL,'av','ru','гӏурус');
+/*INSERT INTO "fixes" VALUES(NULL,'av','se','sami septentrional');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','sh','serbocrovata');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','sl','esloveno');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','sr','serbio');*/
+/*INSERT INTO "fixes" VALUES(NULL,'av','sv','sueco');*/
+INSERT INTO "fixes" VALUES(NULL,'av','tr','турк');
+INSERT INTO "fixes" VALUES(NULL,'av','tt','татар');
+/*INSERT INTO "fixes" VALUES(NULL,'av','uk','укр');*/
+
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
 COMMIT;
