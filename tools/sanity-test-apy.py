@@ -108,8 +108,12 @@ def test_pair(pair, host):
         return True
 
 def test_all(host):
+    total=len(tests)
+    good=0
     for pair in tests:
-        test_pair(pair, host)
+        if test_pair(pair, host):
+            good+=1
+    print("\n%d of %d tests passed" % (good, total))
 
 
 if __name__ == "__main__":
