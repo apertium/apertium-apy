@@ -38,6 +38,10 @@ class BaseHandler(tornado.web.RequestHandler):
     pipelines = {}
     callback = None
     timeout = None
+    stats = {
+        'useCount': {},
+        'lastUsage': {},
+    }
 
     # The lock is needed so we don't let two threads write
     # simultaneously to a pipeline; then the first thread to read
@@ -61,6 +65,23 @@ class BaseHandler(tornado.web.RequestHandler):
         else:
             self._write_buffer.append(utf8(data))
         self.finish()
+
+    def notePairUsage(self, pair):
+        self.stats['useCount'][pair] = 1 + self.stats['useCount'].get(pair, 0)
+        if self.max_idle_secs:
+            self.stats['lastUsage'][pair] = time.time()
+
+    def cleanPairs(self):
+        if not self.max_idle_secs:
+            return
+        for pair,lastUsage in self.stats['lastUsage'].items():
+            if time.time() - lastUsage > self.max_idle_secs and pair in self.pipelines:
+                logging.info("Shutting down pair %s-%s since it hasn't been used in %d secs"%(pair[0],pair[1],self.max_idle_secs))
+                # Killing the first one should bring down the rest:
+                self.pipelines[pair][0].kill()
+                self.pipelines.pop(pair)
+                self.pipeline_locks.pop(pair)
+
 
     @tornado.web.asynchronous
     def post(self):
@@ -88,6 +109,14 @@ class ListHandler(BaseHandler):
         else:
             self.send_error(400)
 
+
+class StatsHandler(BaseHandler):
+    @tornado.web.asynchronous
+    def get(self):
+        self.sendResponse({'responseData': { '%s-%s'%pair: useCount
+                                             for pair,useCount
+                                             in self.stats['useCount'].items() },
+                           'responseDetails': None, 'responseStatus': 200})
 
 class ThreadableMixin:
     """To use:
@@ -186,6 +215,8 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
         if '%s-%s' % (l1, l2) in self.pairs:
             self.runPipeline(l1, l2)
             self.start_worker(handleTranslation, toTranslate, l1, l2)
+            self.notePairUsage((l1, l2))
+            self.cleanPairs()
         else:
             self.send_error(400)
 
@@ -371,10 +402,11 @@ class GetLocaleHandler(BaseHandler):
         else:
             self.send_error(400)
 
-def setupHandler(port, pairs_path, nonpairs_path, langnames, timeout, verbosity=0):
+def setupHandler(port, pairs_path, nonpairs_path, langnames, timeout, max_idle_secs, verbosity=0):
     Handler = BaseHandler
     Handler.langnames = langnames
     Handler.timeout = timeout
+    Handler.max_idle_secs = max_idle_secs
 
     modes = searchPath(pairs_path, verbosity=verbosity)
     if nonpairs_path:
@@ -406,6 +438,7 @@ if __name__ == '__main__':
     parser.add_argument('-j', '--num-processes', help='number of processes to run (default = number of cores)', type=int, default=0)
     parser.add_argument('-d', '--daemon', help='daemon mode: redirects stdout and stderr to files apertium-apy.log and apertium-apy.err ; use with --log-path', action='store_true')
     parser.add_argument('-P', '--log-path', help='path to log output files to in daemon mode; defaults to local directory', default='./')
+    parser.add_argument('-m', '--max-idle-secs', help="shut down pipelines it haven't been used in this many seconds", type=int, default=0)
     parser.add_argument('-v', '--verbosity', help='logging verbosity', type=int, default=0)
     args = parser.parse_args()
 
@@ -419,11 +452,12 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     enable_pretty_logging()
 
-    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.timeout, args.verbosity)
+    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.timeout, args.max_idle_secs, args.verbosity)
 
     application = tornado.web.Application([
         (r'/list', ListHandler),
         (r'/listPairs', ListHandler),
+        (r'/stats', StatsHandler),
         (r'/translate', TranslateHandler),
         (r'/analy[sz]e', AnalyzeHandler),
         (r'/generate', GenerateHandler),
