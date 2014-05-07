@@ -2,16 +2,19 @@
 
 import urllib.request
 import urllib.parse
+import socket
 import json
 from sys import argv
 
 import html.parser
 unescape = html.parser.HTMLParser().unescape
 
+TIMEOUT=10
 tests = {
     "afr-nld": ("ek", "ik"),
     "ara-mlt": ("و", "u"),
-    "arg-spa": ("a", "la"),
+    "arg-spa": ("e", "es"),
+    "spa-arg": ("la", "a"),
     "ast-spa": ("nin", "ni"),
     "bre-fra": ("Na", "Ni"),
     "bul-mkd": ("аз", "јас"),
@@ -19,71 +22,75 @@ tests = {
     "cat-eng_US": ("Ens", "Us"),
     "cat-epo": ("Per", "Por"),
     "cat-fra": ("per", "pour"),
-    "cat-oci": ("", ""),
-    "cat-oci_aran": ("", ""),
+    "cat-oci": ("Tinc", "Ai"),
+    "cat-oci_aran": ("Tinc", "È"),
     "cat-por": ("tinc", "tenho"),
     "cat-spa": ("Jo", "Yo"),
-    "cym-eng": ("", ""),
+    "cym-eng": ("Yn", "In"),
     "dan-swe": ("hvad", "vad"),
     "eng-cat": ("us", "ens"),
     "eng-epo": ("And", "Kaj"),
     "eng-glg": ("Only", "Só"),
     "eng-spa": ("hello", "hola"),
     "epo-eng": ("kaj", "and"),
-    "eus-eng": ("", ""),
-    "eus-spa": ("", ""),
+    "eus-eng": ("kaixo", "hello"),
+    "eus-spa": ("kaixo", "hola"),
     "fra-cat": ("pour", "per"),
     "fra-epo": ("Pour", "Por"),
     "fra-spa": ("Je", "Yo"),
     "glg-eng": ("Teño", "Have"),
     "glg-por": ("teño", "tenho"),
-    "glg-spa": ("Só", "Solo"),
-    "hat-eng": ("", ""),
-    "hbs-slv": ("", ""),
-    "ind-msa": ("", ""),
+    "glg-spa": ("Teño", "Tengo"),
+    "hat-eng": ("Lang", "Language"),
+    "hbs-slv": ("Slobodnu", "Svobodnemu"),
+    "ind-msa": ("sedangkan", "manakala"),
+    "msa-ind": ("manakala", "sedangkan"),
     "isl-eng": ("Grein", "Article"),
     "isl-swe": ("af", "av"),
-    "ita-cat": ("", ""),
-    "kaz-tat": ("ул", "ол"),
+    "ita-cat": ("è giusto dire", "val a dir"),
+    "kaz-tat": ("ол", "ул"),
     "mkd-bul": ("јас", "аз"),
-    "mkd-eng": ("", ""),
+    "mkd-eng": ("триесет", "thirty"),
     "mlt-ara": ("u", "و"),
     "nld-afr": ("ik", "ek"),
     "nno-dan": ("kva", "hvad"),
     "nno-nno_a": ("å ete", "å eta"),
     "nno-nob": ("korleis", "hvordan"),
-    "nno_a-nno": ("", ""),
+    "nno_a-nno": ("å eta", "å ete"),
     "nno_a-nno": ("å eta", "å ete"),
     "nob-dan": ("hva", "hvad"),
     "nob-nno": ("hvordan", "korleis"),
     "nob-nno_a": ("å spise", "å eta"),
-    "oci-cat": ("", ""),
-    "oci-spa": ("", ""),
-    "oci_aran-cat": ("", ""),
-    "oci_aran-spa": ("", ""),
+    "oci-cat": ("Mès tanben", "Sinó també"),
+    "oci-spa": ("Mès tanben", "Sino también"),
+    "oci_aran-cat": ("Mas tanben", "Sinó també"),
+    "oci_aran-spa": ("Mas tanben", "Sino también"),
     "por-cat": ("tenho", "tinc"),
     "por-glg": ("tenho", "teño"),
-    "por-spa": ("", ""),
-    "ron-spa": ("", ""),
-    "slv-hbs_BS": ("", ""),
-    "slv-hbs_HR": ("", ""),
-    "slv-hbs_SR": ("", ""),
+    "por-spa": ("tenho", "tengo"),
+    "ron-spa": ("Liberă", "Libre"),
+    "slv-hbs_BS": ("Svobodnemu", "Slobodnu"),
+    "slv-hbs_HR": ("Svobodnemu", "Slobodnu"),
+    "slv-hbs_SR": ("Svobodnemu", "Slobodnu"),
+    "slv-bos": ("Svobodnemu", "Slobodnu"),
+    "slv-hrv": ("Svobodnemu", "Slobodnu"),
+    "slv-srp": ("Svobodnemu", "Slobodnu"),
     "sme-nob": ("ja", "og"),
     "spa-ast": ("ni", "nin"),
     "spa-cat": ("yo", "jo"),
-    "spa-cat_valencia": ("", ""),
+    "spa-cat_valencia": ("tengo", "tinc"),
     "spa-eng": ("hola", "hello"),
     "spa-eng_US": ("hola", "hello"),
-    "spa-epo": ("", ""),
-    "spa-fra": ("", ""),
-    "spa-glg": ("", ""),
-    "spa-oci": ("", ""),
-    "spa-oci_aran": ("", ""),
+    "spa-epo": ("Tengo", "Havas"),
+    "spa-fra": ("Tengo", "J'ai"),
+    "spa-glg": ("Tengo", "Teño"),
+    "spa-oci": ("Tengo", "Ai"),
+    "spa-oci_aran": ("Tengo", "È"),
     "spa-por": ("tengo", "tenho"),
     "spa-por_BR": ("tengo", "tenho"),
     "swe-dan": ("vad", "hvad"),
     "swe-isl": ("Av", "Af"),
-    "tat-kaz": ("ол", "ул"),
+    "tat-kaz": ("ул", "ол"),
 }
 
 def test_pair(pair, host):
@@ -94,9 +101,12 @@ def test_pair(pair, host):
     expected=tests[pair][1].strip()
     langpair=pair.replace('-', '|')
     try:
-        response = urllib.request.urlopen('%s/translate?langpair=%s&q=%s' % (host, langpair, intext)).read().decode('utf-8')
+        response = urllib.request.urlopen('%s/translate?langpair=%s&q=%s' % (host, langpair, intext), timeout=TIMEOUT).read().decode('utf-8')
     except urllib.error.HTTPError as e:
-        print( "%s failed with error code %s and reason: %s" %(pair,e.code,e.reason))
+        print("%s failed with error code %s and reason: %s" %(pair,e.code,e.reason))
+        return False
+    except socket.timeout as e:
+        print("%s failed: %s" %(pair, e,))
         return False
     js = json.loads(response)
     translation_raw = js['responseData']['translatedText']
@@ -107,13 +117,33 @@ def test_pair(pair, host):
     else:
         return True
 
+def missing_tests(host):
+    try:
+        response = urllib.request.urlopen('%s/listPairs' % (host,), timeout=TIMEOUT).read().decode('utf-8')
+    except urllib.error.HTTPError as e:
+        print("listPairs failed with error code %s and reason: %s" %(e.code,e.reason))
+        return False
+    except socket.timeout as e:
+        print("listPairs failed: %s" %(e,))
+        return False
+    js = json.loads(response)
+    allgood=True
+    for pair in js['responseData']:
+        pairstr = "%s-%s" % (pair['sourceLanguage'],pair['targetLanguage'])
+        if pairstr not in tests:
+            print("Missing a test for %s" % (pairstr,))
+            allgood = False
+    return allgood
+    
 def test_all(host):
+    missing_tests(host)
     total=len(tests)
     good=0
     for pair in tests:
         if test_pair(pair, host):
             good+=1
     print("\n%d of %d tests passed" % (good, total))
+    print("\nNow run the script again to see which pipelines got clogged.\n")
 
 
 if __name__ == "__main__":
