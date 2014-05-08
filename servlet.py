@@ -78,6 +78,30 @@ class BaseHandler(tornado.web.RequestHandler):
             self._write_buffer.append(utf8(data))
         self.finish()
 
+    def write_error(self, status_code, **kwargs):
+        # TODO: Is there a tornado fn to get the full list?
+        http_messages = { 400: 'Bad Request',
+                          404: 'Not found',
+                          408: 'Request Timeout',
+                          500: 'Internal error' }
+
+        result = {
+            'status': 'error',
+            'code': status_code,
+            'message': http_messages.get(status_code, ''),
+            'explanation': kwargs.get('explanation', '')
+        }
+
+        data = escape.json_encode(result)
+        self.set_header('Content-Type', 'application/json; charset=UTF-8')
+
+        if self.callback:
+            self.set_header('Content-Type', 'application/javascript; charset=UTF-8')
+            self._write_buffer.append(utf8('%s(%s)' % (self.callback, data)))
+        else:
+            self._write_buffer.append(utf8(data))
+        self.finish()
+
     def notePairUsage(self, pair):
         self.stats['useCount'][pair] = 1 + self.stats['useCount'].get(pair, 0)
         if self.max_idle_secs:
@@ -121,7 +145,7 @@ class ListHandler(BaseHandler):
         elif query == 'taggers' or query == 'disambiguators':
             self.sendResponse({pair: modename for (pair, (path,modename)) in self.taggers.items()})
         else:
-            self.send_error(400)
+            self.send_error(400, explanation="Expecting q argument to be one of analysers, generators, disambiguators or pairs")
 
 
 class StatsHandler(BaseHandler):
@@ -178,7 +202,8 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
             toReturn = re.sub('\s*\$2', '', re.sub('\$1', '-g', toReturn))
             return toReturn
         else:
-            self.send_error(400)
+            logging.error("modeFileLine == None in %s" %(modeFile,))
+            self.send_error(500)
 
     def runPipeline(self, l1, l2):
         if (l1,l2) not in self.pipelines:
@@ -211,8 +236,8 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
         toTranslate = self.get_argument('q')
 
         def handleTranslation():
-            if self.get_status () != 200:
-                self.send_error (self.get_status ())
+            if self.get_status() != 200:
+                self.send_error(self.get_status())
                 return
             if hasattr(self, 'res'):
                 self.sendResponse({"responseData":
@@ -223,7 +248,8 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
             if hasattr(self, 'redir'):
                 self.redirect(self.redir)
                 return
-            self.send_error (500)
+            logging.error("handleTranslation reached a thought-to-be-unreachable line")
+            self.send_error(500)
 
 
         if '%s-%s' % (l1, l2) in self.pairs:
@@ -232,7 +258,7 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
             self.notePairUsage((l1, l2))
             self.cleanPairs()
         else:
-            self.send_error(400)
+            self.send_error(400, explanation="That pair is not installed")
 
 class AnalyzeHandler(BaseHandler):
     @tornado.web.asynchronous
@@ -243,7 +269,7 @@ class AnalyzeHandler(BaseHandler):
 
         def handleAnalysis(analysis):
             if analysis is None:
-                self.send_error(408)
+                self.send_error(400, explanation="No output")
             else:
                 lexicalUnits = removeLast(toAnalyze, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
                 self.sendResponse([(lexicalUnit[0], lexicalUnit[0].split('/')[0] + lexicalUnit[1]) for lexicalUnit in lexicalUnits])
@@ -264,7 +290,7 @@ class AnalyzeHandler(BaseHandler):
             analysis = yield tornado.gen.Task(worker)
             handleAnalysis(analysis)
         else:
-            self.send_error(400)
+            self.send_error(400, explanation="That mode is not installed")
 
 class GenerateHandler(BaseHandler):
     @tornado.web.asynchronous
@@ -275,7 +301,7 @@ class GenerateHandler(BaseHandler):
 
         def handleGeneration(generated):
             if generated is None:
-                self.send_error(408)
+                self.send_error(400, explanation="No output")
             else:
                 generated = removeLast(toGenerate, generated)
                 self.sendResponse([(generation, lexicalUnits[index]) for (index, generation) in enumerate(generated.split('[SEP]'))])
@@ -299,7 +325,7 @@ class GenerateHandler(BaseHandler):
             generated = yield tornado.gen.Task(worker)
             handleGeneration(generated)
         else:
-            self.send_error(400)
+            self.send_error(400, explanation="That mode is not installed")
 
 class ListLanguageNamesHandler(BaseHandler):
     @tornado.web.asynchronous
@@ -335,7 +361,7 @@ class PerWordHandler(BaseHandler):
         query = self.get_argument('q')
 
         if not modes <= {'morph', 'biltrans', 'tagger', 'disambig', 'translate'}:
-            self.send_error(400)
+            self.send_error(400) # explanation="what is this thing anyway"? TODO
             return
 
         def handleOutput(output):
@@ -351,10 +377,10 @@ class PerWordHandler(BaseHandler):
             self.sendResponse(toReturn)'''
 
             if output is None:
-                self.send_error(408)
+                self.send_error(400, explanation="No output")
                 return
             elif not output:
-                self.send_error(400)
+                self.send_error(400, explanation="Not output") # wat
                 return
             else:
                 outputs, tagger_lexicalUnits, morph_lexicalUnits = output
@@ -402,11 +428,11 @@ class CoverageHandler(BaseHandler):
         mode = self.get_argument('mode')
         text = self.get_argument('q')
         if not text:
-            return self.send_error(400)
+            return self.send_error(400, explanation="Missing q argument")
 
         def handleCoverage(coverage):
             if coverage is None:
-                self.send_error(408)
+                self.send_error(408, explanation="No coverage found")
             else:
                 self.sendResponse([coverage])
 
@@ -426,14 +452,14 @@ class CoverageHandler(BaseHandler):
             coverage = yield tornado.gen.Task(worker)
             handleCoverage(coverage)
         else:
-            self.send_error(400)
+            self.send_error(400, explanation="That mode is not installed")
 
 class IdentifyLangHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
         text = self.get_argument('q')
         if not text:
-            return self.send_error(400)
+            return self.send_error(400, explanation="Missing q argument")
 
         if cld2:
             cldResults = cld2.detect(text)
@@ -462,7 +488,7 @@ class GetLocaleHandler(BaseHandler):
             locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
             self.sendResponse(locales)
         else:
-            self.send_error(400)
+            self.send_error(400, explanation="Accept-Language missing from request headers")
 
 def setupHandler(port, pairs_path, nonpairs_path, langnames, timeout, max_idle_secs, verbosity=0):
     Handler = BaseHandler
