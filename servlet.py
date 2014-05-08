@@ -105,8 +105,10 @@ class ListHandler(BaseHandler):
         query = self.get_arguments('q')
         if query:
             query = query[0]
+        else:
+            query = 'pairs'
 
-        if self.request.path == '/listPairs' or query == 'pairs':
+        if query == 'pairs':
             responseData = []
             for pair in self.pairs:
                 (l1, l2) = pair.split('-')
