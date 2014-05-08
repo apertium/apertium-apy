@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- indent-tabs-mode: nil -*-
 
-import sys, threading, os, re, ssl, argparse, logging
+import sys, threading, os, re, ssl, argparse, logging, time, signal
 from lxml import etree
 from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
@@ -15,17 +15,19 @@ from tornado import escape
 from tornado.escape import utf8
 
 from modeSearch import searchPath
-from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages
+from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code
 from translation import translate
 
-import time
-import signal
-from os import kill
+try:
+    import cld2full as cld2
+except:
+    logging.warning('Unable to import CLD2, continuing using naive method of language detection')
+    cld2 = None
 
 def sig_handler(sig, frame):
     if 'children' in frame.f_locals:
         for child in frame.f_locals['children']:
-            kill(child, signal.SIGTERM)
+            os.kill(child, signal.SIGTERM)
     # else: we are one of the children
     logging.warning('Caught signal: %s', sig)
     exit()
@@ -381,17 +383,25 @@ class IdentifyLangHandler(BaseHandler):
         if not text:
             return self.send_error(400)
 
-        def handleCoverages(coverages):
-            self.sendResponse(coverages)
+        if cld2:
+            cldResults = cld2.detect(text)
+            if cldResults[0]:
+                possibleLangs = filter(lambda x: x[1] != 'un', cldResults[2])
+                self.sendResponse({toAlpha3Code(possibleLang[1]): possibleLang[2] for possibleLang in possibleLangs})
+            else:
+                self.sendResponse({'nob': 100}) # TODO: Some more reasonable response
+        else:
+            def handleCoverages(coverages):
+                self.sendResponse(coverages)
 
-        pool = Pool(processes = 1)
-        result = pool.apply_async(getCoverages, [text, self.analyzers], {'penalize': True}, callback = handleCoverages)
-        pool.close()
-        try:
-            coverages = result.get(timeout = self.timeout)
-        except TimeoutError:
-            self.send_error(408)
-            pool.terminate()
+            pool = Pool(processes = 1)
+            result = pool.apply_async(getCoverages, [text, self.analyzers], {'penalize': True}, callback = handleCoverages)
+            pool.close()
+            try:
+                coverages = result.get(timeout = self.timeout)
+            except TimeoutError:
+                self.send_error(408)
+                pool.terminate()
 
 class GetLocaleHandler(BaseHandler):
     @tornado.web.asynchronous
