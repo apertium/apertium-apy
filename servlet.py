@@ -23,7 +23,6 @@ from translation import translate
 try:
     import cld2full as cld2
 except:
-    logging.warning('Unable to import CLD2, continuing using naive method of language detection')
     cld2 = None
 
 def run_async(func):
@@ -512,6 +511,9 @@ if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.INFO)
     enable_pretty_logging()
+
+    if not cld2:
+        logging.warning('Unable to import CLD2, continuing using naive method of language detection')
 
     setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.timeout, args.max_idle_secs, args.verbosity)
 
