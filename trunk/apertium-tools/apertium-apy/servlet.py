@@ -101,6 +101,9 @@ class BaseHandler(tornado.web.RequestHandler):
         else:
             self._write_buffer.append(utf8(data))
         self.finish()
+    
+    def set_default_headers(self):
+        self.set_header('Access-Control-Allow-Origin', '*')
 
     def notePairUsage(self, pair):
         self.stats['useCount'][pair] = 1 + self.stats['useCount'].get(pair, 0)
@@ -117,7 +120,6 @@ class BaseHandler(tornado.web.RequestHandler):
                 self.pipelines[pair][0].kill()
                 self.pipelines.pop(pair)
                 self.pipeline_locks.pop(pair)
-
 
     @tornado.web.asynchronous
     def post(self):
@@ -269,7 +271,7 @@ class AnalyzeHandler(BaseHandler):
 
         def handleAnalysis(analysis):
             if analysis is None:
-                self.send_error(400, explanation="No output")
+                self.send_error(408, explanation="Request timed out")
             else:
                 lexicalUnits = removeLast(toAnalyze, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
                 self.sendResponse([(lexicalUnit[0], lexicalUnit[0].split('/')[0] + lexicalUnit[1]) for lexicalUnit in lexicalUnits])
@@ -301,7 +303,7 @@ class GenerateHandler(BaseHandler):
 
         def handleGeneration(generated):
             if generated is None:
-                self.send_error(400, explanation="No output")
+                self.send_error(408, explanation="Request timed out")
             else:
                 generated = removeLast(toGenerate, generated)
                 self.sendResponse([(generation, lexicalUnits[index]) for (index, generation) in enumerate(generated.split('[SEP]'))])
