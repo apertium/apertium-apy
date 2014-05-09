@@ -382,7 +382,7 @@ class PerWordHandler(BaseHandler):
                 self.send_error(400, explanation="No output")
                 return
             elif not output:
-                self.send_error(400, explanation="Not output") # wat
+                self.send_error(408, explanation="Request timed out")
                 return
             else:
                 outputs, tagger_lexicalUnits, morph_lexicalUnits = output
@@ -434,7 +434,7 @@ class CoverageHandler(BaseHandler):
 
         def handleCoverage(coverage):
             if coverage is None:
-                self.send_error(408, explanation="No coverage found")
+                self.send_error(408, explanation="Request timed out")
             else:
                 self.sendResponse([coverage])
 
