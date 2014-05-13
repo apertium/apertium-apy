@@ -8,13 +8,14 @@ from multiprocessing import Pool, TimeoutError
 from functools import wraps
 from threading import Thread
 
-import tornado, tornado.web, tornado.httpserver, tornado.gen
+import tornado, tornado.web, tornado.httpserver
 try: #3.1
     from tornado.log import enable_pretty_logging
 except ImportError: #2.1
     from tornado.options import enable_pretty_logging
 from tornado import escape
 from tornado.escape import utf8
+from tornado import gen
 
 from modeSearch import searchPath
 from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code
@@ -296,7 +297,7 @@ class AnalyzeHandler(BaseHandler):
 
 class GenerateHandler(BaseHandler):
     @tornado.web.asynchronous
-    @tornado.gen.coroutine
+    @gen.coroutine
     def get(self):
         mode = self.get_argument('mode')
         toGenerate = self.get_argument('q')
@@ -356,7 +357,7 @@ class ListLanguageNamesHandler(BaseHandler):
 
 class PerWordHandler(BaseHandler):
     @tornado.web.asynchronous
-    @tornado.gen.coroutine
+    @gen.coroutine
     def get(self):
         lang = self.get_argument('lang')
         modes = set(self.get_argument('modes').split(' '))
@@ -425,7 +426,7 @@ class PerWordHandler(BaseHandler):
 
 class CoverageHandler(BaseHandler):
     @tornado.web.asynchronous
-    @tornado.gen.coroutine
+    @gen.coroutine
     def get(self):
         mode = self.get_argument('mode')
         text = self.get_argument('q')
