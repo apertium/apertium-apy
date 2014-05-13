@@ -101,7 +101,7 @@ class BaseHandler(tornado.web.RequestHandler):
         else:
             self._write_buffer.append(utf8(data))
         self.finish()
-    
+
     def set_default_headers(self):
         self.set_header('Access-Control-Allow-Origin', '*')
 
@@ -430,7 +430,8 @@ class CoverageHandler(BaseHandler):
         mode = self.get_argument('mode')
         text = self.get_argument('q')
         if not text:
-            return self.send_error(400, explanation="Missing q argument")
+            self.send_error(400, explanation="Missing q argument")
+            return
 
         def handleCoverage(coverage):
             if coverage is None:
