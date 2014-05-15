@@ -188,10 +188,13 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                 logging.info("Shutting down pair %s-%s since it hasn't been used in %d secs"%(pair[0],pair[1],self.max_idle_secs))
                 self.shutdownPair(pair)
 
+    def isFlushable(self, mode_str):
+        return 'hfst-proc ' in mode_str
+
     def parseModeFile(self, mode_path):
         mode_str = open(mode_path, 'r').read().strip()
         if mode_str:
-            if 'hfst-proc ' in mode_str:
+            if self.isFlushable(mode_str):
                 do_flush = False
                 modes_parentdir = os.path.dirname(os.path.dirname(mode_path))
                 mode_name = os.path.splitext(os.path.basename(mode_path))[0]
