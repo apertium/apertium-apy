@@ -48,7 +48,7 @@ class BaseHandler(tornado.web.RequestHandler):
     analyzers = {}
     generators = {}
     taggers = {}
-    pipelines = {}
+    pipelines = {}              # (l1,l2):(inpipe,outpipe,do_flush)
     callback = None
     timeout = None
     stats = {
@@ -174,8 +174,9 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
             self.stats['lastUsage'][pair] = time.time()
 
     def shutdownPair(self, pair):
-        # Killing the first one should bring down the rest:
-        self.pipelines[pair][0].kill()
+        if self.pipelines[pair][0].poll():
+            # Killing the first one should bring down the rest:
+            self.pipelines[pair][0].kill()
         self.pipelines.pop(pair)
         self.pipeline_locks.pop(pair)
 
@@ -187,55 +188,55 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                 logging.info("Shutting down pair %s-%s since it hasn't been used in %d secs"%(pair[0],pair[1],self.max_idle_secs))
                 self.shutdownPair(pair)
 
-    def getModeFileLine(self, modeFile):
-        modeFileContents = open(modeFile, 'r').readlines()
-        modeFileLine = None
-        for line in modeFileContents:
-            if '|' in line:
-                modeFileLine = line
-        if modeFileLine != None:
-            commands = modeFileLine.split('|')
-            outCommands = []
-            for command in commands:
-                command = command.strip()
-                if re.search('apertium-pretransfer', command):
-                    outCommand = command+" -z"
-                else:
-                    outCommand = re.sub('^(.*?)\s(.*)$', '\g<1> -z \g<2>', command)
-                outCommand = re.sub('\s{2,}', ' ', outCommand)
-                outCommands.append(outCommand)
-            toReturn = ' | '.join(outCommands)
-            toReturn = re.sub('\s*\$2', '', re.sub('\$1', '-g', toReturn))
-            return toReturn
+    def parseModeFile(self, mode_path):
+        mode_str = open(mode_path, 'r').read().strip()
+        if mode_str:
+            if 'hfst-proc ' in mode_str:
+                do_flush = False
+                modes_parentdir = os.path.dirname(os.path.dirname(mode_path))
+                mode_name = os.path.splitext(os.path.basename(mode_path))[0]
+                commands = [["apertium",
+                             "-f", "html",
+                             # Get the _parent_ dir of the mode file:
+                             "-d", modes_parentdir,
+                             mode_name]]
+            else:
+                do_flush = True
+                commands = []
+                for cmd in mode_str.strip().split('|'):
+                    cmd = cmd.replace('$2', '').replace('$1', '-g')
+                    if do_flush:
+                        cmd = re.sub('^(\S*)', '\g<1> -z', cmd)
+                    commands.append(cmd.split())
+            return do_flush, commands
         else:
-            logging.error("modeFileLine == None in %s" %(modeFile,))
+            logging.error("Couldn't parse mode file %s" %(mode_path,))
             self.send_error(500)
 
     def runPipeline(self, l1, l2):
         if (l1,l2) not in self.pipelines:
             logging.info("%s,%s not in pipelines of this process, starting …" %(l1,l2))
-            modeFile = self.pairs['%s-%s' %(l1,l2)]
-            modeFileLine = self.getModeFileLine(modeFile)
-            commandList = []
-            if modeFileLine:
-                commandList = [ c.strip().split() for c in
-                                modeFileLine.split('|') ]
-                commandsDone = []
-                for command in commandList:
-                    if len(commandsDone)>0:
-                        newP = Popen(command, stdin=commandsDone[-1].stdout, stdout=PIPE)
-                    else:
-                        newP = Popen(command, stdin=PIPE, stdout=PIPE)
-                    commandsDone.append(newP)
+            mode_path = self.pairs['%s-%s' %(l1,l2)]
+            do_flush, commands = self.parseModeFile(mode_path)
+            procs = []
+            for cmd in commands:
+                if len(procs)>0:
+                    newP = Popen(cmd, stdin=procs[-1].stdout, stdout=PIPE)
+                else:
+                    newP = Popen(cmd, stdin=PIPE, stdout=PIPE)
+                procs.append(newP)
 
-                self.pipeline_locks[(l1,l2)] = threading.RLock()
-                self.pipelines[(l1,l2)] = (commandsDone[0], commandsDone[-1])
+            self.pipeline_locks[(l1,l2)] = threading.RLock()
+            self.pipelines[(l1,l2)] = (procs[0], procs[-1], do_flush)
 
     def _worker (self, toTranslate, l1, l2):
         self.runPipeline(l1, l2)
         self.res = translate(toTranslate,
                              self.pipeline_locks[(l1,l2)],
                              self.pipelines[(l1,l2)])
+        _, _, do_flush = self.pipelines[(l1,l2)]
+        if not do_flush:
+            self.shutdownPair((l1,l2))
 
     @tornado.web.asynchronous
     def get(self):
