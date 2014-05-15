@@ -1,3 +1,3 @@
 unicode.db: tools/apertiumlangs.sql
-	rm $@
+	rm -f $@
 	<$< sqlite3 $@
