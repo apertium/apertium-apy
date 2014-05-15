@@ -106,22 +106,6 @@ class BaseHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
         self.set_header('Access-Control-Allow-Origin', '*')
 
-    def notePairUsage(self, pair):
-        self.stats['useCount'][pair] = 1 + self.stats['useCount'].get(pair, 0)
-        if self.max_idle_secs:
-            self.stats['lastUsage'][pair] = time.time()
-
-    def cleanPairs(self):
-        if not self.max_idle_secs:
-            return
-        for pair,lastUsage in self.stats['lastUsage'].items():
-            if time.time() - lastUsage > self.max_idle_secs and pair in self.pipelines:
-                logging.info("Shutting down pair %s-%s since it hasn't been used in %d secs"%(pair[0],pair[1],self.max_idle_secs))
-                # Killing the first one should bring down the rest:
-                self.pipelines[pair][0].kill()
-                self.pipelines.pop(pair)
-                self.pipeline_locks.pop(pair)
-
     @tornado.web.asynchronous
     def post(self):
         self.get()
@@ -184,6 +168,25 @@ class ThreadableMixin:
         tornado.ioloop.IOLoop.instance().add_callback(self.async_callback(result_handler))
 
 class TranslateHandler(BaseHandler, ThreadableMixin):
+    def notePairUsage(self, pair):
+        self.stats['useCount'][pair] = 1 + self.stats['useCount'].get(pair, 0)
+        if self.max_idle_secs:
+            self.stats['lastUsage'][pair] = time.time()
+
+    def shutdownPair(self, pair):
+        # Killing the first one should bring down the rest:
+        self.pipelines[pair][0].kill()
+        self.pipelines.pop(pair)
+        self.pipeline_locks.pop(pair)
+
+    def cleanPairs(self):
+        if not self.max_idle_secs:
+            return
+        for pair,lastUsage in self.stats['lastUsage'].items():
+            if time.time() - lastUsage > self.max_idle_secs and pair in self.pipelines:
+                logging.info("Shutting down pair %s-%s since it hasn't been used in %d secs"%(pair[0],pair[1],self.max_idle_secs))
+                self.shutdownPair(pair)
+
     def getModeFileLine(self, modeFile):
         modeFileContents = open(modeFile, 'r').readlines()
         modeFileLine = None
