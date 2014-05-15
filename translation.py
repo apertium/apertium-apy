@@ -1,23 +1,29 @@
 import re, threading
 from subprocess import Popen, PIPE
+import logging
         
 def translateNULFlush(toTranslate, translock, pipeline):
     with translock:
-        (procIn, procOut) = pipeline
-        deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
-        deformat.stdin.write(bytes(toTranslate, 'utf-8'))
-        y = deformat.communicate()[0]
-        procIn.stdin.write(y)
-        procIn.stdin.write(bytes('\0', "utf-8"))
-        procIn.stdin.flush()
-        d = procOut.stdout.read(1)
+        proc_in, proc_out, do_flush = pipeline
+        assert(do_flush)
+
+        proc_deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
+        proc_deformat.stdin.write(bytes(toTranslate, 'utf-8'))
+        deformatted = proc_deformat.communicate()[0]
+
+        proc_in.stdin.write(deformatted)
+        proc_in.stdin.write(bytes('\0', "utf-8"))
+        proc_in.stdin.flush()
+
+        d = proc_out.stdout.read(1)
         output = []
         while d and d != b'\x00':
             output.append(d)
-            d = procOut.stdout.read(1)
-        reformat = Popen("apertium-rehtml", stdin=PIPE, stdout=PIPE)
-        reformat.stdin.write(b"".join(output))
-        return reformat.communicate()[0].decode('utf-8')
+            d = proc_out.stdout.read(1)
+
+        proc_reformat = Popen("apertium-rehtml", stdin=PIPE, stdout=PIPE)
+        proc_reformat.stdin.write(b"".join(output))
+        return proc_reformat.communicate()[0].decode('utf-8')
             
 def hardbreakFn():
     """If others are waiting on us, we send short requests, otherwise we
@@ -60,5 +66,45 @@ def translateSplitting(toTranslate, translock, pipeline):
         last=next
     return "".join(allSplit)
 
+def translateWithoutFlush(toTranslate, translock, pipeline):
+    #output=`dmesg | grep hda`
+    # becomes
+    p1 = Popen(["apertium-deshtml"], stdin=PIPE, stdout=PIPE)
+    p2 = Popen(["apertium-rehtml"], stdin=p1.stdout, stdout=PIPE)
+    p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
+    output = p2.communicate("echo<b>sfd</b>asfd")[0]
+
+
+    proc_deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
+    proc_deformat.stdin.write(bytes(toTranslate, 'utf-8'))
+    deformatted = proc_deformat.communicate()[0]
+
+    proc_in.stdin.write(deformatted)
+    proc_in.stdin.write(bytes('\0', "utf-8"))
+    proc_in.stdin.flush()
+
+    d = proc_out.stdout.read(1)
+    output = []
+    while d and d != b'\x00':
+        output.append(d)
+        d = proc_out.stdout.read(1)
+
+    proc_reformat = Popen("apertium-rehtml", stdin=PIPE, stdout=PIPE)
+    proc_reformat.stdin.write(b"".join(output))
+    return proc_reformat.communicate()[0].decode('utf-8')
+
+
+def translateSimple(toTranslate, translock, pipeline):
+    with translock:
+        proc_in, proc_out, do_flush = pipeline
+        assert(not do_flush)
+        assert(proc_in==proc_out)
+        translated = proc_in.communicate(input=bytes(toTranslate, 'utf-8'))[0]
+        return translated.decode('utf-8')
+
 def translate(toTranslate, translock, pipeline):
-    return translateSplitting(toTranslate, translock, pipeline)
+    _, _, do_flush = pipeline
+    if do_flush:
+        return translateSplitting(toTranslate, translock, pipeline)
+    else:
+        return translateSimple(toTranslate, translock, pipeline)
