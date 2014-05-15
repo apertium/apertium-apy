@@ -232,6 +232,7 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                 self.pipelines[(l1,l2)] = (commandsDone[0], commandsDone[-1])
 
     def _worker (self, toTranslate, l1, l2):
+        self.runPipeline(l1, l2)
         self.res = translate(toTranslate,
                              self.pipeline_locks[(l1,l2)],
                              self.pipelines[(l1,l2)])
@@ -259,7 +260,6 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
 
 
         if '%s-%s' % (l1, l2) in self.pairs:
-            self.runPipeline(l1, l2)
             self.start_worker(handleTranslation, toTranslate, l1, l2)
             self.notePairUsage((l1, l2))
             self.cleanPairs()
