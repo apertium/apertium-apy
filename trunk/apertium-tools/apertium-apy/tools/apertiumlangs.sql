@@ -9096,6 +9096,17 @@ INSERT INTO "fixes" VALUES(NULL,'av','ru','гӏурус');
 INSERT INTO "fixes" VALUES(NULL,'av','tr','турк');
 INSERT INTO "fixes" VALUES(NULL,'av','tt','татар');
 /*INSERT INTO "fixes" VALUES(NULL,'av','uk','укр');*/
+INSERT INTO "fixes" VALUES(NULL,'ug','kk','قازاقچا');
+INSERT INTO "fixes" VALUES(NULL,'ug','tt','تاتارچا');
+INSERT INTO "fixes" VALUES(NULL,'ug','ky','قىرغىزچا');
+INSERT INTO "fixes" VALUES(NULL,'ug','uz','ئۆزبەكچا');
+INSERT INTO "fixes" VALUES(NULL,'ug','kaa','قاراقالپاقچا');
+INSERT INTO "fixes" VALUES(NULL,'ug','ug','ئۇيغۇرچا');
+INSERT INTO "fixes" VALUES(NULL,'en','ug','Uyghur');
+INSERT INTO "fixes" VALUES(NULL,'ru','ug','уйгурский');
+INSERT INTO "fixes" VALUES(NULL,'uz','ug','uygʻurcha');
+INSERT INTO "fixes" VALUES(NULL,'kk','ug','ұйғұрша');
+INSERT INTO "fixes" VALUES(NULL,'ky','ug','уйгурча');
 
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
 COMMIT;
