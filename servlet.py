@@ -243,14 +243,20 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
 
     @tornado.web.asynchronous
     def get(self):
-        (l1, l2) = self.get_argument('langpair').split('|')
+        try:
+            (l1, l2) = self.get_argument('langpair').split('|')
+        except ValueError:
+            self.send_error(400, explanation="That pair is invalid, use e.g. eng|spa")
+            return
         toTranslate = self.get_argument('q')
+        markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
 
         def handleTranslation():
             if self.get_status() != 200:
                 self.send_error(self.get_status())
                 return
             if hasattr(self, 'res'):
+                self.res = self.res if markUnknown else re.sub(r'\*([^.,;:\t\*]+)', r'\1', self.res)
                 self.sendResponse({"responseData":
                                    {"translatedText": self.res},
                                    "responseDetails": None,
