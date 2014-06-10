@@ -208,8 +208,7 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                 commands = []
                 for cmd in mode_str.strip().split('|'):
                     cmd = cmd.replace('$2', '').replace('$1', '-g')
-                    if do_flush:
-                        cmd = re.sub('^(\S*)', '\g<1> -z', cmd)
+                    cmd = re.sub('^(\S*)', '\g<1> -z', cmd)
                     commands.append(cmd.split())
             return do_flush, commands
         else:
@@ -241,6 +240,10 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
         if not do_flush:
             self.shutdownPair((l1,l2))
 
+    unknownMarkRE = re.compile(r'\*([^.,;:\t\*]+)')
+    def stripUnknownMarks(self, text):
+        return re.sub(self.unknownMarkRE, r'\1', text)
+
     @tornado.web.asynchronous
     def get(self):
         try:
@@ -256,7 +259,7 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                 self.send_error(self.get_status())
                 return
             if hasattr(self, 'res'):
-                self.res = self.res if markUnknown else re.sub(r'\*([^.,;:\t\*]+)', r'\1', self.res)
+                self.res = self.res if markUnknown else self.stripUnknownMarks(self.res)
                 self.sendResponse({"responseData":
                                    {"translatedText": self.res},
                                    "responseDetails": None,
