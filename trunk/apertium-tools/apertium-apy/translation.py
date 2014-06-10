@@ -67,14 +67,6 @@ def translateSplitting(toTranslate, translock, pipeline):
     return "".join(allSplit)
 
 def translateWithoutFlush(toTranslate, translock, pipeline):
-    #output=`dmesg | grep hda`
-    # becomes
-    p1 = Popen(["apertium-deshtml"], stdin=PIPE, stdout=PIPE)
-    p2 = Popen(["apertium-rehtml"], stdin=p1.stdout, stdout=PIPE)
-    p1.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
-    output = p2.communicate("echo<b>sfd</b>asfd")[0]
-
-
     proc_deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
     proc_deformat.stdin.write(bytes(toTranslate, 'utf-8'))
     deformatted = proc_deformat.communicate()[0]
