@@ -18,7 +18,7 @@ from tornado.escape import utf8
 from tornado import gen
 
 from modeSearch import searchPath
-from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code
+from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code
 from translation import translate
 
 try:
@@ -124,6 +124,8 @@ class ListHandler(BaseHandler):
             for pair in self.pairs:
                 (l1, l2) = pair.split('-')
                 responseData.append({'sourceLanguage': l1, 'targetLanguage': l2})
+                if self.get_arguments('include_deprecated_codes'):
+                    responseData.append({'sourceLanguage': toAlpha2Code(l1), 'targetLanguage': toAlpha2Code(l2)})
             self.sendResponse({'responseData': responseData, 'responseDetails': None, 'responseStatus': 200})
         elif query == 'analyzers' or query == 'analysers':
             self.sendResponse({pair: modename for (pair, (path,modename)) in self.analyzers.items()})
