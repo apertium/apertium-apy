@@ -249,7 +249,7 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
     @tornado.web.asynchronous
     def get(self):
         try:
-            (l1, l2) = map(toAlpha3Code, self.get_argument('langpair').split('|'))
+            l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
         except ValueError:
             self.send_error(400, explanation="That pair is invalid, use e.g. eng|spa")
             return
@@ -285,7 +285,7 @@ class AnalyzeHandler(BaseHandler):
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
-        mode = self.get_argument('mode')
+        mode = toAlpha3Code(self.get_argument('mode'))
         toAnalyze = self.get_argument('q')
 
         def handleAnalysis(analysis):
@@ -317,7 +317,7 @@ class GenerateHandler(BaseHandler):
     @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
-        mode = self.get_argument('mode')
+        mode = toAlpha3Code(self.get_argument('mode'))
         toGenerate = self.get_argument('q')
 
         def handleGeneration(generated):
@@ -351,15 +351,15 @@ class GenerateHandler(BaseHandler):
 class ListLanguageNamesHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
-        localeArg = self.get_arguments('locale')
-        languagesArg = self.get_arguments('languages')
+        localeArg = self.get_argument('locale')
+        languagesArg = self.get_argument('languages', default=None)
 
         if self.langnames:
             if localeArg:
                 if languagesArg:
-                    self.sendResponse(getLocalizedLanguages(localeArg[0], self.langnames, languages = languagesArg[0].split(' ')))
+                    self.sendResponse(getLocalizedLanguages(localeArg, self.langnames, languages = languagesArg.split(' ')))
                 else:
-                    self.sendResponse(getLocalizedLanguages(localeArg[0], self.langnames))
+                    self.sendResponse(getLocalizedLanguages(localeArg, self.langnames))
             elif 'Accept-Language' in self.request.headers:
                 locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
                 for locale in locales:
@@ -377,7 +377,7 @@ class PerWordHandler(BaseHandler):
     @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
-        lang = self.get_argument('lang')
+        lang = toAlpha3Code(self.get_argument('lang'))
         modes = set(self.get_argument('modes').split(' '))
         query = self.get_argument('q')
 
@@ -446,7 +446,7 @@ class CoverageHandler(BaseHandler):
     @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
-        mode = self.get_argument('mode')
+        mode = toAlpha3Code(self.get_argument('mode'))
         text = self.get_argument('q')
         if not text:
             self.send_error(400, explanation="Missing q argument")
