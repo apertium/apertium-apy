@@ -247,7 +247,7 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
     @tornado.web.asynchronous
     def get(self):
         try:
-            (l1, l2) = self.get_argument('langpair').split('|')
+            (l1, l2) = map(toAlpha3Code, self.get_argument('langpair').split('|'))
         except ValueError:
             self.send_error(400, explanation="That pair is invalid, use e.g. eng|spa")
             return
