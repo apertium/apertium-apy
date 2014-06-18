@@ -21,7 +21,7 @@ def translateNULFlush(toTranslate, translock, pipeline):
             output.append(d)
             d = proc_out.stdout.read(1)
 
-        proc_reformat = Popen("apertium-rehtml", stdin=PIPE, stdout=PIPE)
+        proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
         proc_reformat.stdin.write(b"".join(output))
         return proc_reformat.communicate()[0].decode('utf-8')
             
@@ -81,7 +81,7 @@ def translateWithoutFlush(toTranslate, translock, pipeline):
         output.append(d)
         d = proc_out.stdout.read(1)
 
-    proc_reformat = Popen("apertium-rehtml", stdin=PIPE, stdout=PIPE)
+    proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
     proc_reformat.stdin.write(b"".join(output))
     return proc_reformat.communicate()[0].decode('utf-8')
 
