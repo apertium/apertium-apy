@@ -201,7 +201,7 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                 modes_parentdir = os.path.dirname(os.path.dirname(mode_path))
                 mode_name = os.path.splitext(os.path.basename(mode_path))[0]
                 commands = [["apertium",
-                             "-f", "html",
+                             "-f", "html-noent",
                              # Get the _parent_ dir of the mode file:
                              "-d", modes_parentdir,
                              mode_name]]
