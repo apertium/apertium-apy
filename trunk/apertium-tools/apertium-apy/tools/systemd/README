@@ -1,0 +1,27 @@
+# -*- mode:markdown -*-
+
+To run APY with systemd, edit `apy.service` and change the `User`
+field to have the username of the user who should run APY, and
+`ExecStart` to how you start APY. Then do
+
+    sudo cp tools/systemd/apy.service /etc/systemd/system/
+	sudo systemctl daemon-reload  # Make systemd notice the new apy.service file
+	sudo systemctl enable apy     # Make APY start on boot
+	sudo systemctl start apy      # Make APY start now
+
+To show the status of the daemon, along with the most recent log
+output:
+
+    sudo systemctl status apy
+
+To restart APY:
+
+    sudo systemctl restart apy
+
+To browse the full APY logs:
+
+    sudo journalctl _SYSTEMD_UNIT=apy.service
+
+(You can also browse logs since last boot with `-b` or since yesterday
+and so on, see http://0pointer.de/blog/projects/journalctl.html for
+some examples.)
