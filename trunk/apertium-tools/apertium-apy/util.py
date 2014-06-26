@@ -41,14 +41,13 @@ def getLocalizedLanguages(locale, dbPath, languages=[]):
     global dbConn
     locale = toAlpha2Code(locale)
     languages = list(set(languages))
-    
+
     convertedLanguages, duplicatedLanguages = {}, {}
     for language in languages:
         if language in iso639Codes and iso639Codes[language] in languages:
             duplicatedLanguages[iso639Codes[language]] = language
             duplicatedLanguages[language] = iso639Codes[language]
         convertedLanguages[toAlpha2Code(language)] = language
-
     output = {}
     openDB(dbPath)
 
@@ -65,9 +64,8 @@ def getLocalizedLanguages(locale, dbPath, languages=[]):
     else:
         for languageResult in languageResults:
             output[languageResult[2]] = languageResult[3]
-    
     return output
-    
+
 def apertium(input, dir, mode, formatting=None):
     p1 = Popen(['echo', input], stdout=PIPE)
     if formatting:
@@ -77,32 +75,32 @@ def apertium(input, dir, mode, formatting=None):
     p1.stdout.close()
     output = p2.communicate()[0].decode('utf-8')
     return output
-    
+
 def bilingualTranslate(toTranslate, dir, mode):
-    p1 = Popen(["echo", toTranslate], stdout=PIPE)
-    p2 = Popen(["lt-proc", "-b", mode], stdin=p1.stdout, stdout=PIPE, cwd=dir)
+    p1 = Popen(['echo', toTranslate], stdout=PIPE)
+    p2 = Popen(['lt-proc', '-b', mode], stdin=p1.stdout, stdout=PIPE, cwd=dir)
     p1.stdout.close()
     output = p2.communicate()[0].decode('utf-8')
     return output
-    
+
 def removeLast(query, analyses):
     if not query[-1] == '.':
         return analyses[:-1]
     else:
         return analyses
-        
+
 def stripTags(analysis):
     if '<' in analysis:
         return analysis[:analysis.index('<')]
     else:
         return analysis
-        
+
 def getCoverages(text, modes, penalize=False):
     coverages = {}
     for mode, modeTuple in modes.items():
         coverages[mode] = getCoverage(text, modeTuple[0], modeTuple[1], penalize=penalize)
     return coverages
-        
+
 def getCoverage(text, mode, modeDir, penalize=False):
     analysis = apertium(text, mode, modeDir)
     lexicalUnits = removeLast(text, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
@@ -119,7 +117,7 @@ def processPerWord(analyzers, taggers, lang, modes, query):
     morph_lexicalUnits = None
     tagger_lexicalUnits = None
     lexicalUnitRE = r'\^([^\$]*)\$'
-    
+
     if 'morph' in modes or 'biltrans' in modes:
         if lang in analyzers:
             modeInfo = analyzers[lang]
@@ -129,7 +127,7 @@ def processPerWord(analyzers, taggers, lang, modes, query):
             outputs['morph_inputs'] = [stripTags(lexicalUnit.split('/')[0]) for lexicalUnit in morph_lexicalUnits]
         else:
             return
-            
+
     if 'tagger' in modes or 'disambig' in modes or 'translate' in modes:
         if lang in taggers:
             modeInfo = taggers[lang]
@@ -139,7 +137,7 @@ def processPerWord(analyzers, taggers, lang, modes, query):
             outputs['tagger_inputs'] = [stripTags(lexicalUnit.split('/')[0]) for lexicalUnit in tagger_lexicalUnits]
         else:
             return
-            
+
     if 'biltrans' in modes:
         if morph_lexicalUnits:
             outputs['biltrans'] = []
@@ -152,7 +150,7 @@ def processPerWord(analyzers, taggers, lang, modes, query):
                 outputs['translate_inputs'] = outputs['morph_inputs']
         else:
             return
-            
+
     if 'translate' in modes:
         if tagger_lexicalUnits:
             outputs['translate'] = []
@@ -165,6 +163,5 @@ def processPerWord(analyzers, taggers, lang, modes, query):
                 outputs['translate_inputs'] = outputs['tagger_inputs']
         else:
             return
-            
+
     return (outputs, tagger_lexicalUnits, morph_lexicalUnits)
-    
