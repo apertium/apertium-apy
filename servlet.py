@@ -9,13 +9,12 @@ from functools import wraps
 from threading import Thread
 
 import tornado, tornado.web, tornado.httpserver
+from tornado import escape, gen
+from tornado.escape import utf8
 try: #3.1
     from tornado.log import enable_pretty_logging
 except ImportError: #2.1
     from tornado.options import enable_pretty_logging
-from tornado import escape
-from tornado.escape import utf8
-from tornado import gen
 
 from modeSearch import searchPath
 from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code
@@ -48,7 +47,7 @@ class BaseHandler(tornado.web.RequestHandler):
     analyzers = {}
     generators = {}
     taggers = {}
-    pipelines = {}              # (l1,l2):(inpipe,outpipe,do_flush)
+    pipelines = {} # (l1, l2): (inpipe, outpipe, do_flush)
     callback = None
     timeout = None
     stats = {
@@ -60,12 +59,10 @@ class BaseHandler(tornado.web.RequestHandler):
     # simultaneously to a pipeline; then the first thread to read
     # might read translations of text put there by the second
     # thread …
-    pipeline_locks = {}     # (l1,l2): threading.RLock() for (l1,l2) in pairs
+    pipeline_locks = {} # (l1, l2): threading.RLock() for (l1, l2) in pairs
 
     def initialize(self):
-        callbacks = self.get_arguments('callback')
-        if callbacks:
-            self.callback = callbacks[0]
+        self.callback = self.get_argument('callback', default=None)
 
     def sendResponse(self, data):
         if isinstance(data, dict) or isinstance(data, list):
@@ -81,10 +78,12 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def write_error(self, status_code, **kwargs):
         # TODO: Is there a tornado fn to get the full list?
-        http_messages = { 400: 'Bad Request',
-                          404: 'Not found',
-                          408: 'Request Timeout',
-                          500: 'Internal error' }
+        http_messages = {
+            400: 'Bad Request',
+            404: 'Not Found',
+            408: 'Request Timeout',
+            500: 'Internal Error'
+        }
 
         result = {
             'status': 'error',
@@ -113,11 +112,7 @@ class BaseHandler(tornado.web.RequestHandler):
 class ListHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
-        query = self.get_arguments('q')
-        if query:
-            query = query[0]
-        else:
-            query = 'pairs'
+        query = self.get_argument('q', default='pairs')
 
         if query == 'pairs':
             responseData = []
@@ -128,25 +123,26 @@ class ListHandler(BaseHandler):
                     responseData.append({'sourceLanguage': toAlpha2Code(l1), 'targetLanguage': toAlpha2Code(l2)})
             self.sendResponse({'responseData': responseData, 'responseDetails': None, 'responseStatus': 200})
         elif query == 'analyzers' or query == 'analysers':
-            self.sendResponse({pair: modename for (pair, (path,modename)) in self.analyzers.items()})
+            self.sendResponse({pair: modename for (pair, (path, modename)) in self.analyzers.items()})
         elif query == 'generators':
-            self.sendResponse({pair: modename for (pair, (path,modename)) in self.generators.items()})
+            self.sendResponse({pair: modename for (pair, (path, modename)) in self.generators.items()})
         elif query == 'taggers' or query == 'disambiguators':
-            self.sendResponse({pair: modename for (pair, (path,modename)) in self.taggers.items()})
+            self.sendResponse({pair: modename for (pair, (path, modename)) in self.taggers.items()})
         else:
-            self.send_error(400, explanation="Expecting q argument to be one of analysers, generators, disambiguators or pairs")
+            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, disambiguators or pairs')
 
 
 class StatsHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
-        self.sendResponse({'responseData': { '%s-%s'%pair: useCount
-                                             for pair,useCount
-                                             in self.stats['useCount'].items() },
-                           'responseDetails': None, 'responseStatus': 200})
+        self.sendResponse({
+            'responseData': { '%s-%s' % pair: useCount for pair, useCount in self.stats['useCount'].items() },
+            'responseDetails': None,
+            'responseStatus': 200
+        })
 
 class ThreadableMixin:
-    """To use:
+    '''To use:
 
     1) inherit this class
     2) define a self._worker that sets self.res to whatever the result value should be.
@@ -154,7 +150,7 @@ class ThreadableMixin:
     4) start the worker with self.start_worker(self._handler, arg1, arg2, …, argn)
        where arg1…argn are passed on to self._worker
 
-    """
+    '''
     def start_worker(self, *args):
         # TODO: max threads, using https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor
         threading.Thread(target=self.run_worker, args=args).start()
@@ -165,7 +161,7 @@ class ThreadableMixin:
         except tornado.web.HTTPError:
             self.set_status(408) # TODO e.status_code
         except:
-            logging.error("_worker problem ", exc_info=True)
+            logging.error('_worker problem ', exc_info=True)
             self.set_status(500)
         tornado.ioloop.IOLoop.instance().add_callback(self.async_callback(result_handler))
 
@@ -185,9 +181,9 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
     def cleanPairs(self):
         if not self.max_idle_secs:
             return
-        for pair,lastUsage in self.stats['lastUsage'].items():
+        for pair, lastUsage in self.stats['lastUsage'].items():
             if time.time() - lastUsage > self.max_idle_secs and pair in self.pipelines:
-                logging.info("Shutting down pair %s-%s since it hasn't been used in %d secs"%(pair[0],pair[1],self.max_idle_secs))
+                logging.info('Shutting down pair %s-%s since it has not been used in %d seconds' % (pair[0], pair[1], self.max_idle_secs))
                 self.shutdownPair(pair)
 
     def nonFlushable(self, mode_str):
@@ -200,11 +196,13 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                 do_flush = False
                 modes_parentdir = os.path.dirname(os.path.dirname(mode_path))
                 mode_name = os.path.splitext(os.path.basename(mode_path))[0]
-                commands = [["apertium",
-                             "-f", "html-noent",
-                             # Get the _parent_ dir of the mode file:
-                             "-d", modes_parentdir,
-                             mode_name]]
+                commands = [[
+                    'apertium',
+                    '-f', 'html-noent',
+                    # Get the _parent_ dir of the mode file:
+                    '-d', modes_parentdir,
+                    mode_name
+                ]]
             else:
                 do_flush = True
                 commands = []
@@ -214,13 +212,13 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                     commands.append(cmd.split())
             return do_flush, commands
         else:
-            logging.error("Couldn't parse mode file %s" %(mode_path,))
+            logging.error('Could not parse mode file %s' % (mode_path,))
             self.send_error(500)
 
     def runPipeline(self, l1, l2):
-        if (l1,l2) not in self.pipelines:
-            logging.info("%s,%s not in pipelines of this process, starting …" %(l1,l2))
-            mode_path = self.pairs['%s-%s' %(l1,l2)]
+        if (l1, l2) not in self.pipelines:
+            logging.info('%s-%s not in pipelines of this process, starting …' % (l1, l2))
+            mode_path = self.pairs['%s-%s' % (l1, l2)]
             do_flush, commands = self.parseModeFile(mode_path)
             procs = []
             for cmd in commands:
@@ -230,17 +228,15 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                     newP = Popen(cmd, stdin=PIPE, stdout=PIPE)
                 procs.append(newP)
 
-            self.pipeline_locks[(l1,l2)] = threading.RLock()
-            self.pipelines[(l1,l2)] = (procs[0], procs[-1], do_flush)
+            self.pipeline_locks[(l1, l2)] = threading.RLock()
+            self.pipelines[(l1, l2)] = (procs[0], procs[-1], do_flush)
 
     def _worker (self, toTranslate, l1, l2):
         self.runPipeline(l1, l2)
-        self.res = translate(toTranslate,
-                             self.pipeline_locks[(l1,l2)],
-                             self.pipelines[(l1,l2)])
-        _, _, do_flush = self.pipelines[(l1,l2)]
+        self.res = translate(toTranslate, self.pipeline_locks[(l1, l2)], self.pipelines[(l1, l2)])
+        _, _, do_flush = self.pipelines[(l1, l2)]
         if not do_flush:
-            self.shutdownPair((l1,l2))
+            self.shutdownPair((l1, l2))
 
     unknownMarkRE = re.compile(r'\*([^.,;:\t\*]+)')
     def stripUnknownMarks(self, text):
@@ -251,7 +247,7 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
         try:
             l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
         except ValueError:
-            self.send_error(400, explanation="That pair is invalid, use e.g. eng|spa")
+            self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
             return
         toTranslate = self.get_argument('q')
         markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
@@ -262,15 +258,16 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                 return
             if hasattr(self, 'res'):
                 self.res = self.res if markUnknown else self.stripUnknownMarks(self.res)
-                self.sendResponse({"responseData":
-                                   {"translatedText": self.res},
-                                   "responseDetails": None,
-                                   "responseStatus": 200})
+                self.sendResponse({
+                    'responseData': {'translatedText': self.res},
+                   'responseDetails': None,
+                   'responseStatus': 200
+                })
                 return
             if hasattr(self, 'redir'):
                 self.redirect(self.redir)
                 return
-            logging.error("handleTranslation reached a thought-to-be-unreachable line")
+            logging.error('handleTranslation reached a thought-to-be-unreachable line')
             self.send_error(500)
 
 
@@ -279,7 +276,7 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
             self.notePairUsage((l1, l2))
             self.cleanPairs()
         else:
-            self.send_error(400, explanation="That pair is not installed")
+            self.send_error(400, explanation='That pair is not installed')
 
 class AnalyzeHandler(BaseHandler):
     @tornado.web.asynchronous
@@ -290,20 +287,20 @@ class AnalyzeHandler(BaseHandler):
 
         def handleAnalysis(analysis):
             if analysis is None:
-                self.send_error(408, explanation="Request timed out")
+                self.send_error(408, explanation='Request timed out')
             else:
                 lexicalUnits = removeLast(toAnalyze, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
                 self.sendResponse([(lexicalUnit[0], lexicalUnit[0].split('/')[0] + lexicalUnit[1]) for lexicalUnit in lexicalUnits])
 
         if mode in self.analyzers:
-            pool = Pool(processes = 1)
+            pool = Pool(processes=1)
             result = pool.apply_async(apertium, [toAnalyze, self.analyzers[mode][0], self.analyzers[mode][1]])
             pool.close()
 
             @run_async
             def worker(callback):
                 try:
-                    callback(result.get(timeout = self.timeout))
+                    callback(result.get(timeout=self.timeout))
                 except TimeoutError:
                     pool.terminate()
                     callback(None)
@@ -311,7 +308,7 @@ class AnalyzeHandler(BaseHandler):
             analysis = yield tornado.gen.Task(worker)
             handleAnalysis(analysis)
         else:
-            self.send_error(400, explanation="That mode is not installed")
+            self.send_error(400, explanation='That mode is not installed')
 
 class GenerateHandler(BaseHandler):
     @tornado.web.asynchronous
@@ -322,7 +319,7 @@ class GenerateHandler(BaseHandler):
 
         def handleGeneration(generated):
             if generated is None:
-                self.send_error(408, explanation="Request timed out")
+                self.send_error(408, explanation='Request timed out')
             else:
                 generated = removeLast(toGenerate, generated)
                 self.sendResponse([(generation, lexicalUnits[index]) for (index, generation) in enumerate(generated.split('[SEP]'))])
@@ -331,14 +328,14 @@ class GenerateHandler(BaseHandler):
             lexicalUnits = re.findall(r'(\^[^\$]*\$[^\^]*)', toGenerate)
             if len(lexicalUnits) == 0:
                 lexicalUnits = ['^%s$' % toGenerate]
-            pool = Pool(processes = 1)
+            pool = Pool(processes=1)
             result = pool.apply_async(apertium, ('[SEP]'.join(lexicalUnits), self.generators[mode][0], self.generators[mode][1]), {'formatting': 'none'})
             pool.close()
 
             @run_async
             def worker(callback):
                 try:
-                    callback(result.get(timeout = self.timeout))
+                    callback(result.get(timeout=self.timeout))
                 except TimeoutError:
                     pool.terminate()
                     callback(None)
@@ -346,7 +343,7 @@ class GenerateHandler(BaseHandler):
             generated = yield tornado.gen.Task(worker)
             handleGeneration(generated)
         else:
-            self.send_error(400, explanation="That mode is not installed")
+            self.send_error(400, explanation='That mode is not installed')
 
 class ListLanguageNamesHandler(BaseHandler):
     @tornado.web.asynchronous
@@ -357,7 +354,7 @@ class ListLanguageNamesHandler(BaseHandler):
         if self.langnames:
             if localeArg:
                 if languagesArg:
-                    self.sendResponse(getLocalizedLanguages(localeArg, self.langnames, languages = languagesArg.split(' ')))
+                    self.sendResponse(getLocalizedLanguages(localeArg, self.langnames, languages=languagesArg.split(' ')))
                 else:
                     self.sendResponse(getLocalizedLanguages(localeArg, self.langnames))
             elif 'Accept-Language' in self.request.headers:
@@ -382,7 +379,7 @@ class PerWordHandler(BaseHandler):
         query = self.get_argument('q')
 
         if not modes <= {'morph', 'biltrans', 'tagger', 'disambig', 'translate'}:
-            self.send_error(400) # explanation="what is this thing anyway"? TODO
+            self.send_error(400, explanation='Invalid mode argument')
             return
 
         def handleOutput(output):
@@ -398,10 +395,10 @@ class PerWordHandler(BaseHandler):
             self.sendResponse(toReturn)'''
 
             if output is None:
-                self.send_error(400, explanation="No output")
+                self.send_error(400, explanation='No output')
                 return
             elif not output:
-                self.send_error(408, explanation="Request timed out")
+                self.send_error(408, explanation='Request timed out')
                 return
             else:
                 outputs, tagger_lexicalUnits, morph_lexicalUnits = output
@@ -427,14 +424,14 @@ class PerWordHandler(BaseHandler):
             else:
                 self.sendResponse(toReturn)
 
-        pool = Pool(processes = 1)
+        pool = Pool(processes=1)
         result = pool.apply_async(processPerWord, (self.analyzers, self.taggers, lang, modes, query))
         pool.close()
 
         @run_async
         def worker(callback):
             try:
-                callback(result.get(timeout = self.timeout))
+                callback(result.get(timeout=self.timeout))
             except TimeoutError:
                 pool.terminate()
                 callback(None)
@@ -449,24 +446,24 @@ class CoverageHandler(BaseHandler):
         mode = toAlpha3Code(self.get_argument('mode'))
         text = self.get_argument('q')
         if not text:
-            self.send_error(400, explanation="Missing q argument")
+            self.send_error(400, explanation='Missing q argument')
             return
 
         def handleCoverage(coverage):
             if coverage is None:
-                self.send_error(408, explanation="Request timed out")
+                self.send_error(408, explanation='Request timed out')
             else:
                 self.sendResponse([coverage])
 
         if mode in self.analyzers:
-            pool = Pool(processes = 1)
+            pool = Pool(processes=1)
             result = pool.apply_async(getCoverage, [text, self.analyzers[mode][0], self.analyzers[mode][1]])
             pool.close()
 
             @run_async
             def worker(callback):
                 try:
-                    callback(result.get(timeout = self.timeout))
+                    callback(result.get(timeout=self.timeout))
                 except TimeoutError:
                     pool.terminate()
                     callback(None)
@@ -474,14 +471,14 @@ class CoverageHandler(BaseHandler):
             coverage = yield tornado.gen.Task(worker)
             handleCoverage(coverage)
         else:
-            self.send_error(400, explanation="That mode is not installed")
+            self.send_error(400, explanation='That mode is not installed')
 
 class IdentifyLangHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
         text = self.get_argument('q')
         if not text:
-            return self.send_error(400, explanation="Missing q argument")
+            return self.send_error(400, explanation='Missing q argument')
 
         if cld2:
             cldResults = cld2.detect(text)
@@ -494,13 +491,13 @@ class IdentifyLangHandler(BaseHandler):
             def handleCoverages(coverages):
                 self.sendResponse(coverages)
 
-            pool = Pool(processes = 1)
-            result = pool.apply_async(getCoverages, [text, self.analyzers], {'penalize': True}, callback = handleCoverages)
+            pool = Pool(processes=1)
+            result = pool.apply_async(getCoverages, [text, self.analyzers], {'penalize': True}, callback=handleCoverages)
             pool.close()
             try:
-                coverages = result.get(timeout = self.timeout)
+                coverages = result.get(timeout=self.timeout)
             except TimeoutError:
-                self.send_error(408)
+                self.send_error(408, explanation='Request timed out')
                 pool.terminate()
 
 class GetLocaleHandler(BaseHandler):
@@ -510,7 +507,7 @@ class GetLocaleHandler(BaseHandler):
             locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
             self.sendResponse(locales)
         else:
-            self.send_error(400, explanation="Accept-Language missing from request headers")
+            self.send_error(400, explanation='Accept-Language missing from request headers')
 
 def setupHandler(port, pairs_path, nonpairs_path, langnames, timeout, max_idle_secs, verbosity=0):
     Handler = BaseHandler
@@ -524,7 +521,7 @@ def setupHandler(port, pairs_path, nonpairs_path, langnames, timeout, max_idle_s
         for mtype in modes:
             modes[mtype] += src_modes[mtype]
 
-    [logging.info("%d %s modes found" % (len(modes[mtype]), mtype)) for mtype in modes]
+    [logging.info('%d %s modes found' % (len(modes[mtype]), mtype)) for mtype in modes]
 
     for path, lang_src, lang_trg in modes['pair']:
         Handler.pairs['%s-%s' % (lang_src, lang_trg)] = path
@@ -548,16 +545,16 @@ if __name__ == '__main__':
     parser.add_argument('-j', '--num-processes', help='number of processes to run (default = number of cores)', type=int, default=0)
     parser.add_argument('-d', '--daemon', help='daemon mode: redirects stdout and stderr to files apertium-apy.log and apertium-apy.err ; use with --log-path', action='store_true')
     parser.add_argument('-P', '--log-path', help='path to log output files to in daemon mode; defaults to local directory', default='./')
-    parser.add_argument('-m', '--max-idle-secs', help="shut down pipelines it haven't been used in this many seconds", type=int, default=0)
+    parser.add_argument('-m', '--max-idle-secs', help='shut down pipelines it have not been used in this many seconds', type=int, default=0)
     parser.add_argument('-v', '--verbosity', help='logging verbosity', type=int, default=0)
     args = parser.parse_args()
 
-    if (args.daemon):
+    if args.daemon:
         # regular content logs are output stderr
         # python messages are mostly output to stdout
         # hence swapping the filenames?
-        sys.stderr = open(os.path.join(args.log_path, "apertium-apy.log"), 'a+')
-        sys.stdout = open(os.path.join(args.log_path, "apertium-apy.err"), 'a+')
+        sys.stderr = open(os.path.join(args.log_path, 'apertium-apy.log'), 'a+')
+        sys.stdout = open(os.path.join(args.log_path, 'apertium-apy.err'), 'a+')
 
     logging.getLogger().setLevel(logging.INFO)
     enable_pretty_logging()
