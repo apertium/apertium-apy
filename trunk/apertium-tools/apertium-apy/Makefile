@@ -1,3 +1,3 @@
-unicode.db: tools/apertiumlangs.sql
+langNames.db: tools/apertiumlangs.sql
 	rm -f $@
 	<$< sqlite3 $@
