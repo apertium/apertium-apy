@@ -12,15 +12,8 @@ iso639Codes = {"abk":"ab","aar":"aa","afr":"af","aka":"ak","sqi":"sq","amh":"am"
         JSON.stringify(out);
 '''
 
-dbConn = None
-
-def openDB(dbPath):
-    global dbConn
-    if not dbConn:
-        if os.path.exists(dbPath):
-            dbConn = sqlite3.connect(dbPath)
-        else:
-            logging.error('Failed to locate language name DB: %s' % dbPath)
+langNamesDBConn = None
+missingFreqsDBConn = None
 
 def toAlpha2Code(code):
     if '_' in code:
@@ -38,7 +31,16 @@ def toAlpha3Code(code):
         return iso639CodesInverse[code] if code in iso639CodesInverse else code
 
 def getLocalizedLanguages(locale, dbPath, languages=[]):
-    global dbConn
+    global langNamesDBConn
+    if not langNamesDBConn:
+        if os.path.exists(dbPath):
+            langNameDBConn = sqlite3.connect(dbPath)
+            c = langNameDBConn.cursor()
+        else:
+            logging.error('Failed to locate language name DB: %s' % dbPath)
+            return {}
+
+
     locale = toAlpha2Code(locale)
     languages = list(set(languages))
 
@@ -49,10 +51,8 @@ def getLocalizedLanguages(locale, dbPath, languages=[]):
             duplicatedLanguages[language] = iso639Codes[language]
         convertedLanguages[toAlpha2Code(language)] = language
     output = {}
-    openDB(dbPath)
 
-    c = dbConn.cursor()
-    languageResults = c.execute('select * from languageNames where lg=?', (locale, )).fetchall()
+    languageResults = c.execute('SELECT * FROM languageNames WHERE lg=?', (locale, )).fetchall()
     if languages:
         for languageResult in languageResults:
             if languageResult[2] in convertedLanguages:
@@ -65,6 +65,16 @@ def getLocalizedLanguages(locale, dbPath, languages=[]):
         for languageResult in languageResults:
             output[languageResult[2]] = languageResult[3]
     return output
+
+def noteUnknownToken(token, pair, dbPath):
+    global missingFreqsDBConn
+    if not missingFreqsDBConn:
+        missingFreqsDBConn = sqlite3.connect(dbPath)
+    c = missingFreqsDBConn.cursor()
+
+    c.execute('CREATE TABLE IF NOT EXISTS missingFreqs (pair TEXT, token TEXT, frequency INTEGER, UNIQUE(pair, token))')
+    c.execute('INSERT OR REPLACE INTO missingFreqs VALUES (:pair, :token, COALESCE((SELECT frequency FROM missingFreqs WHERE pair=:pair AND token=:token), 0) + 1)', {'pair': pair, 'token': token})
+    missingFreqsDBConn.commit()
 
 def apertium(input, dir, mode, formatting=None):
     p1 = Popen(['echo', input], stdout=PIPE)

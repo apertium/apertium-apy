@@ -17,7 +17,7 @@ except ImportError: #2.1
     from tornado.options import enable_pretty_logging
 
 from modeSearch import searchPath
-from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code
+from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, noteUnknownToken
 from translation import translate
 
 try:
@@ -171,6 +171,14 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
         if self.max_idle_secs:
             self.stats['lastUsage'][pair] = time.time()
 
+    unknownMarkRE = re.compile(r'\*([^.,;:\t\*]+)')
+    def stripUnknownMarks(self, text):
+        return re.sub(self.unknownMarkRE, r'\1', text)
+
+    def noteUnknownTokens(self, pair, text):
+        for token in re.findall(self.unknownMarkRE, text):
+            noteUnknownToken(token, pair, self.missingFreqs)
+
     def shutdownPair(self, pair):
         if self.pipelines[pair][0].poll():
             # Killing the first one should bring down the rest:
@@ -238,10 +246,6 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
         if not do_flush:
             self.shutdownPair((l1, l2))
 
-    unknownMarkRE = re.compile(r'\*([^.,;:\t\*]+)')
-    def stripUnknownMarks(self, text):
-        return re.sub(self.unknownMarkRE, r'\1', text)
-
     @tornado.web.asynchronous
     def get(self):
         try:
@@ -257,6 +261,7 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                 self.send_error(self.get_status())
                 return
             if hasattr(self, 'res'):
+                self.noteUnknownTokens('-'.join((l1, l2)), self.res)
                 self.res = self.res if markUnknown else self.stripUnknownMarks(self.res)
                 self.sendResponse({
                     'responseData': {'translatedText': self.res},
@@ -351,22 +356,22 @@ class ListLanguageNamesHandler(BaseHandler):
         localeArg = self.get_argument('locale')
         languagesArg = self.get_argument('languages', default=None)
 
-        if self.langnames:
+        if self.langNames:
             if localeArg:
                 if languagesArg:
-                    self.sendResponse(getLocalizedLanguages(localeArg, self.langnames, languages=languagesArg.split(' ')))
+                    self.sendResponse(getLocalizedLanguages(localeArg, self.langNames, languages=languagesArg.split(' ')))
                 else:
-                    self.sendResponse(getLocalizedLanguages(localeArg, self.langnames))
+                    self.sendResponse(getLocalizedLanguages(localeArg, self.langNames))
             elif 'Accept-Language' in self.request.headers:
                 locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
                 for locale in locales:
-                    languageNames = getLocalizedLanguages(locale, self.langnames)
+                    languageNames = getLocalizedLanguages(locale, self.langNames)
                     if languageNames:
                         self.sendResponse(languageNames)
                         return
-                self.sendResponse(getLocalizedLanguages('en', self.langnames))
+                self.sendResponse(getLocalizedLanguages('en', self.langNames))
             else:
-                self.sendResponse(getLocalizedLanguages('en', self.langnames))
+                self.sendResponse(getLocalizedLanguages('en', self.langNames))
         else:
             self.sendResponse({})
 
@@ -509,9 +514,10 @@ class GetLocaleHandler(BaseHandler):
         else:
             self.send_error(400, explanation='Accept-Language missing from request headers')
 
-def setupHandler(port, pairs_path, nonpairs_path, langnames, timeout, max_idle_secs, verbosity=0):
+def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeout, max_idle_secs, verbosity=0):
     Handler = BaseHandler
-    Handler.langnames = langnames
+    Handler.langNames = langNames
+    Handler.missingFreqs = missingFreqs
     Handler.timeout = timeout
     Handler.max_idle_secs = max_idle_secs
 
@@ -537,7 +543,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Start Apertium APY')
     parser.add_argument('pairs_path', help='path to Apertium installed pairs (all modes files in this path are included)')
     parser.add_argument('-s', '--nonpairs-path', help='path to Apertium SVN (only non-translator debug modes are included from this path)')
-    parser.add_argument('-l', '--lang-names', help='path to localised language names sqlite database (default = unicode.db)', default='unicode.db')
+    parser.add_argument('-l', '--lang-names', help='path to localised language names sqlite database (default = langNames.db)', default='langNames.db')
+    parser.add_argument('-f', '--missing-freqs', help='path to missing frequency sqlite database (default = missingFreqs.db)', default='missingFreqs.db')
     parser.add_argument('-p', '--port', help='port to run server on (default = 2737)', type=int, default=2737)
     parser.add_argument('-c', '--ssl-cert', help='path to SSL Certificate', default=None)
     parser.add_argument('-k', '--ssl-key', help='path to SSL Key File', default=None)
@@ -562,7 +569,7 @@ if __name__ == '__main__':
     if not cld2:
         logging.warning('Unable to import CLD2, continuing using naive method of language detection')
 
-    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.timeout, args.max_idle_secs, args.verbosity)
+    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout, args.max_idle_secs, args.verbosity)
 
     application = tornado.web.Application([
         (r'/list', ListHandler),
@@ -595,3 +602,4 @@ if __name__ == '__main__':
     http_server.bind(args.port)
     http_server.start(args.num_processes)
     tornado.ioloop.IOLoop.instance().start()
+
