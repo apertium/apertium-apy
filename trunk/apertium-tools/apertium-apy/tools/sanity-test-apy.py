@@ -4,7 +4,7 @@ import urllib.request
 import urllib.parse
 import socket
 import json
-from sys import argv
+import sys
 
 import html.parser
 unescape = html.parser.HTMLParser().unescape
@@ -41,7 +41,6 @@ tests = {
     "glg-eng": ("Teño", "Have"),
     "glg-por": ("teño", "tenho"),
     "glg-spa": ("Teño", "Tengo"),
-    "hat-eng": ("Lang", "Language"),
     "hbs-slv": ("Slobodnu", "Svobodnemu"),
     "ind-msa": ("sedangkan", "manakala"),
     "msa-ind": ("manakala", "sedangkan"),
@@ -134,17 +133,23 @@ def missing_tests(host):
             print("Missing a test for %s" % (pairstr,))
             allgood = False
     return allgood
+
+def dot():
+    sys.stdout.write('.')
+    sys.stdout.flush()
     
 def test_all(host):
     missing_tests(host)
+    dot()
     total=len(tests)
     good=0
     for pair in tests:
         if test_pair(pair, host):
             good+=1
+        dot()
     print("\n%d of %d tests passed" % (good, total))
     print("\nNow run the script again to see which pipelines got clogged.\n")
 
 
 if __name__ == "__main__":
-    test_all(argv[1])
+    test_all(sys.argv[1])
