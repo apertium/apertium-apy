@@ -171,7 +171,7 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
         if self.max_idle_secs:
             self.stats['lastUsage'][pair] = time.time()
 
-    unknownMarkRE = re.compile(r'\*([^.,;:\t\*]+)')
+    unknownMarkRE = re.compile(r'\*([^.,;:\t\* ]+)')
     def stripUnknownMarks(self, text):
         return re.sub(self.unknownMarkRE, r'\1', text)
 
