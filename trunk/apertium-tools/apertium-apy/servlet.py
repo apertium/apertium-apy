@@ -61,7 +61,7 @@ class BaseHandler(tornado.web.RequestHandler):
     # The lock is needed so we don't let two threads write
     # simultaneously to a pipeline; then the first thread to read
     # might read translations of text put there by the second
-    # thread  
+    # thread …
     pipeline_locks = {} # (l1, l2): threading.RLock() for (l1, l2) in pairs
 
     def initialize(self):
@@ -149,8 +149,8 @@ class ThreadableMixin:
     1) inherit this class
     2) define a self._worker that sets self.res to whatever the result value should be.
     3) define a self._handler that checks for hasattr(self, 'res')
-    4) start the worker with self.start_worker(self._handler, arg1, arg2,  , argn)
-       where arg1 argn are passed on to self._worker
+    4) start the worker with self.start_worker(self._handler, arg1, arg2, …, argn)
+       where arg1…argn are passed on to self._worker
 
     '''
     def start_worker(self, *args):
@@ -227,7 +227,7 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
 
     def runPipeline(self, l1, l2):
         if (l1, l2) not in self.pipelines:
-            logging.info('%s-%s not in pipelines of this process, starting  ' % (l1, l2))
+            logging.info('%s-%s not in pipelines of this process, starting …' % (l1, l2))
             mode_path = self.pairs['%s-%s' % (l1, l2)]
             do_flush, commands = self.parseModeFile(mode_path)
             procs = []
@@ -241,19 +241,26 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
             self.pipeline_locks[(l1, l2)] = threading.RLock()
             self.pipelines[(l1, l2)] = (procs[0], procs[-1], do_flush)
 
-    def _worker (self, toTranslate, l1, l2):
-        tInfo = None
+    def logBeforeTranslation(self):
         if self.scaleMtLogs:
-            before = datetime.now()
+            return datetime.now()
+        return
+
+    def logAfterTranslation(self, before, toTranslate):
+        if self.scaleMtLogs:
+            after = datetime.now()
             tInfo = TranslationInfo(self)
+            key = getKey(tInfo.key)
+            scaleMtLog(self.get_status(), after-before, tInfo, key, len(toTranslate))
+
+    def _worker (self, toTranslate, l1, l2):
+        
+        before = self.logBeforeTranslation()
         
         self.runPipeline(l1, l2)
-        self.res = translate(toTranslate, self.pipeline_locks[(l1, l2)], self.pipelines[(l1, l2)], tInfo)
+        self.res = translate(toTranslate, self.pipeline_locks[(l1, l2)], self.pipelines[(l1, l2)])
         
-        if self.scaleMtLogs:
-                after = datetime.now()
-                key = getKey(tInfo.key)
-                scaleMtLog(self.get_status(), after-before, tInfo, key, len(toTranslate))
+        self.logAfterTranslation(before, toTranslate)
                 
         _, _, do_flush = self.pipelines[(l1, l2)]
         if not do_flush:
@@ -605,8 +612,6 @@ if __name__ == '__main__':
         loggingHandler = logging.handlers.TimedRotatingFileHandler(smtlog,'midnight',0)
         loggingHandler.suffix = "%Y-%m-%d"
         logger.addHandler(loggingHandler)
-        
-        logging.getLogger('scale-mt').error('starting logger errors')
         
         # if scalemt_logs is enabled, disable tornado.access logs
         if(args.daemon):
