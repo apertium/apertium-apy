@@ -7,6 +7,7 @@ from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
 from functools import wraps
 from threading import Thread
+from datetime import datetime
 
 import tornado, tornado.web, tornado.httpserver
 from tornado import escape, gen
@@ -17,8 +18,9 @@ except ImportError: #2.1
     from tornado.options import enable_pretty_logging
 
 from modeSearch import searchPath
-from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, noteUnknownToken
+from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, noteUnknownToken, scaleMtLog, TranslationInfo
 from translation import translate
+from keys import getKey
 
 try:
     import cld2full as cld2
@@ -50,6 +52,7 @@ class BaseHandler(tornado.web.RequestHandler):
     pipelines = {} # (l1, l2): (inpipe, outpipe, do_flush)
     callback = None
     timeout = None
+    scaleMtLogs = False
     stats = {
         'useCount': {},
         'lastUsage': {},
@@ -58,7 +61,7 @@ class BaseHandler(tornado.web.RequestHandler):
     # The lock is needed so we don't let two threads write
     # simultaneously to a pipeline; then the first thread to read
     # might read translations of text put there by the second
-    # thread …
+    # thread  
     pipeline_locks = {} # (l1, l2): threading.RLock() for (l1, l2) in pairs
 
     def initialize(self):
@@ -131,7 +134,6 @@ class ListHandler(BaseHandler):
         else:
             self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, disambiguators or pairs')
 
-
 class StatsHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
@@ -147,8 +149,8 @@ class ThreadableMixin:
     1) inherit this class
     2) define a self._worker that sets self.res to whatever the result value should be.
     3) define a self._handler that checks for hasattr(self, 'res')
-    4) start the worker with self.start_worker(self._handler, arg1, arg2, …, argn)
-       where arg1…argn are passed on to self._worker
+    4) start the worker with self.start_worker(self._handler, arg1, arg2,  , argn)
+       where arg1 argn are passed on to self._worker
 
     '''
     def start_worker(self, *args):
@@ -225,7 +227,7 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
 
     def runPipeline(self, l1, l2):
         if (l1, l2) not in self.pipelines:
-            logging.info('%s-%s not in pipelines of this process, starting …' % (l1, l2))
+            logging.info('%s-%s not in pipelines of this process, starting  ' % (l1, l2))
             mode_path = self.pairs['%s-%s' % (l1, l2)]
             do_flush, commands = self.parseModeFile(mode_path)
             procs = []
@@ -240,20 +242,42 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
             self.pipelines[(l1, l2)] = (procs[0], procs[-1], do_flush)
 
     def _worker (self, toTranslate, l1, l2):
+        tInfo = None
+        if self.scaleMtLogs:
+            before = datetime.now()
+            tInfo = TranslationInfo(self)
+        
         self.runPipeline(l1, l2)
-        self.res = translate(toTranslate, self.pipeline_locks[(l1, l2)], self.pipelines[(l1, l2)])
+        self.res = translate(toTranslate, self.pipeline_locks[(l1, l2)], self.pipelines[(l1, l2)], tInfo)
+        
+        if self.scaleMtLogs:
+                after = datetime.now()
+                key = getKey(tInfo.key)
+                scaleMtLog(self.get_status(), after-before, tInfo, key, len(toTranslate))
+                
         _, _, do_flush = self.pipelines[(l1, l2)]
         if not do_flush:
             self.shutdownPair((l1, l2))
 
     @tornado.web.asynchronous
     def get(self):
+
+        toTranslate = self.get_argument('q')
+
         try:
             l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
         except ValueError:
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
+            
+            if self.scaleMtLogs:
+                before = datetime.now()
+                tInfo = TranslationInfo(self)
+                key = getKey(tInfo.key)
+                after = datetime.now()
+                scaleMtLog(400, after-before, tInfo, key, len(toTranslate))
+            
             return
-        toTranslate = self.get_argument('q')
+        
         markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
 
         def handleTranslation():
@@ -282,6 +306,12 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
             self.cleanPairs()
         else:
             self.send_error(400, explanation='That pair is not installed')
+            if self.scaleMtLogs:
+                before = datetime.now()
+                tInfo = TranslationInfo(self)
+                key = getKey(tInfo.key)
+                after = datetime.now()
+                scaleMtLog(400, after-before, tInfo, key, len(toTranslate))
 
 class AnalyzeHandler(BaseHandler):
     @tornado.web.asynchronous
@@ -514,12 +544,13 @@ class GetLocaleHandler(BaseHandler):
         else:
             self.send_error(400, explanation='Accept-Language missing from request headers')
 
-def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeout, max_idle_secs, verbosity=0):
+def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeout, max_idle_secs, verbosity=0, scaleMtLogs=False):
     Handler = BaseHandler
     Handler.langNames = langNames
     Handler.missingFreqs = missingFreqs
     Handler.timeout = timeout
     Handler.max_idle_secs = max_idle_secs
+    Handler.scaleMtLogs = scaleMtLogs
 
     modes = searchPath(pairs_path, verbosity=verbosity)
     if nonpairs_path:
@@ -554,6 +585,7 @@ if __name__ == '__main__':
     parser.add_argument('-P', '--log-path', help='path to log output files to in daemon mode; defaults to local directory', default='./')
     parser.add_argument('-m', '--max-idle-secs', help='shut down pipelines it have not been used in this many seconds', type=int, default=0)
     parser.add_argument('-v', '--verbosity', help='logging verbosity', type=int, default=0)
+    parser.add_argument('-S', '--scalemt-logs', help='generates ScaleMT-like logs; use with --log-path; disables', action='store_true')
     args = parser.parse_args()
 
     if args.daemon:
@@ -562,14 +594,28 @@ if __name__ == '__main__':
         # hence swapping the filenames?
         sys.stderr = open(os.path.join(args.log_path, 'apertium-apy.log'), 'a+')
         sys.stdout = open(os.path.join(args.log_path, 'apertium-apy.err'), 'a+')
-
+            
     logging.getLogger().setLevel(logging.INFO)
     enable_pretty_logging()
 
+    if args.scalemt_logs:
+        logger = logging.getLogger('scale-mt')
+        logger.propagate = False
+        smtlog = os.path.join(args.log_path, 'ScaleMTRequests.log')
+        loggingHandler = logging.handlers.TimedRotatingFileHandler(smtlog,'midnight',0)
+        loggingHandler.suffix = "%Y-%m-%d"
+        logger.addHandler(loggingHandler)
+        
+        logging.getLogger('scale-mt').error('starting logger errors')
+        
+        # if scalemt_logs is enabled, disable tornado.access logs
+        if(args.daemon):
+            logging.getLogger("tornado.access").propagate = False
+            
     if not cld2:
         logging.warning('Unable to import CLD2, continuing using naive method of language detection')
 
-    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout, args.max_idle_secs, args.verbosity)
+    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout, args.max_idle_secs, args.verbosity, args.scalemt_logs)
 
     application = tornado.web.Application([
         (r'/list', ListHandler),
@@ -602,4 +648,4 @@ if __name__ == '__main__':
     http_server.bind(args.port)
     http_server.start(args.num_processes)
     tornado.ioloop.IOLoop.instance().start()
-
+    
