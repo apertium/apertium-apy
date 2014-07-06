@@ -94,7 +94,7 @@ def translateSimple(toTranslate, translock, pipeline):
         translated = proc_in.communicate(input=bytes(toTranslate, 'utf-8'))[0]
         return translated.decode('utf-8')
 
-def translate(toTranslate, translock, pipeline):
+def translate(toTranslate, translock, pipeline, tInfo):
     _, _, do_flush = pipeline
     if do_flush:
         return translateSplitting(toTranslate, translock, pipeline)
