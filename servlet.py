@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # -*- indent-tabs-mode: nil -*-
+# coding=utf-8
+# -*- encoding: utf-8 -*-
 
 import sys, threading, os, re, ssl, argparse, logging, time, signal
 from lxml import etree
