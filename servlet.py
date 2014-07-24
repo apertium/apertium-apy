@@ -256,14 +256,14 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
             scaleMtLog(self.get_status(), after-before, tInfo, key, len(toTranslate))
 
     def _worker (self, toTranslate, l1, l2):
-        
+
         before = self.logBeforeTranslation()
-        
+
         self.runPipeline(l1, l2)
         self.res = translate(toTranslate, self.pipeline_locks[(l1, l2)], self.pipelines[(l1, l2)])
-        
+
         self.logAfterTranslation(before, toTranslate)
-                
+
         _, _, do_flush = self.pipelines[(l1, l2)]
         if not do_flush:
             self.shutdownPair((l1, l2))
@@ -277,16 +277,16 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
             l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
         except ValueError:
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
-            
+
             if self.scaleMtLogs:
                 before = datetime.now()
                 tInfo = TranslationInfo(self)
                 key = getKey(tInfo.key)
                 after = datetime.now()
                 scaleMtLog(400, after-before, tInfo, key, len(toTranslate))
-            
+
             return
-        
+
         markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
 
         def handleTranslation():
@@ -326,7 +326,7 @@ class AnalyzeHandler(BaseHandler):
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
-        mode = toAlpha3Code(self.get_argument('mode'))
+        mode = toAlpha3Code(self.get_argument('lang'))
         toAnalyze = self.get_argument('q')
 
         def handleAnalysis(analysis):
@@ -358,7 +358,7 @@ class GenerateHandler(BaseHandler):
     @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
-        mode = toAlpha3Code(self.get_argument('mode'))
+        mode = toAlpha3Code(self.get_argument('lang'))
         toGenerate = self.get_argument('q')
 
         def handleGeneration(generated):
@@ -487,7 +487,7 @@ class CoverageHandler(BaseHandler):
     @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
-        mode = toAlpha3Code(self.get_argument('mode'))
+        mode = toAlpha3Code(self.get_argument('lang'))
         text = self.get_argument('q')
         if not text:
             self.send_error(400, explanation='Missing q argument')
@@ -603,7 +603,7 @@ if __name__ == '__main__':
         # hence swapping the filenames?
         sys.stderr = open(os.path.join(args.log_path, 'apertium-apy.log'), 'a+')
         sys.stdout = open(os.path.join(args.log_path, 'apertium-apy.err'), 'a+')
-            
+
     logging.getLogger().setLevel(logging.INFO)
     enable_pretty_logging()
 
@@ -614,11 +614,11 @@ if __name__ == '__main__':
         loggingHandler = logging.handlers.TimedRotatingFileHandler(smtlog,'midnight',0)
         loggingHandler.suffix = "%Y-%m-%d"
         logger.addHandler(loggingHandler)
-        
+
         # if scalemt_logs is enabled, disable tornado.access logs
         if(args.daemon):
             logging.getLogger("tornado.access").propagate = False
-            
+
     if not cld2:
         logging.warning('Unable to import CLD2, continuing using naive method of language detection')
 
@@ -633,7 +633,7 @@ if __name__ == '__main__':
         (r'/generate', GenerateHandler),
         (r'/listLanguageNames', ListLanguageNamesHandler),
         (r'/perWord', PerWordHandler),
-        (r'/coverage', CoverageHandler),
+        (r'/calcCoverage', CoverageHandler),
         (r'/identifyLang', IdentifyLangHandler),
         (r'/getLocale', GetLocaleHandler)
     ])
@@ -655,4 +655,3 @@ if __name__ == '__main__':
     http_server.bind(args.port)
     http_server.start(args.num_processes)
     tornado.ioloop.IOLoop.instance().start()
-    
