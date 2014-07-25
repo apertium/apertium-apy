@@ -9109,7 +9109,7 @@ INSERT INTO "fixes" VALUES(NULL,'kk','ug','ұйғұрша');
 INSERT INTO "fixes" VALUES(NULL,'ky','ug','уйгурча');
 INSERT INTO "fixes" VALUES(NULL,'kaa','kk','qazaqsha');
 INSERT INTO "fixes" VALUES(NULL,'kaa','kaa','qaraqalpaqsha');
-INSERT INTO "fixes" VALUES(NULL,'kaa','uz','o\'zbekshe');
+INSERT INTO "fixes" VALUES(NULL,'kaa','uz','oʻzbekshe');
 
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
 COMMIT;
