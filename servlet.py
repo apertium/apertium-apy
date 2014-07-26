@@ -21,7 +21,7 @@ except ImportError: #2.1
 
 from modeSearch import searchPath
 from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, noteUnknownToken, scaleMtLog, TranslationInfo
-from translation import translate
+from translation import translate, parseModeFile
 from keys import getKey
 
 try:
@@ -204,40 +204,16 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                 logging.info('Shutting down pair %s-%s since it has not been used in %d seconds' % (pair[0], pair[1], self.max_idle_secs))
                 self.shutdownPair(pair)
 
-    def nonFlushable(self, mode_str):
-        return 'hfst-proc ' in mode_str
-
-    def parseModeFile(self, mode_path):
-        mode_str = open(mode_path, 'r').read().strip()
-        if mode_str:
-            if self.nonFlushable(mode_str):
-                do_flush = False
-                modes_parentdir = os.path.dirname(os.path.dirname(mode_path))
-                mode_name = os.path.splitext(os.path.basename(mode_path))[0]
-                commands = [[
-                    'apertium',
-                    '-f', 'html-noent',
-                    # Get the _parent_ dir of the mode file:
-                    '-d', modes_parentdir,
-                    mode_name
-                ]]
-            else:
-                do_flush = True
-                commands = []
-                for cmd in mode_str.strip().split('|'):
-                    cmd = cmd.replace('$2', '').replace('$1', '-g')
-                    cmd = re.sub('^(\S*)', '\g<1> -z', cmd)
-                    commands.append(cmd.split())
-            return do_flush, commands
-        else:
-            logging.error('Could not parse mode file %s' % (mode_path,))
-            self.send_error(500)
-
     def runPipeline(self, l1, l2):
         if (l1, l2) not in self.pipelines:
             logging.info('%s-%s not in pipelines of this process, starting …' % (l1, l2))
             mode_path = self.pairs['%s-%s' % (l1, l2)]
-            do_flush, commands = self.parseModeFile(mode_path)
+            try:
+                do_flush, commands = parseModeFile(mode_path)
+            except Exception:
+                self.send_error(500)
+                return
+
             procs = []
             for cmd in commands:
                 if len(procs)>0:
@@ -262,12 +238,10 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
             scaleMtLog(self.get_status(), after-before, tInfo, key, len(toTranslate))
 
     def _worker (self, toTranslate, l1, l2):
-
         before = self.logBeforeTranslation()
 
         self.runPipeline(l1, l2)
         self.res = translate(toTranslate, self.pipeline_locks[(l1, l2)], self.pipelines[(l1, l2)])
-
         self.logAfterTranslation(before, toTranslate)
 
         _, _, do_flush = self.pipelines[(l1, l2)]
@@ -276,8 +250,8 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
 
     @tornado.web.asynchronous
     def get(self):
-
         toTranslate = self.get_argument('q')
+        markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
 
         try:
             l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
@@ -292,8 +266,6 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                 scaleMtLog(400, after-before, tInfo, key, len(toTranslate))
 
             return
-
-        markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
 
         def handleTranslation():
             if self.get_status() != 200:
@@ -313,7 +285,6 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                 return
             logging.error('handleTranslation reached a thought-to-be-unreachable line')
             self.send_error(500)
-
 
         if '%s-%s' % (l1, l2) in self.pairs:
             self.start_worker(handleTranslation, toTranslate, l1, l2)
