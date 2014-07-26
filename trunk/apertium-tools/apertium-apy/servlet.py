@@ -109,10 +109,16 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def set_default_headers(self):
         self.set_header('Access-Control-Allow-Origin', '*')
+        self.set_header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+        self.set_header('Access-Control-Allow-Headers', 'accept, cache-control, origin, x-requested-with, x-file-name, content-type')
 
     @tornado.web.asynchronous
     def post(self):
         self.get()
+
+    def options(self):
+        self.set_status(204)
+        self.finish()
 
 class ListHandler(BaseHandler):
     @tornado.web.asynchronous
@@ -321,6 +327,16 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                 key = getKey(tInfo.key)
                 after = datetime.now()
                 scaleMtLog(400, after-before, tInfo, key, len(toTranslate))
+
+class TranslateDocHandler(BaseHandler):
+    @tornado.web.asynchronous
+    @tornado.gen.coroutine
+    def get(self):
+        try:
+            l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
+        except ValueError:
+            self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
+        self.sendResponse([])
 
 class AnalyzeHandler(BaseHandler):
     @tornado.web.asynchronous
@@ -629,6 +645,7 @@ if __name__ == '__main__':
         (r'/listPairs', ListHandler),
         (r'/stats', StatsHandler),
         (r'/translate', TranslateHandler),
+        (r'/translateDoc', TranslateDocHandler),
         (r'/analy[sz]e', AnalyzeHandler),
         (r'/generate', GenerateHandler),
         (r'/listLanguageNames', ListLanguageNamesHandler),
