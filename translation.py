@@ -1,7 +1,33 @@
 import re, threading
 from subprocess import Popen, PIPE
 import logging
-        
+
+def parseModeFile(mode_path):
+    mode_str = open(mode_path, 'r').read().strip()
+    if mode_str:
+        if 'hfst-proc ' in mode_str:
+            do_flush = False
+            modes_parentdir = os.path.dirname(os.path.dirname(mode_path))
+            mode_name = os.path.splitext(os.path.basename(mode_path))[0]
+            commands = [[
+                'apertium',
+                '-f', 'html-noent',
+                # Get the _parent_ dir of the mode file:
+                '-d', modes_parentdir,
+                mode_name
+            ]]
+        else:
+            do_flush = True
+            commands = []
+            for cmd in mode_str.strip().split('|'):
+                cmd = cmd.replace('$2', '').replace('$1', '-g')
+                cmd = re.sub('^(\S*)', '\g<1> -z', cmd)
+                commands.append(cmd.split())
+        return do_flush, commands
+    else:
+        logging.error('Could not parse mode file %s' % mode_path)
+        raise Exception('Could not parse mode file %s' % mode_path)
+
 def translateNULFlush(toTranslate, translock, pipeline):
     with translock:
         proc_in, proc_out, do_flush = pipeline
@@ -24,7 +50,7 @@ def translateNULFlush(toTranslate, translock, pipeline):
         proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
         proc_reformat.stdin.write(b"".join(output))
         return proc_reformat.communicate()[0].decode('utf-8')
-            
+
 def hardbreakFn():
     """If others are waiting on us, we send short requests, otherwise we
     try to minimise the number of requests, but without
@@ -42,7 +68,7 @@ def hardbreakFn():
     else:
         hardbreak=5000
     return hardbreak
-    
+
 def translateSplitting(toTranslate, translock, pipeline):
     """Splitting it up a bit ensures we don't fill up FIFO buffers (leads
     to processes hanging on read/write)."""
@@ -84,7 +110,6 @@ def translateWithoutFlush(toTranslate, translock, pipeline):
     proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
     proc_reformat.stdin.write(b"".join(output))
     return proc_reformat.communicate()[0].decode('utf-8')
-
 
 def translateSimple(toTranslate, translock, pipeline):
     with translock:
