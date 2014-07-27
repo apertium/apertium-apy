@@ -334,6 +334,9 @@ class TranslateDocHandler(TranslateHandler):
                     mtype = fileType.split(':')[1].split(';')[0].strip()
 
                     if mtype in allowedMimeTypes:
+                        self.request.headers['Content-Type'] = 'application/octet-stream'
+                        self.request.headers['Content-Disposition'] = 'attachment'
+
                         self.write(translateDoc(tempFile, allowedMimeTypes[mtype], self.pairs['%s-%s' % (l1, l2)]))
                         self.finish()
                     else:
