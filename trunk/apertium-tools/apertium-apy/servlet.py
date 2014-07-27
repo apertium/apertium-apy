@@ -3,7 +3,7 @@
 # coding=utf-8
 # -*- encoding: utf-8 -*-
 
-import sys, threading, os, re, ssl, argparse, logging, time, signal
+import sys, threading, os, re, ssl, argparse, logging, time, signal, base64
 from lxml import etree
 from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
@@ -21,7 +21,7 @@ except ImportError: #2.1
 
 from modeSearch import searchPath
 from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, noteUnknownToken, scaleMtLog, TranslationInfo
-from translation import translate, parseModeFile
+from translation import translate, translateDoc, parseModeFile
 from keys import getKey
 
 try:
@@ -299,15 +299,43 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                 after = datetime.now()
                 scaleMtLog(400, after-before, tInfo, key, len(toTranslate))
 
-class TranslateDocHandler(BaseHandler):
+class TranslateDocHandler(TranslateHandler):
     @tornado.web.asynchronous
-    @tornado.gen.coroutine
     def get(self):
         try:
             l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
         except ValueError:
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
-        self.sendResponse([])
+
+        allowedMimeTypes = {
+            'text/plain': 'txt',
+            'text/html': 'html-noent',
+            'text/rtf': 'rtf',
+            'application/rtf': 'rtf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+            # 'application/msword', 'application/vnd.ms-powerpoint', 'application/vnd.ms-excel'
+            'application/vnd.oasis.opendocument.text': 'odt',
+            'application/x-latex': 'latex',
+            'application/x-tex': 'latex'
+        };
+
+        mtype = self.get_argument('mtype')
+
+        if mtype in allowedMimeTypes:
+            if '%s-%s' % (l1, l2) in self.pairs:
+                # TODO: Enforce file size requirement
+                body = self.request.files['file'][0]['body']
+                if len(body) > 2E6:
+                    self.send_error(413, explanation='That file is too large')
+                else:
+                    self.write(translateDoc(self.request.files['file'][0]['body'], allowedMimeTypes[mtype], self.pairs['%s-%s' % (l1, l2)]))
+                    self.finish()
+            else:
+                self.send_error(400, explanation='That pair is not installed')
+        else:
+            self.send_error(400, explanation='Invalid file type %s' % mtype)
 
 class AnalyzeHandler(BaseHandler):
     @tornado.web.asynchronous
