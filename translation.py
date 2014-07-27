@@ -119,11 +119,8 @@ def translateSimple(toTranslate, translock, pipeline):
         translated = proc_in.communicate(input=bytes(toTranslate, 'utf-8'))[0]
         return translated.decode('utf-8')
 
-def translateDoc(toTranslate, format, modeFile):
-    tmpFile = tempfile.TemporaryFile()
-    tmpFile.write(toTranslate)
-    tmpFile.seek(0)
-    return Popen(['apertium', '-f %s' % format, os.path.split(modeFile)[1].split('.')[0]], stdin=tmpFile, stdout=PIPE, cwd=os.path.split(modeFile)[0]).communicate()[0]
+def translateDoc(fileToTranslate, format, modeFile):
+    return Popen(['apertium', '-f %s' % format, os.path.split(modeFile)[1].split('.')[0]], stdin=fileToTranslate, stdout=PIPE, cwd=os.path.split(modeFile)[0]).communicate()[0]
 
 def translate(toTranslate, translock, pipeline):
     _, _, do_flush = pipeline
