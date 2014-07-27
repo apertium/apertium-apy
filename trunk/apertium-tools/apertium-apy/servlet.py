@@ -3,7 +3,7 @@
 # coding=utf-8
 # -*- encoding: utf-8 -*-
 
-import sys, threading, os, re, ssl, argparse, logging, time, signal, base64
+import sys, threading, os, re, ssl, argparse, logging, time, signal, tempfile
 from lxml import etree
 from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
@@ -321,19 +321,23 @@ class TranslateDocHandler(TranslateHandler):
             'application/x-tex': 'latex'
         };
 
-        mtype = self.get_argument('mtype')
-
-        if mtype in allowedMimeTypes:
-            if '%s-%s' % (l1, l2) in self.pairs:
-                # TODO: Enforce file size requirement
-                body = self.request.files['file'][0]['body']
-                if len(body) > 2E6:
-                    self.send_error(413, explanation='That file is too large')
-                else:
-                    self.write(translateDoc(self.request.files['file'][0]['body'], allowedMimeTypes[mtype], self.pairs['%s-%s' % (l1, l2)]))
-                    self.finish()
+        if '%s-%s' % (l1, l2) in self.pairs:
+            body = self.request.files['file'][0]['body']
+            if len(body) > 32E6:
+                self.send_error(413, explanation='That file is too large')
             else:
-                self.send_error(400, explanation='That pair is not installed')
+                with tempfile.NamedTemporaryFile() as tempFile:
+                    tempFile.write(body)
+                    tempFile.seek(0)
+
+                    fileType = Popen(['file', '-i', tempFile.name], stdout=PIPE).communicate()[0].decode('utf-8')
+                    mtype = fileType.split(':')[1].split(';')[0].strip()
+
+                    if mtype in allowedMimeTypes:
+                        self.write(translateDoc(tempFile, allowedMimeTypes[mtype], self.pairs['%s-%s' % (l1, l2)]))
+                        self.finish()
+                    else:
+                       self.send_error(400, explanation='That pair is not installed')
         else:
             self.send_error(400, explanation='Invalid file type %s' % mtype)
 
