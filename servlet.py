@@ -340,9 +340,9 @@ class TranslateDocHandler(TranslateHandler):
                         self.write(translateDoc(tempFile, allowedMimeTypes[mtype], self.pairs['%s-%s' % (l1, l2)]))
                         self.finish()
                     else:
-                       self.send_error(400, explanation='That pair is not installed')
+                        self.send_error(400, explanation='Invalid file type %s' % mtype)
         else:
-            self.send_error(400, explanation='Invalid file type %s' % mtype)
+            self.send_error(400, explanation='That pair is not installed')
 
 class AnalyzeHandler(BaseHandler):
     @tornado.web.asynchronous
