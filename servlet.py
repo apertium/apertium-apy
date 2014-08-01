@@ -331,7 +331,7 @@ class TranslateDocHandler(TranslateHandler):
                     tempFile.seek(0)
 
                     fileType = Popen(['file', '-i', '-b', tempFile.name], stdout=PIPE).communicate()[0].decode('utf-8')
-                    mtype = (fileType.split(';')[0] if ';' in fileType else fileType).split(' ')[0]
+                    mtype = (fileType.split(';')[0] if ';' in fileType else fileType).split(' ')[0].strip()
 
                     if mtype in allowedMimeTypes:
                         self.request.headers['Content-Type'] = 'application/octet-stream'

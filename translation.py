@@ -120,7 +120,7 @@ def translateSimple(toTranslate, translock, pipeline):
         return translated.decode('utf-8')
 
 def translateDoc(fileToTranslate, format, modeFile):
-    return Popen(['apertium', '-f %s' % format, os.path.split(modeFile)[1].split('.')[0]], stdin=fileToTranslate, stdout=PIPE, cwd=os.path.split(modeFile)[0]).communicate()[0]
+    return Popen(['apertium', '-f %s' % format, '-d %s' % os.path.dirname(os.path.dirname(modeFile)), os.path.splitext(os.path.basename(modeFile))[0]], stdin=fileToTranslate, stdout=PIPE).communicate()[0]
 
 def translate(toTranslate, translock, pipeline):
     _, _, do_flush = pipeline
