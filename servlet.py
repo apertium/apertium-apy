@@ -300,6 +300,22 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                 scaleMtLog(400, after-before, tInfo, key, len(toTranslate))
 
 class TranslateDocHandler(TranslateHandler):
+    mimeTypeCommand = None
+
+    def getMimeType(self, f):
+        commands = {
+            'mimetype': lambda x: Popen(['mimetype', '-b', x], stdout=PIPE).communicate()[0].strip(),
+            'xdg-mime': lambda x: Popen(['xdg-mime', 'query', 'filetype', x], stdout=PIPE).communicate()[0].strip(),
+            'file': lambda x: Popen(['file', '--mime-type', '-b', x], stdout=PIPE).communicate()[0].strip()
+        }
+
+        if not TranslateDocHandler.mimeTypeCommand:
+            for command in ['mimetype', 'xdg-mime', 'file']:
+                if Popen(['which', command], stdout=PIPE).communicate()[0]:
+                    TranslateDocHandler.mimeTypeCommand = command
+
+        return commands[TranslateDocHandler.mimeTypeCommand](f)
+
     @tornado.web.asynchronous
     def get(self):
         try:
@@ -330,9 +346,7 @@ class TranslateDocHandler(TranslateHandler):
                     tempFile.write(body)
                     tempFile.seek(0)
 
-                    fileType = Popen(['file', '-i', '-b', tempFile.name], stdout=PIPE).communicate()[0].decode('utf-8')
-                    mtype = (fileType.split(';')[0] if ';' in fileType else fileType).split(' ')[0].strip()
-
+                    mtype = self.getMimeType(tempFile.name).decode('utf-8')
                     if mtype in allowedMimeTypes:
                         self.request.headers['Content-Type'] = 'application/octet-stream'
                         self.request.headers['Content-Disposition'] = 'attachment'
@@ -678,3 +692,4 @@ if __name__ == '__main__':
     http_server.bind(args.port)
     http_server.start(args.num_processes)
     tornado.ioloop.IOLoop.instance().start()
+
