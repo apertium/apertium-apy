@@ -313,6 +313,7 @@ class TranslateDocHandler(TranslateHandler):
             for command in ['mimetype', 'xdg-mime', 'file']:
                 if Popen(['which', command], stdout=PIPE).communicate()[0]:
                     TranslateDocHandler.mimeTypeCommand = command
+                    break
 
         return commands[TranslateDocHandler.mimeTypeCommand](f)
 
@@ -692,4 +693,3 @@ if __name__ == '__main__':
     http_server.bind(args.port)
     http_server.start(args.num_processes)
     tornado.ioloop.IOLoop.instance().start()
-
