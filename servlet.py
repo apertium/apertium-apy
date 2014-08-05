@@ -3,7 +3,7 @@
 # coding=utf-8
 # -*- encoding: utf-8 -*-
 
-import sys, threading, os, re, ssl, argparse, logging, time, signal, tempfile
+import sys, threading, os, re, ssl, argparse, logging, time, signal, tempfile, zipfile
 from lxml import etree
 from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
@@ -309,13 +309,26 @@ class TranslateDocHandler(TranslateHandler):
             'file': lambda x: Popen(['file', '--mime-type', '-b', x], stdout=PIPE).communicate()[0].strip()
         }
 
-        if not TranslateDocHandler.mimeTypeCommand:
+        typeFiles = {
+            'word/document.xml': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'ppt/presentation.xml': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'xl/workbook.xml': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }
+
+        if not self.mimeTypeCommand:
             for command in ['mimetype', 'xdg-mime', 'file']:
                 if Popen(['which', command], stdout=PIPE).communicate()[0]:
                     TranslateDocHandler.mimeTypeCommand = command
                     break
 
-        return commands[TranslateDocHandler.mimeTypeCommand](f)
+        mimeType = commands[self.mimeTypeCommand](f).decode('utf-8')
+        if mimeType == 'application/zip':
+            with zipfile.ZipFile(f) as zf:
+                for typeFile in typeFiles:
+                    if typeFile in zf.namelist():
+                        return typeFiles[typeFile]
+        else:
+            return mimeType
 
     @tornado.web.asynchronous
     def get(self):
@@ -347,7 +360,7 @@ class TranslateDocHandler(TranslateHandler):
                     tempFile.write(body)
                     tempFile.seek(0)
 
-                    mtype = self.getMimeType(tempFile.name).decode('utf-8')
+                    mtype = self.getMimeType(tempFile.name)
                     if mtype in allowedMimeTypes:
                         self.request.headers['Content-Type'] = 'application/octet-stream'
                         self.request.headers['Content-Disposition'] = 'attachment'
