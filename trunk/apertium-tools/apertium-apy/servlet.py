@@ -327,6 +327,12 @@ class TranslateDocHandler(TranslateHandler):
                 for typeFile in typeFiles:
                     if typeFile in zf.namelist():
                         return typeFiles[typeFile]
+
+                if 'mimetype' in zf.namelist():
+                    return zf.read('mimetype').decode('utf-8')
+
+                return mimeType
+
         else:
             return mimeType
 
@@ -349,7 +355,7 @@ class TranslateDocHandler(TranslateHandler):
             'application/vnd.oasis.opendocument.text': 'odt',
             'application/x-latex': 'latex',
             'application/x-tex': 'latex'
-        };
+        }
 
         if '%s-%s' % (l1, l2) in self.pairs:
             body = self.request.files['file'][0]['body']
