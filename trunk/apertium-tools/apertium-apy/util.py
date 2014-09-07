@@ -201,5 +201,5 @@ class TranslationInfo:
     def __init__(self, handler):
         self.langpair = handler.get_argument('langpair')
         self.key = handler.get_argument('key', default = 'null')
-        self.ip = handler.request.remote_ip
+        self.ip = handler.request.headers.get('X-Real-IP', handler.request.remote_ip)
         self.referer = handler.request.headers.get('Referer', 'null')
