@@ -173,7 +173,7 @@ class ThreadableMixin:
         except:
             logging.error('_worker problem ', exc_info=True)
             self.set_status(500)
-        tornado.ioloop.IOLoop.instance().add_callback(self.async_callback(result_handler))
+        tornado.ioloop.IOLoop.instance().add_callback(result_handler)
 
 class TranslateHandler(BaseHandler, ThreadableMixin):
     def notePairUsage(self, pair):
