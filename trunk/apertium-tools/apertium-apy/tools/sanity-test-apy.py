@@ -149,6 +149,8 @@ def test_all(host):
         dot()
     print("\n%d of %d tests passed" % (good, total))
     print("\nNow run the script again to see which pipelines got clogged.\n")
+    if good != total:
+        exit(1)
 
 
 if __name__ == "__main__":
