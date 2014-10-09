@@ -4,4 +4,4 @@ langNames.db: tools/apertiumlangs.sql
 	<$< sqlite3 $@
 
 clean:
-	rm langNames.db
+	rm -f langNames.db
