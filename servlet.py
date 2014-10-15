@@ -20,7 +20,7 @@ except ImportError: #2.1
     from tornado.options import enable_pretty_logging
 
 from modeSearch import searchPath
-from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, noteUnknownToken, scaleMtLog, TranslationInfo
+from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, noteUnknownToken, scaleMtLog, TranslationInfo, closeDb, flushUnknownWords, inMemoryUnknownToken
 from translation import translate, translateDoc, parseModeFile
 from keys import getKey
 
@@ -39,10 +39,14 @@ def run_async(func):
     return async_func
 
 def sig_handler(sig, frame):
+    global missingFreqsDb
     if 'children' in frame.f_locals:
         for child in frame.f_locals['children']:
             os.kill(child, signal.SIGTERM)
-    # else: we are one of the children
+        flushUnknownWords(missingFreqsDb)
+    else: # we are one of the children
+        flushUnknownWords(missingFreqsDb)
+    closeDb()
     logging.warning('Caught signal: %s', sig)
     exit()
 
@@ -55,6 +59,9 @@ class BaseHandler(tornado.web.RequestHandler):
     callback = None
     timeout = None
     scaleMtLogs = False
+    inMemoryUnknown = False
+    inMemoryLimit = -1
+
     stats = {
         'useCount': {},
         'lastUsage': {},
@@ -187,6 +194,9 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
 
     def noteUnknownTokens(self, pair, text):
         for token in re.findall(self.unknownMarkRE, text):
+            if self.inMemoryUnknown:
+                inMemoryUnknownToken(token, pair, self.missingFreqs, self.inMemoryLimit)
+            else:
             noteUnknownToken(token, pair, self.missingFreqs)
 
     def shutdownPair(self, pair):
@@ -609,13 +619,21 @@ class GetLocaleHandler(BaseHandler):
         else:
             self.send_error(400, explanation='Accept-Language missing from request headers')
 
-def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeout, max_idle_secs, verbosity=0, scaleMtLogs=False):
+missingFreqsDb = ''
+
+def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeout, max_idle_secs, verbosity=0, scaleMtLogs=False, memory=0):
+
+    global missingFreqsDb
+    missingFreqsDb= missingFreqs
+
     Handler = BaseHandler
     Handler.langNames = langNames
     Handler.missingFreqs = missingFreqs
     Handler.timeout = timeout
     Handler.max_idle_secs = max_idle_secs
     Handler.scaleMtLogs = scaleMtLogs
+    Handler.inMemoryUnknown = True if memory > 0 else False
+    Handler.inMemoryLimit = memory
 
     modes = searchPath(pairs_path, verbosity=verbosity)
     if nonpairs_path:
@@ -651,6 +669,7 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--max-idle-secs', help='shut down pipelines it have not been used in this many seconds', type=int, default=0)
     parser.add_argument('-v', '--verbosity', help='logging verbosity', type=int, default=0)
     parser.add_argument('-S', '--scalemt-logs', help='generates ScaleMT-like logs; use with --log-path; disables', action='store_true')
+    parser.add_argument('-M', '--unknown-memory-limit', help="keeps unknown words in memory until a limit is reached", type=int, default=0)
     args = parser.parse_args()
 
     if args.daemon:
@@ -678,7 +697,7 @@ if __name__ == '__main__':
     if not cld2:
         logging.warning('Unable to import CLD2, continuing using naive method of language detection')
 
-    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout, args.max_idle_secs, args.verbosity, args.scalemt_logs)
+    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout, args.max_idle_secs, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
 
     application = tornado.web.Application([
         (r'/list', ListHandler),
