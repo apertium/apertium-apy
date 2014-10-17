@@ -197,7 +197,7 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
             if self.inMemoryUnknown:
                 inMemoryUnknownToken(token, pair, self.missingFreqs, self.inMemoryLimit)
             else:
-            noteUnknownToken(token, pair, self.missingFreqs)
+                noteUnknownToken(token, pair, self.missingFreqs)
 
     def shutdownPair(self, pair):
         if self.pipelines[pair][0].poll():
