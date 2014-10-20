@@ -9,8 +9,11 @@ import sys
 import html.parser
 unescape = html.parser.HTMLParser().unescape
 
-TIMEOUT=10
+TIMEOUT=15
 tests = {
+    "hbs-eng": ("jeziku", "language"),
+    "hin-urd": ("लेख हैं", "تحریر ہیں"),
+    "urd-hin": ("تحریر ہیں", "लेख हैं"),
     "afr-nld": ("ek", "ik"),
     "ara-mlt": ("و", "u"),
     "arg-spa": ("e", "es"),
