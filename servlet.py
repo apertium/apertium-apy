@@ -40,13 +40,14 @@ def run_async(func):
 
 def sig_handler(sig, frame):
     global missingFreqsDb
-    if 'children' in frame.f_locals:
-        for child in frame.f_locals['children']:
-            os.kill(child, signal.SIGTERM)
-        flushUnknownWords(missingFreqsDb)
-    else: # we are one of the children
-        flushUnknownWords(missingFreqsDb)
-    closeDb()
+    if missingFreqsDb:
+        if 'children' in frame.f_locals:
+            for child in frame.f_locals['children']:
+                os.kill(child, signal.SIGTERM)
+            flushUnknownWords(missingFreqsDb)
+        else: # we are one of the children
+            flushUnknownWords(missingFreqsDb)
+        closeDb()
     logging.warning('Caught signal: %s', sig)
     exit()
 
@@ -193,11 +194,12 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
         return re.sub(self.unknownMarkRE, r'\1', text)
 
     def noteUnknownTokens(self, pair, text):
-        for token in re.findall(self.unknownMarkRE, text):
-            if self.inMemoryUnknown:
-                inMemoryUnknownToken(token, pair, self.missingFreqs, self.inMemoryLimit)
-            else:
-                noteUnknownToken(token, pair, self.missingFreqs)
+        if self.missingFreqs:
+            for token in re.findall(self.unknownMarkRE, text):
+                if self.inMemoryUnknown:
+                    inMemoryUnknownToken(token, pair, self.missingFreqs, self.inMemoryLimit)
+                else:
+                    noteUnknownToken(token, pair, self.missingFreqs)
 
     def shutdownPair(self, pair):
         if self.pipelines[pair][0].poll():
@@ -658,7 +660,7 @@ if __name__ == '__main__':
     parser.add_argument('pairs_path', help='path to Apertium installed pairs (all modes files in this path are included)')
     parser.add_argument('-s', '--nonpairs-path', help='path to Apertium SVN (only non-translator debug modes are included from this path)')
     parser.add_argument('-l', '--lang-names', help='path to localised language names sqlite database (default = langNames.db)', default='langNames.db')
-    parser.add_argument('-f', '--missing-freqs', help='path to missing frequency sqlite database (default = missingFreqs.db)', default='missingFreqs.db')
+    parser.add_argument('-f', '--missing-freqs', help='path to missing frequency sqlite database (default = None)', default=None)
     parser.add_argument('-p', '--port', help='port to run server on (default = 2737)', type=int, default=2737)
     parser.add_argument('-c', '--ssl-cert', help='path to SSL Certificate', default=None)
     parser.add_argument('-k', '--ssl-key', help='path to SSL Key File', default=None)
