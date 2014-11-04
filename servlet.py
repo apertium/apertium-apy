@@ -45,9 +45,9 @@ def sig_handler(sig, frame):
             for child in frame.f_locals['children']:
                 os.kill(child, signal.SIGTERM)
             flushUnknownWords(missingFreqsDb)
+            closeDb()
         else: # we are one of the children
             flushUnknownWords(missingFreqsDb)
-        closeDb()
     logging.warning('Caught signal: %s', sig)
     exit()
 
