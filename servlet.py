@@ -45,10 +45,10 @@ def sig_handler(sig, frame):
             for child in frame.f_locals['children']:
                 os.kill(child, signal.SIGTERM)
             flushUnknownWords(missingFreqsDb)
-            closeDb()
         else: # we are one of the children
             flushUnknownWords(missingFreqsDb)
     logging.warning('Caught signal: %s', sig)
+    closeDb()
     exit()
 
 class BaseHandler(tornado.web.RequestHandler):
