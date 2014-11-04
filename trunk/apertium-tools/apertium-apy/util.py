@@ -131,6 +131,7 @@ def closeDb():
         return
     logging.warning('closing connection')
     missingFreqsDBConn.close()
+    missingFreqsDBConn = False
 
 def apertium(input, dir, mode, formatting=None):
     p1 = Popen(['echo', input], stdout=PIPE)
