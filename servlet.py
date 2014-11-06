@@ -182,6 +182,11 @@ class StatsHandler(BaseHandler):
             'responseStatus': 200
         })
 
+class RootHandler(BaseHandler):
+    @tornado.web.asynchronous
+    def get(self):
+        self.redirect("http://wiki.apertium.org/wiki/Apertium-apy")
+
 class TranslateHandler(BaseHandler):
     def notePairUsage(self, pair):
         self.stats['useCount'][pair] = 1 + self.stats['useCount'].get(pair, 0)
@@ -684,6 +689,7 @@ if __name__ == '__main__':
     setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout, args.max_idle_secs, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
 
     application = tornado.web.Application([
+        (r'/', RootHandler),
         (r'/list', ListHandler),
         (r'/listPairs', ListHandler),
         (r'/stats', StatsHandler),
