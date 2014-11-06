@@ -3,14 +3,14 @@
 # coding=utf-8
 # -*- encoding: utf-8 -*-
 
-import sys, threading, os, re, ssl, argparse, logging, time, signal, tempfile, zipfile
+import sys, os, re, ssl, argparse, logging, time, signal, tempfile, zipfile
 from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
 from functools import wraps
 from threading import Thread
 from datetime import datetime
 
-import tornado, tornado.web, tornado.httpserver
+import tornado, tornado.web, tornado.httpserver, tornado.process, tornado.iostream
 from tornado import escape, gen
 from tornado.escape import utf8
 try: #3.1
@@ -18,9 +18,11 @@ try: #3.1
 except ImportError: #2.1
     from tornado.options import enable_pretty_logging
 
+import toro
+
 from modeSearch import searchPath
 from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, noteUnknownToken, scaleMtLog, TranslationInfo, closeDb, flushUnknownWords, inMemoryUnknownToken
-from translation import translate, translateDoc, parseModeFile
+import translation
 from keys import getKey
 
 try:
@@ -28,7 +30,7 @@ try:
 except:
     cld2 = None
 
-def run_async(func):
+def run_async_thread(func):
     @wraps(func)
     def async_func(*args, **kwargs):
         func_hl = Thread(target = func, args = args, kwargs = kwargs)
@@ -55,28 +57,50 @@ class BaseHandler(tornado.web.RequestHandler):
     analyzers = {}
     generators = {}
     taggers = {}
-    pipelines = {} # (l1, l2): (inpipe, outpipe, do_flush)
+    pipelines = {} # (l1, l2): (inpipe, outpipe), only contains flushing pairs!
     callback = None
     timeout = None
     scaleMtLogs = False
     inMemoryUnknown = False
     inMemoryLimit = -1
+    verbosity = 0
 
     stats = {
         'useCount': {},
         'lastUsage': {},
+        'vmsize': 0,
     }
 
-    # The lock is needed so we don't let two threads write
-    # simultaneously to a pipeline; then the first thread to read
-    # might read translations of text put there by the second
-    # thread …
-    pipeline_locks = {} # (l1, l2): threading.RLock() for (l1, l2) in pairs
+    # The lock is needed so we don't let two coroutines write
+    # simultaneously to a pipeline; then the first call to read might
+    # read translations of text put there by the second call …
+    pipeline_locks = {} # (l1, l2): lock for (l1, l2) in pairs
+    pipeline_cmds = {} # (l1, l2): (do_flush, commands)
 
     def initialize(self):
         self.callback = self.get_argument('callback', default=None)
 
+    def log_vmsize(self):
+        if self.verbosity < 1:
+            return
+        scale = {'kB': 1024, 'mB': 1048576,
+                 'KB': 1024, 'MB': 1048576}
+        try:
+            for line in open('/proc/%d/status' % os.getpid()):
+                if line.startswith('VmSize:'):
+                    _, num, unit = line.split()
+                    break
+            vmsize = int(num) * scale[unit]
+            if vmsize > self.stats['vmsize']:
+                logging.warning("VmSize of %s from %d to %d" % (os.getpid(), self.stats['vmsize'], vmsize))
+                self.stats['vmsize'] = vmsize
+        except:
+            # don't let a stupid logging function mess us up
+            pass
+
+
     def sendResponse(self, data):
+        self.log_vmsize()
         if isinstance(data, dict) or isinstance(data, list):
             data = escape.json_encode(data)
             self.set_header('Content-Type', 'application/json; charset=UTF-8')
@@ -158,39 +182,19 @@ class StatsHandler(BaseHandler):
             'responseStatus': 200
         })
 
-class ThreadableMixin:
-    '''To use:
-
-    1) inherit this class
-    2) define a self._worker that sets self.res to whatever the result value should be.
-    3) define a self._handler that checks for hasattr(self, 'res')
-    4) start the worker with self.start_worker(self._handler, arg1, arg2, …, argn)
-       where arg1…argn are passed on to self._worker
-
-    '''
-    def start_worker(self, *args):
-        # TODO: max threads, using https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor
-        threading.Thread(target=self.run_worker, args=args).start()
-
-    def run_worker(self, result_handler, *worker_args):
-        try:
-            self._worker(*worker_args)
-        except tornado.web.HTTPError:
-            self.set_status(408) # TODO e.status_code
-        except:
-            logging.error('_worker problem ', exc_info=True)
-            self.set_status(500)
-        tornado.ioloop.IOLoop.instance().add_callback(result_handler)
-
-class TranslateHandler(BaseHandler, ThreadableMixin):
+class TranslateHandler(BaseHandler):
     def notePairUsage(self, pair):
         self.stats['useCount'][pair] = 1 + self.stats['useCount'].get(pair, 0)
         if self.max_idle_secs:
             self.stats['lastUsage'][pair] = time.time()
 
     unknownMarkRE = re.compile(r'\*([^.,;:\t\* ]+)')
-    def stripUnknownMarks(self, text):
-        return re.sub(self.unknownMarkRE, r'\1', text)
+    def maybeStripMarks(self, markUnknown, l1, l2, translated):
+        self.noteUnknownTokens("%s-%s" % (l1, l2), translated)
+        if markUnknown:
+            return translated
+        else:
+            return re.sub(self.unknownMarkRE, r'\1', translated)
 
     def noteUnknownTokens(self, pair, text):
         if self.missingFreqs:
@@ -201,40 +205,38 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
                     noteUnknownToken(token, pair, self.missingFreqs)
 
     def shutdownPair(self, pair):
-        if self.pipelines[pair][0].poll():
-            # Killing the first one should bring down the rest:
-            self.pipelines[pair][0].kill()
+        logging.info("shutting down")
+        self.pipelines[pair][0].stdin.close()
+        self.pipelines[pair][0].stdout.close()
         self.pipelines.pop(pair)
-        self.pipeline_locks.pop(pair)
 
     def cleanPairs(self):
-        if not self.max_idle_secs:
-            return
-        for pair, lastUsage in self.stats['lastUsage'].items():
-            if time.time() - lastUsage > self.max_idle_secs and pair in self.pipelines:
-                logging.info('Shutting down pair %s-%s since it has not been used in %d seconds' % (pair[0], pair[1], self.max_idle_secs))
-                self.shutdownPair(pair)
+        if self.max_idle_secs:
+            for pair, lastUsage in self.stats['lastUsage'].items():
+                if pair in self.pipelines and time.time() - lastUsage > self.max_idle_secs:
+                    logging.info('Shutting down pair %s-%s since it has not been used in %d seconds' % (
+                        pair[0], pair[1], self.max_idle_secs))
+                    self.shutdownPair(pair)
 
-    def runPipeline(self, l1, l2):
+    def getPipeLock(self, l1, l2):
+        if (l1, l2) not in self.pipeline_locks:
+            self.pipeline_locks[(l1, l2)] = toro.Lock()
+        return self.pipeline_locks[(l1, l2)]
+
+    def getPipeCmds(self, l1, l2):
+        if (l1, l2) not in self.pipeline_cmds:
+            mode_path = self.pairs['%s-%s' % (l1, l2)]
+            self.pipeline_cmds[(l1, l2)] = translation.parseModeFile(mode_path)
+        return self.pipeline_cmds[(l1, l2)]
+
+    def getPipeline(self, l1, l2):
+        do_flush, commands = self.getPipeCmds(l1, l2)
+        if not do_flush:
+            return None
         if (l1, l2) not in self.pipelines:
             logging.info('%s-%s not in pipelines of this process, starting …' % (l1, l2))
-            mode_path = self.pairs['%s-%s' % (l1, l2)]
-            try:
-                do_flush, commands = parseModeFile(mode_path)
-            except Exception:
-                self.send_error(500)
-                return
-
-            procs = []
-            for cmd in commands:
-                if len(procs)>0:
-                    newP = Popen(cmd, stdin=procs[-1].stdout, stdout=PIPE)
-                else:
-                    newP = Popen(cmd, stdin=PIPE, stdout=PIPE)
-                procs.append(newP)
-
-            self.pipeline_locks[(l1, l2)] = threading.RLock()
-            self.pipelines[(l1, l2)] = (procs[0], procs[-1], do_flush)
+            self.pipelines[(l1, l2)] = translation.startPipeline(commands)
+        return self.pipelines[(l1, l2)]
 
     def logBeforeTranslation(self):
         if self.scaleMtLogs:
@@ -248,18 +250,7 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
             key = getKey(tInfo.key)
             scaleMtLog(self.get_status(), after-before, tInfo, key, len(toTranslate))
 
-    def _worker (self, toTranslate, l1, l2):
-        before = self.logBeforeTranslation()
-
-        self.runPipeline(l1, l2)
-        self.res = translate(toTranslate, self.pipeline_locks[(l1, l2)], self.pipelines[(l1, l2)])
-        self.logAfterTranslation(before, toTranslate)
-
-        _, _, do_flush = self.pipelines[(l1, l2)]
-        if not do_flush:
-            self.shutdownPair((l1, l2))
-
-    @tornado.web.asynchronous
+    @gen.coroutine
     def get(self):
         toTranslate = self.get_argument('q')
         markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
@@ -268,37 +259,28 @@ class TranslateHandler(BaseHandler, ThreadableMixin):
             l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
         except ValueError:
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
-
             if self.scaleMtLogs:
                 before = datetime.now()
                 tInfo = TranslationInfo(self)
                 key = getKey(tInfo.key)
                 after = datetime.now()
                 scaleMtLog(400, after-before, tInfo, key, len(toTranslate))
-
             return
 
-        def handleTranslation():
-            if self.get_status() != 200:
-                self.send_error(self.get_status())
-                return
-            if hasattr(self, 'res'):
-                self.noteUnknownTokens('-'.join((l1, l2)), self.res)
-                self.res = self.res if markUnknown else self.stripUnknownMarks(self.res)
-                self.sendResponse({
-                    'responseData': {'translatedText': self.res},
-                   'responseDetails': None,
-                   'responseStatus': 200
-                })
-                return
-            if hasattr(self, 'redir'):
-                self.redirect(self.redir)
-                return
-            logging.error('handleTranslation reached a thought-to-be-unreachable line')
-            self.send_error(500)
-
         if '%s-%s' % (l1, l2) in self.pairs:
-            self.start_worker(handleTranslation, toTranslate, l1, l2)
+            before = self.logBeforeTranslation()
+            lock = self.getPipeLock(l1, l2)
+            _, commands = self.getPipeCmds(l1, l2)
+            pipeline = self.getPipeline(l1, l2)
+            translated = yield translation.translate(toTranslate, lock, pipeline, commands)
+            self.logAfterTranslation(before, toTranslate)
+            self.sendResponse({
+                'responseData': {
+                    'translatedText': self.maybeStripMarks(markUnknown, l1, l2, translated)
+                },
+                'responseDetails': None,
+                'responseStatus': 200
+            })
             self.notePairUsage((l1, l2))
             self.cleanPairs()
         else:
@@ -382,7 +364,7 @@ class TranslateDocHandler(TranslateHandler):
                         self.request.headers['Content-Type'] = 'application/octet-stream'
                         self.request.headers['Content-Disposition'] = 'attachment'
 
-                        self.write(translateDoc(tempFile, allowedMimeTypes[mtype], self.pairs['%s-%s' % (l1, l2)]))
+                        self.write(translation.translateDoc(tempFile, allowedMimeTypes[mtype], self.pairs['%s-%s' % (l1, l2)]))
                         self.finish()
                     else:
                         self.send_error(400, explanation='Invalid file type %s' % mtype)
@@ -408,7 +390,7 @@ class AnalyzeHandler(BaseHandler):
             result = pool.apply_async(apertium, [toAnalyze, self.analyzers[mode][0], self.analyzers[mode][1]])
             pool.close()
 
-            @run_async
+            @run_async_thread
             def worker(callback):
                 try:
                     callback(result.get(timeout=self.timeout))
@@ -443,7 +425,7 @@ class GenerateHandler(BaseHandler):
             result = pool.apply_async(apertium, ('[SEP]'.join(lexicalUnits), self.generators[mode][0], self.generators[mode][1]), {'formatting': 'none'})
             pool.close()
 
-            @run_async
+            @run_async_thread
             def worker(callback):
                 try:
                     callback(result.get(timeout=self.timeout))
@@ -539,7 +521,7 @@ class PerWordHandler(BaseHandler):
         result = pool.apply_async(processPerWord, (self.analyzers, self.taggers, lang, modes, query))
         pool.close()
 
-        @run_async
+        @run_async_thread
         def worker(callback):
             try:
                 callback(result.get(timeout=self.timeout))
@@ -571,7 +553,7 @@ class CoverageHandler(BaseHandler):
             result = pool.apply_async(getCoverage, [text, self.analyzers[mode][0], self.analyzers[mode][1]])
             pool.close()
 
-            @run_async
+            @run_async_thread
             def worker(callback):
                 try:
                     callback(result.get(timeout=self.timeout))
@@ -635,6 +617,7 @@ def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeo
     Handler.scaleMtLogs = scaleMtLogs
     Handler.inMemoryUnknown = True if memory > 0 else False
     Handler.inMemoryLimit = memory
+    Handler.verbosity = verbosity
 
     modes = searchPath(pairs_path, verbosity=verbosity)
     if nonpairs_path:
