@@ -4,7 +4,6 @@
 # -*- encoding: utf-8 -*-
 
 import sys, threading, os, re, ssl, argparse, logging, time, signal, tempfile, zipfile
-from lxml import etree
 from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
 from functools import wraps
