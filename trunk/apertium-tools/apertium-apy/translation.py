@@ -1,8 +1,9 @@
-import re, threading, os, tempfile
+import re, os, tempfile
 from subprocess import Popen, PIPE
 from tornado import gen
 import tornado.process, tornado.iostream
 import logging
+from select import PIPE_BUF
 
 def startPipeline(commands):
     procs = []
@@ -47,27 +48,67 @@ def parseModeFile(mode_path):
         logging.error('Could not parse mode file %s' % mode_path)
         raise Exception('Could not parse mode file %s' % mode_path)
 
-def splitForTranslation(toTranslate):
+
+def upToBytes(string, max_bytes):
+    """Find the unicode string length of the first up-to-max_bytes bytes.
+
+    At least it's much faster than going through the string adding
+    bytes of each char.
+
+    """
+    b = bytes(string,'utf-8')
+    l = max_bytes
+    while l:
+        try:
+            dec = b[:l].decode('utf-8')
+            return len(dec)
+        except UnicodeDecodeError:
+            l -= 1
+    return 0
+
+def hardbreakFn(string, rush_hour):
+    """If others are queueing up to translate at the same time, we send
+    short requests, otherwise we try to minimise the number of
+    requests, but without letting buffers fill up.
+
+    These numbers could probably be tweaked a lot.
+
+    """
+    if rush_hour:
+        return 1000
+    else:
+        return upToBytes(string, PIPE_BUF)
+
+def preferPunctBreak(string, last, hardbreak):
+    """We would prefer to split on a period or space seen before the
+    hardbreak, if we can.
+
+    """
+    softbreak = int(hardbreak/2)+1
+    softnext = last + softbreak
+    hardnext = last + hardbreak
+    dot = string.rfind(".", softnext, hardnext)
+    if dot>-1:
+        return dot
+    else:
+        space = string.rfind(" ", softnext, hardnext)
+        if space>-1:
+            return space
+        else:
+            return hardnext
+
+def splitForTranslation(toTranslate, rush_hour):
     """Splitting it up a bit ensures we don't fill up FIFO buffers (leads
     to processes hanging on read/write)."""
     allSplit = []	# [].append and join faster than str +=
     last=0
-    while last < len(toTranslate):
-        hardbreak = hardbreakFn()
-        # We would prefer to split on a period or space seen before
-        # the hardbreak, if we can:
-        softbreak = int(hardbreak*0.9)
-        dot = toTranslate.find(".", last+softbreak, last+hardbreak)
-        if dot>-1:
-            cur = dot
-        else:
-            space = toTranslate.find(" ", last+softbreak, last+hardbreak)
-            if space>-1:
-                cur = space
-            else:
-                cur = last+hardbreak
-        allSplit.append(toTranslate[last:cur])
-        last = cur
+    rounds=0
+    while last < len(toTranslate) and rounds<10:
+        rounds+=1
+        hardbreak = hardbreakFn(toTranslate[last:], rush_hour)
+        next = preferPunctBreak(toTranslate, last, hardbreak)
+        allSplit.append(toTranslate[last:next])
+        last = next
     return allSplit
 
 @gen.coroutine
@@ -90,24 +131,6 @@ def translateNULFlush(toTranslate, lock, pipeline):
         proc_reformat.stdin.write(output)
         return proc_reformat.communicate()[0].decode('utf-8')
 
-
-def hardbreakFn():
-    """If others are waiting on us, we send short requests, otherwise we
-    try to minimise the number of requests, but without
-    letting buffers fill up.
-
-    Unfortunately, if we've already started a long
-    request, the next one to come along will have to wait
-    one long request until they start getting shorter.
-
-    These numbers could probably be tweaked a lot.
-    """
-    if threading.active_count()>2:
-        hardbreak=1000
-        # TODO: would prefer "lock.waiting_count", but doesn't seem exist
-    else:
-        hardbreak=5000
-    return hardbreak
 
 def translateWithoutFlush(toTranslate, lock, pipeline):
     proc_deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
@@ -144,7 +167,7 @@ def translateDoc(fileToTranslate, format, modeFile):
 @gen.coroutine
 def translate(toTranslate, lock, pipeline, commands):
     if pipeline:
-        allSplit = splitForTranslation(toTranslate)
+        allSplit = splitForTranslation(toTranslate, rush_hour = lock.locked())
         parts = yield [translateNULFlush(part, lock, pipeline) for part in allSplit]
         return "".join(parts)
     else:
