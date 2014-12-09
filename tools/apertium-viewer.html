@@ -1,0 +1,99 @@
+<html>
+	<head>
+		<title>Apertium APY Pipe Debug Viewer</title>
+		<script>
+			function loadPairs(){
+				var port = document.form1.port.value;
+				if (port){
+				var getPairs = new XMLHttpRequest();
+				getPairs.onreadystatechange = function(){
+					if(getPairs.readyState == 4 && getPairs.status == 200){
+						pairs = JSON.parse(getPairs.responseText);
+						pairs = pairs.responseData;
+						console.log(pairs);
+						document.form1.langpair.innerHTML = '';
+						for (var i=0; i<pairs.length; i++){
+							document.form1.langpair.innerHTML = document.form1.langpair.innerHTML + '<option value="' + pairs[i].sourceLanguage + '|' + pairs[i].targetLanguage +'">' + pairs[i].sourceLanguage + '-' + pairs[i].targetLanguage + '</option>';
+						}
+					}
+				}
+				sendTo = "http://localhost:" + port + "/listPairs";
+				getPairs.open("GET", sendTo , true);
+				getPairs.send();
+				}
+			}
+			function sendRequest(){
+				var pair = encodeURIComponent(document.form1.langpair.value);
+				var q = encodeURIComponent(document.form1.q.value);
+				var port = document.form1.port.value;
+				var xmlhttp = new XMLHttpRequest();
+				var url = "http://localhost:"+port+"/translate?langpair="+pair+"&q=" + q; //"http://localhost:"+port+"/pipedebug?pair="+pair+"&q=" + q;
+				xmlhttp.onreadystatechange = function() {
+						if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+							var response = xmlhttp.responseText; 
+							response = JSON.parse(response).ResponseData;
+							response = {
+								"output": [
+									"^te/te<n><m>/te<vblex><inf>$^./.<sent><clb>$[][\n]\0^ost/ose<vblex><pp>/ost<n><m>$^./.<sent><clb>$[][\n]\0",
+									"^te<n><m>$^./.<sent><clb>$[][\n]\0^ost<n><m>$^./.<sent><clb>$[][\n]\0\0",
+									"^tea<n>$^./.<sent><clb>$[][\n]\0^cheese<n>$^./.<sent><clb>$[][\n]\0\0\0",
+									"^Tea<n>$^./.<sent><clb>$[][\n]\0^Cheese<n>$^./.<sent><clb>$[][\n]\0\0\0\0",
+									"Tea.[][\n]\0^Cheese.[][\n]\0\0\0\0\0"
+								],
+								"pipeline": [
+									"lt-proc -z isl-eng.automorf.bin",
+									"apertium-tagger -z -g isl-eng.prob",
+									"lt-proc -z isl-eng.autobil.bin",
+									"apertium-transfer -z apertium-isl-eng.t1x isl-eng.t1x.bin",
+									"lt-proc -z -g isl-eng.autogen.bin"
+								]
+							};  //Delete
+							var forhtml = '';
+							for(var i=0; i<response.output.length; i++){
+								forhtml = forhtml + '<div class="inside"><h4>' + response.pipeline[i] + '</h4><p>' + response.output[i] + '</p></div>';
+							}
+							document.getElementById("responsediv").innerHTML = forhtml;
+						}
+				}
+				xmlhttp.open("GET", url, true);
+				xmlhttp.send();
+			}
+		</script>
+		<style>
+
+		body{
+			background: #F4A460;
+			padding: 5%
+		}
+		.block{
+			display: block
+		}
+		.inside{
+			background: #DEB887;
+			padding: 1%;
+			padding-top: 1px;
+			padding-bottom: 1px;
+			margin: 5px
+		}
+		
+		</style>
+	</head>
+	<body>
+	<h1>Apertium APY Pipe Debug Viewer</h1>
+	<form name="form1">
+		<label>Enter port:</label>
+		<input type='text' name='port' onblur='loadPairs()'>
+		<br>
+		<label>Select a language pair from the list.</label>
+		<select name="langpair">
+		</select>
+		<br>
+		<label>Type text here.</label>
+		<textarea name='q' class='block'></textarea>
+		<br>
+		<input type="button" value="Submit" onClick="sendRequest()">
+	</form>
+	<div id="responsediv">
+	</div>
+	</body>
+</html>
