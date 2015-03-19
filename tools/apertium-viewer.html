@@ -27,30 +27,15 @@
 				var q = encodeURIComponent(document.form1.q.value);
 				var port = document.form1.port.value;
 				var xmlhttp = new XMLHttpRequest();
-				var url = "http://localhost:"+port+"/translate?langpair="+pair+"&q=" + q; //"http://localhost:"+port+"/pipedebug?pair="+pair+"&q=" + q;
+				var url = "http://localhost:"+port+"/pipedebug?langpair="+pair+"&q=" + q; //"http://localhost:"+port+"/pipedebug?pair="+pair+"&q=" + q;
 				xmlhttp.onreadystatechange = function() {
 						if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
 							var response = xmlhttp.responseText; 
-							response = JSON.parse(response).ResponseData;
-							response = {
-								"output": [
-									"^te/te<n><m>/te<vblex><inf>$^./.<sent><clb>$[][\n]\0^ost/ose<vblex><pp>/ost<n><m>$^./.<sent><clb>$[][\n]\0",
-									"^te<n><m>$^./.<sent><clb>$[][\n]\0^ost<n><m>$^./.<sent><clb>$[][\n]\0\0",
-									"^tea<n>$^./.<sent><clb>$[][\n]\0^cheese<n>$^./.<sent><clb>$[][\n]\0\0\0",
-									"^Tea<n>$^./.<sent><clb>$[][\n]\0^Cheese<n>$^./.<sent><clb>$[][\n]\0\0\0\0",
-									"Tea.[][\n]\0^Cheese.[][\n]\0\0\0\0\0"
-								],
-								"pipeline": [
-									"lt-proc -z isl-eng.automorf.bin",
-									"apertium-tagger -z -g isl-eng.prob",
-									"lt-proc -z isl-eng.autobil.bin",
-									"apertium-transfer -z apertium-isl-eng.t1x isl-eng.t1x.bin",
-									"lt-proc -z -g isl-eng.autogen.bin"
-								]
-							};  //Delete
-							var forhtml = '';
-							for(var i=0; i<response.output.length; i++){
-								forhtml = forhtml + '<div class="inside"><h4>' + response.pipeline[i] + '</h4><p>' + response.output[i] + '</p></div>';
+							response = JSON.parse(response).responseData;
+
+							var forhtml = '<div class="inside"><p>' + htmlEscape(response.output[0]) + '</p></div>';
+							for(var i=0; i<response.pipeline.length; i++){
+								forhtml = forhtml + '<div class="inside"><h4>' + response.pipeline[i] + '</h4><p>' + htmlEscape(response.output[i+1]) + '</p></div>';
 							}
 							document.getElementById("responsediv").innerHTML = forhtml;
 						}
@@ -58,6 +43,14 @@
 				xmlhttp.open("GET", url, true);
 				xmlhttp.send();
 			}
+			function htmlEscape(str) {
+                return String(str)
+                        .replace(/&/g, '&amp;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;');
+            }
 		</script>
 		<style>
 
