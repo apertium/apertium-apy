@@ -607,6 +607,38 @@ class GetLocaleHandler(BaseHandler):
         else:
             self.send_error(400, explanation='Accept-Language missing from request headers')
 
+class PipeDebugHandler(BaseHandler):
+
+    @gen.coroutine
+    def get(self):
+
+        toTranslate = self.get_argument('q')
+
+        try:
+            l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
+        except ValueError:
+            self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
+
+        mode_path = self.pairs['%s-%s' % (l1, l2)]
+        try:
+            _, commands = translation.parseModeFile(mode_path)
+        except Exception:
+            self.send_error(500)
+            return
+
+        res = yield translation.translatePipeline(toTranslate, commands)
+        if self.get_status() != 200:
+            self.send_error(self.get_status())
+            return
+
+        output, pipeline = res
+
+        self.sendResponse({
+            'responseData': {'output': output, 'pipeline': pipeline},
+           'responseDetails': None,
+           'responseStatus': 200
+        })
+
 missingFreqsDb = ''
 
 def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeout, max_idle_secs, verbosity=0, scaleMtLogs=False, memory=0):
@@ -701,7 +733,8 @@ if __name__ == '__main__':
         (r'/perWord', PerWordHandler),
         (r'/calcCoverage', CoverageHandler),
         (r'/identifyLang', IdentifyLangHandler),
-        (r'/getLocale', GetLocaleHandler)
+        (r'/getLocale', GetLocaleHandler),
+        (r'/pipedebug', PipeDebugHandler)
     ])
 
     global http_server
