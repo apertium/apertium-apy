@@ -152,6 +152,39 @@ def translateWithoutFlush(toTranslate, lock, pipeline):
     return proc_reformat.communicate()[0].decode('utf-8')
 
 @gen.coroutine
+def translatePipeline(toTranslate, commands):
+
+    proc_deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
+    proc_deformat.stdin.write(bytes(toTranslate, 'utf-8'))
+    deformatted = proc_deformat.communicate()[0]
+
+    towrite = deformatted
+
+    output = []
+    output.append(toTranslate)
+    output.append(towrite.decode('utf-8'))
+
+    pipeline = []
+    pipeline.append("apertium-deshtml")
+
+    for cmd in commands:
+        proc = Popen(cmd, stdin=PIPE, stdout=PIPE)
+        proc.stdin.write(towrite)
+        towrite = proc.communicate()[0]
+
+        output.append(towrite.decode('utf-8'))
+        pipeline.append(cmd)
+
+    proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
+    proc_reformat.stdin.write(towrite)
+    towrite = proc_reformat.communicate()[0].decode('utf-8')
+
+    output.append(towrite)
+    pipeline.append("apertium-rehtml-noent")
+
+    return output, pipeline
+
+@gen.coroutine
 def translateSimple(toTranslate, commands):
     proc_in, proc_out = startPipeline(commands)
     assert(proc_in==proc_out)
