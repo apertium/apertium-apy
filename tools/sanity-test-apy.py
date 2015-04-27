@@ -30,7 +30,6 @@ tests = {
     "cat-por": ("tinc", "tenho"),
     "cat-spa": ("Jo", "Yo"),
     "cym-eng": ("Yn", "In"),
-    "dan-swe": ("hvad", "vad"),
     "eng-cat": ("us", "ens"),
     "eng-epo": ("And", "Kaj"),
     "eng-glg": ("Only", "Só"),
@@ -49,20 +48,19 @@ tests = {
     "msa-ind": ("manakala", "sedangkan"),
     "isl-eng": ("Grein", "Article"),
     "isl-swe": ("af", "av"),
-    "ita-cat": ("è giusto dire", "val a dir"),
+    "ita-cat": ("dire", "dir"),
     "kaz-tat": ("ол", "ул"),
     "mkd-bul": ("јас", "аз"),
     "mkd-eng": ("триесет", "thirty"),
     "mlt-ara": ("u", "و"),
     "nld-afr": ("ik", "ek"),
     "nno-dan": ("kva", "hvad"),
-    "nno-nno_a": ("å ete", "å eta"),
+    "nno_e-nno": ("korleis", "korleis"),
     "nno-nob": ("korleis", "hvordan"),
-    "nno_a-nno": ("å eta", "å ete"),
-    "nno_a-nno": ("å eta", "å ete"),
+    "nno-nno_e": ("korleis", "korleis"),
     "nob-dan": ("hva", "hvad"),
     "nob-nno": ("hvordan", "korleis"),
-    "nob-nno_a": ("å spise", "å eta"),
+    "nob-nno_e": ("å spise", "å ete"),
     "oci-cat": ("Mès tanben", "Sinó també"),
     "oci-spa": ("Mès tanben", "Sino también"),
     "oci_aran-cat": ("Mas tanben", "Sinó també"),
@@ -140,7 +138,7 @@ def missing_tests(host):
 def dot():
     sys.stdout.write('.')
     sys.stdout.flush()
-    
+
 def test_all(host):
     missing_tests(host)
     dot()
