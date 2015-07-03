@@ -673,8 +673,17 @@ def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeo
     for dirpath, modename, lang_pair in modes['tagger']:
         Handler.taggers[lang_pair] = (dirpath, modename)
 
+def sanity_check():
+    locale_vars = ["LANG", "LC_ALL"]
+    u8 = re.compile("UTF-?8", re.IGNORECASE)
+    if not any(re.search(u8, os.environ.get(key, ""))
+               for key in locale_vars):
+        print("servlet.py: error: APY needs a UTF-8 locale, please set LANG or LC_ALL",
+              file=sys.stderr)
+        sys.exit(1)
 
 if __name__ == '__main__':
+    sanity_check()
     parser = argparse.ArgumentParser(description='Start Apertium APY')
     parser.add_argument('pairs_path', help='path to Apertium installed pairs (all modes files in this path are included)')
     parser.add_argument('-s', '--nonpairs-path', help='path to Apertium SVN (only non-translator debug modes are included from this path)')
