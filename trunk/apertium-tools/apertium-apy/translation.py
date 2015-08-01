@@ -81,9 +81,14 @@ def hardbreakFn(string, rush_hour):
 
 def preferPunctBreak(string, last, hardbreak):
     """We would prefer to split on a period or space seen before the
-    hardbreak, if we can.
+    hardbreak, if we can. If the remaining string is smaller or equal
+    than the hardbreak, return the full string
 
     """
+
+    if(len(string[last:])<= hardbreak):
+        return hardbreak+1
+
     softbreak = int(hardbreak/2)+1
     softnext = last + softbreak
     hardnext = last + hardbreak
