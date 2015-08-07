@@ -94,11 +94,11 @@ def preferPunctBreak(string, last, hardbreak):
     hardnext = last + hardbreak
     dot = string.rfind(".", softnext, hardnext)
     if dot>-1:
-        return dot
+        return dot+1
     else:
         space = string.rfind(" ", softnext, hardnext)
         if space>-1:
-            return space
+            return space+1
         else:
             return hardnext
 
@@ -113,6 +113,8 @@ def splitForTranslation(toTranslate, rush_hour):
         hardbreak = hardbreakFn(toTranslate[last:], rush_hour)
         next = preferPunctBreak(toTranslate, last, hardbreak)
         allSplit.append(toTranslate[last:next])
+        #logging.getLogger().setLevel(logging.DEBUG)
+        logging.debug("splitForTranslation: last:%s hardbreak:%s next:%s appending:%s"%(last,hardbreak,next,toTranslate[last:next]))
         last = next
     return allSplit
 
