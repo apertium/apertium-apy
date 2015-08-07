@@ -277,6 +277,7 @@ class TranslateHandler(BaseHandler):
             lock = self.getPipeLock(l1, l2)
             _, commands = self.getPipeCmds(l1, l2)
             pipeline = self.getPipeline(l1, l2)
+            self.notePairUsage((l1, l2))
             translated = yield translation.translate(toTranslate, lock, pipeline, commands)
             self.logAfterTranslation(before, toTranslate)
             self.sendResponse({
@@ -286,7 +287,6 @@ class TranslateHandler(BaseHandler):
                 'responseDetails': None,
                 'responseStatus': 200
             })
-            self.notePairUsage((l1, l2))
             self.cleanPairs()
         else:
             self.send_error(400, explanation='That pair is not installed')
