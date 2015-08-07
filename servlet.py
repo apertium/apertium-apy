@@ -693,7 +693,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--ssl-cert', help='path to SSL Certificate', default=None)
     parser.add_argument('-k', '--ssl-key', help='path to SSL Key File', default=None)
     parser.add_argument('-t', '--timeout', help='timeout for requests (default = 10)', type=int, default=10)
-    parser.add_argument('-j', '--num-processes', help='number of processes to run (default = number of cores)', type=int, default=0)
+    parser.add_argument('-j', '--num-processes', help='number of processes to run (default = 1; use 0 to run one http server per core, where each http server runs all available language pairs)', nargs='?', type=int, default=1)
     parser.add_argument('-d', '--daemon', help='daemon mode: redirects stdout and stderr to files apertium-apy.log and apertium-apy.err ; use with --log-path', action='store_true')
     parser.add_argument('-P', '--log-path', help='path to log output files to in daemon mode; defaults to local directory', default='./')
     parser.add_argument('-m', '--max-idle-secs', help='shut down pipelines it have not been used in this many seconds', type=int, default=0)
