@@ -23,6 +23,7 @@ class Pipeline(object):
 
     @contextmanager
     def use(self):
+        self.lastUsage = time()
         self.users += 1
         try:
             yield
@@ -47,6 +48,9 @@ class FlushingPipeline(Pipeline):
         logging.debug("shutting down FlushingPipeline that was used %d times", self.useCount)
         self.inpipe.stdin.close()
         self.inpipe.stdout.close()
+        # TODO: It seems the process immediately becomes <defunct>,
+        # but only completely removed after a second request to the
+        # server – why?
 
     @gen.coroutine
     def translate(self, toTranslate):
