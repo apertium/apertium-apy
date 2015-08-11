@@ -9,6 +9,7 @@ from multiprocessing import Pool, TimeoutError
 from functools import wraps
 from threading import Thread
 from datetime import datetime
+import heapq
 
 import tornado, tornado.web, tornado.httpserver, tornado.process, tornado.iostream, tornado.locks
 from tornado import escape, gen
@@ -55,7 +56,7 @@ class BaseHandler(tornado.web.RequestHandler):
     analyzers = {}
     generators = {}
     taggers = {}
-    pipelines = {} # (l1, l2): (inpipe, outpipe), only contains flushing pairs!
+    pipelines = {} # (l1, l2): [translation.Pipeline], only contains flushing pairs!
     callback = None
     timeout = None
     scaleMtLogs = False
@@ -69,11 +70,10 @@ class BaseHandler(tornado.web.RequestHandler):
         'vmsize': 0,
     }
 
-    # The lock is needed so we don't let two coroutines write
-    # simultaneously to a pipeline; then the first call to read might
-    # read translations of text put there by the second call …
-    pipeline_locks = {} # (l1, l2): lock for (l1, l2) in pairs
-    pipeline_cmds = {} # (l1, l2): (do_flush, commands)
+    pipeline_cmds = {} # (l1, l2): translation.ParsedModes
+    max_pipes_per_pair = 1
+    max_users_per_pipe = 5
+    max_idle_secs = 0
 
     def initialize(self):
         self.callback = self.get_argument('callback', default=None)
@@ -188,8 +188,6 @@ class RootHandler(BaseHandler):
 class TranslateHandler(BaseHandler):
     def notePairUsage(self, pair):
         self.stats['useCount'][pair] = 1 + self.stats['useCount'].get(pair, 0)
-        if self.max_idle_secs:
-            self.stats['lastUsage'][pair] = time.time()
 
     unknownMarkRE = re.compile(r'\*([^.,;:\t\* ]+)')
     def maybeStripMarks(self, markUnknown, l1, l2, translated):
@@ -207,24 +205,22 @@ class TranslateHandler(BaseHandler):
                 else:
                     noteUnknownToken(token, pair, self.missingFreqs)
 
-    def shutdownPair(self, pair):
-        logging.info("shutting down")
-        self.pipelines[pair][0].stdin.close()
-        self.pipelines[pair][0].stdout.close()
-        self.pipelines.pop(pair)
+    def cleanable(self, l1, l2, pipe):
+        if pipe.users > 0:
+            return False
+        elif self.max_idle_secs and time.time() - pipe.lastUsage > self.max_idle_secs:
+            logging.info('Shutting down a pipe for pair %s-%s since it has not been used in %d seconds' % (
+                l1, l2, self.max_idle_secs))
+            return True
+        else:
+            return False
 
     def cleanPairs(self):
-        if self.max_idle_secs:
-            for pair, lastUsage in self.stats['lastUsage'].items():
-                if pair in self.pipelines and time.time() - lastUsage > self.max_idle_secs:
-                    logging.info('Shutting down pair %s-%s since it has not been used in %d seconds' % (
-                        pair[0], pair[1], self.max_idle_secs))
-                    self.shutdownPair(pair)
-
-    def getPipeLock(self, l1, l2):
-        if (l1, l2) not in self.pipeline_locks:
-            self.pipeline_locks[(l1, l2)] = tornado.locks.Lock()
-        return self.pipeline_locks[(l1, l2)]
+        for pair in self.pipelines:
+            l1, l2 = pair
+            self.pipelines[pair][:] = [p for p in self.pipelines[pair]
+                                       if not self.cleanable(l1, l2, p)]
+            heapq.heapify(self.pipelines[pair])
 
     def getPipeCmds(self, l1, l2):
         if (l1, l2) not in self.pipeline_cmds:
@@ -232,14 +228,28 @@ class TranslateHandler(BaseHandler):
             self.pipeline_cmds[(l1, l2)] = translation.parseModeFile(mode_path)
         return self.pipeline_cmds[(l1, l2)]
 
+    def shouldStartPipe(self, l1, l2):
+        pipes = self.pipelines.get((l1, l2), [])
+        if pipes == []:
+            logging.info("%s-%s not in pipelines of this process",
+                         l1, l2)
+            return True
+        else:
+            min_p = pipes[0]
+            if len(pipes) < self.max_pipes_per_pair and min_p.users > self.max_users_per_pipe:
+                logging.info("%s-%s has ≥%d users per pipe but only %d pipes",
+                            l1, l2, min_p.users, len(pipes))
+                return True
+            else:
+                return False
+
     def getPipeline(self, l1, l2):
-        do_flush, commands = self.getPipeCmds(l1, l2)
-        if not do_flush:
-            return None
-        if (l1, l2) not in self.pipelines:
-            logging.info('%s-%s not in pipelines of this process, starting …' % (l1, l2))
-            self.pipelines[(l1, l2)] = translation.startPipeline(commands)
-        return self.pipelines[(l1, l2)]
+        pair = (l1, l2)
+        if self.shouldStartPipe(l1, l2):
+            logging.info("Starting up a new pipeline for %s-%s …", l1, l2)
+            p = translation.makePipeline(self.getPipeCmds(l1, l2))
+            heapq.heappush(self.pipelines[pair], p)
+        return self.pipelines[pair][0]
 
     def logBeforeTranslation(self):
         if self.scaleMtLogs:
@@ -272,11 +282,9 @@ class TranslateHandler(BaseHandler):
 
         if '%s-%s' % (l1, l2) in self.pairs:
             before = self.logBeforeTranslation()
-            lock = self.getPipeLock(l1, l2)
-            _, commands = self.getPipeCmds(l1, l2)
             pipeline = self.getPipeline(l1, l2)
             self.notePairUsage((l1, l2))
-            translated = yield translation.translate(toTranslate, lock, pipeline, commands)
+            translated = yield pipeline.translate(toTranslate)
             self.logAfterTranslation(before, toTranslate)
             self.sendResponse({
                 'responseData': {
@@ -639,7 +647,7 @@ class PipeDebugHandler(BaseHandler):
 
 missingFreqsDb = ''
 
-def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeout, max_idle_secs, verbosity=0, scaleMtLogs=False, memory=0):
+def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeout, max_pipes_per_pair, max_users_per_pipe, max_idle_secs, verbosity=0, scaleMtLogs=False, memory=0):
 
     global missingFreqsDb
     missingFreqsDb= missingFreqs
@@ -648,6 +656,8 @@ def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeo
     Handler.langNames = langNames
     Handler.missingFreqs = missingFreqs
     Handler.timeout = timeout
+    Handler.max_pipes_per_pair = max_pipes_per_pair
+    Handler.max_users_per_pipe = max_users_per_pipe
     Handler.max_idle_secs = max_idle_secs
     Handler.scaleMtLogs = scaleMtLogs
     Handler.inMemoryUnknown = True if memory > 0 else False
@@ -664,6 +674,7 @@ def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeo
 
     for path, lang_src, lang_trg in modes['pair']:
         Handler.pairs['%s-%s' % (lang_src, lang_trg)] = path
+        Handler.pipelines[(lang_src, lang_trg)] = []
     for dirpath, modename, lang_pair in modes['analyzer']:
         Handler.analyzers[lang_pair] = (dirpath, modename)
     for dirpath, modename, lang_pair in modes['generator']:
@@ -694,7 +705,9 @@ if __name__ == '__main__':
     parser.add_argument('-j', '--num-processes', help='number of processes to run (default = 1; use 0 to run one http server per core, where each http server runs all available language pairs)', nargs='?', type=int, default=1)
     parser.add_argument('-d', '--daemon', help='daemon mode: redirects stdout and stderr to files apertium-apy.log and apertium-apy.err ; use with --log-path', action='store_true')
     parser.add_argument('-P', '--log-path', help='path to log output files to in daemon mode; defaults to local directory', default='./')
-    parser.add_argument('-m', '--max-idle-secs', help='shut down pipelines it have not been used in this many seconds', type=int, default=0)
+    parser.add_argument('-i', '--max-pipes-per-pair', help='how many pipelines we can spin up per language pair', type=int, default=1)
+    parser.add_argument('-u', '--max-users-per-pipe', help='how many concurrent requests per pipeline before we consider spinning up a new one', type=int, default=5)
+    parser.add_argument('-m', '--max-idle-secs', help='shut down pipelines that have not been used in this many seconds', type=int, default=0)
     parser.add_argument('-v', '--verbosity', help='logging verbosity', type=int, default=0)
     parser.add_argument('-S', '--scalemt-logs', help='generates ScaleMT-like logs; use with --log-path; disables', action='store_true')
     parser.add_argument('-M', '--unknown-memory-limit', help="keeps unknown words in memory until a limit is reached", type=int, default=0)
@@ -725,7 +738,7 @@ if __name__ == '__main__':
     if not cld2:
         logging.warning('Unable to import CLD2, continuing using naive method of language detection')
 
-    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout, args.max_idle_secs, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
+    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout, args.max_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
 
     application = tornado.web.Application([
         (r'/', RootHandler),
