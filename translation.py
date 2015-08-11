@@ -210,7 +210,7 @@ def translateDoc(fileToTranslate, format, modeFile):
 @gen.coroutine
 def translate(toTranslate, lock, pipeline, commands):
     if pipeline:
-        allSplit = splitForTranslation(toTranslate, rush_hour = lock.locked())
+        allSplit = splitForTranslation(toTranslate, rush_hour = False) # TODO: semaphor count
         parts = yield [translateNULFlush(part, lock, pipeline) for part in allSplit]
         return "".join(parts)
     else:
