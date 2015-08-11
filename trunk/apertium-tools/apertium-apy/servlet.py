@@ -10,15 +10,13 @@ from functools import wraps
 from threading import Thread
 from datetime import datetime
 
-import tornado, tornado.web, tornado.httpserver, tornado.process, tornado.iostream
+import tornado, tornado.web, tornado.httpserver, tornado.process, tornado.iostream, tornado.locks
 from tornado import escape, gen
 from tornado.escape import utf8
 try: #3.1
     from tornado.log import enable_pretty_logging
 except ImportError: #2.1
     from tornado.options import enable_pretty_logging
-
-import toro
 
 from modeSearch import searchPath
 from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, noteUnknownToken, scaleMtLog, TranslationInfo, closeDb, flushUnknownWords, inMemoryUnknownToken
@@ -225,7 +223,7 @@ class TranslateHandler(BaseHandler):
 
     def getPipeLock(self, l1, l2):
         if (l1, l2) not in self.pipeline_locks:
-            self.pipeline_locks[(l1, l2)] = toro.Lock()
+            self.pipeline_locks[(l1, l2)] = tornado.locks.Lock()
         return self.pipeline_locks[(l1, l2)]
 
     def getPipeCmds(self, l1, l2):
