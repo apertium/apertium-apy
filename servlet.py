@@ -72,6 +72,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
     pipeline_cmds = {} # (l1, l2): translation.ParsedModes
     max_pipes_per_pair = 1
+    min_pipes_per_pair = 0
     max_users_per_pipe = 5
     max_idle_secs = 0
 
@@ -205,21 +206,21 @@ class TranslateHandler(BaseHandler):
                 else:
                     noteUnknownToken(token, pair, self.missingFreqs)
 
-    def cleanable(self, l1, l2, pipe):
+    def cleanable(self, pair, pipe):
         if pipe.users > 0:
             return False
         elif self.max_idle_secs and time.time() - pipe.lastUsage > self.max_idle_secs:
             logging.info('Shutting down a pipe for pair %s-%s since it has not been used in %d seconds' % (
-                l1, l2, self.max_idle_secs))
+                pair[0], pair[1], self.max_idle_secs))
             return True
         else:
             return False
 
     def cleanPairs(self):
         for pair in self.pipelines:
-            l1, l2 = pair
-            self.pipelines[pair][:] = [p for p in self.pipelines[pair]
-                                       if not self.cleanable(l1, l2, p)]
+            pipes = self.pipelines[pair]
+            pipes[self.min_pipes_per_pair:] = [p for p in pipes[self.min_pipes_per_pair:]
+                                               if not self.cleanable(pair, p)]
             heapq.heapify(self.pipelines[pair])
 
     def getPipeCmds(self, l1, l2):
@@ -647,7 +648,7 @@ class PipeDebugHandler(BaseHandler):
 
 missingFreqsDb = ''
 
-def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeout, max_pipes_per_pair, max_users_per_pipe, max_idle_secs, verbosity=0, scaleMtLogs=False, memory=0):
+def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeout, max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs, verbosity=0, scaleMtLogs=False, memory=0):
 
     global missingFreqsDb
     missingFreqsDb= missingFreqs
@@ -657,6 +658,7 @@ def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeo
     Handler.missingFreqs = missingFreqs
     Handler.timeout = timeout
     Handler.max_pipes_per_pair = max_pipes_per_pair
+    Handler.min_pipes_per_pair = min_pipes_per_pair
     Handler.max_users_per_pipe = max_users_per_pipe
     Handler.max_idle_secs = max_idle_secs
     Handler.scaleMtLogs = scaleMtLogs
@@ -706,6 +708,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--daemon', help='daemon mode: redirects stdout and stderr to files apertium-apy.log and apertium-apy.err ; use with --log-path', action='store_true')
     parser.add_argument('-P', '--log-path', help='path to log output files to in daemon mode; defaults to local directory', default='./')
     parser.add_argument('-i', '--max-pipes-per-pair', help='how many pipelines we can spin up per language pair', type=int, default=1)
+    parser.add_argument('-n', '--min-pipes-per-pair', help='when shutting down pipelines, keep at least this many open per language pair', type=int, default=0)
     parser.add_argument('-u', '--max-users-per-pipe', help='how many concurrent requests per pipeline before we consider spinning up a new one', type=int, default=5)
     parser.add_argument('-m', '--max-idle-secs', help='shut down pipelines that have not been used in this many seconds', type=int, default=0)
     parser.add_argument('-v', '--verbosity', help='logging verbosity', type=int, default=0)
@@ -738,7 +741,7 @@ if __name__ == '__main__':
     if not cld2:
         logging.warning('Unable to import CLD2, continuing using naive method of language detection')
 
-    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout, args.max_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
+    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout, args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
 
     application = tornado.web.Application([
         (r'/', RootHandler),
