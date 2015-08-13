@@ -2,7 +2,7 @@ import contextlib
 import heapq
 import collections
 from functools import partial
-from Queue import Full, Empty
+from queue import Full, Empty
 
 from tornado import ioloop
 from tornado import gen
