@@ -212,7 +212,7 @@ def translateNULFlush(toTranslate, pipeline):
         # TODO: PipeIOStream has no flush, but seems to work anyway?
         #proc_in.stdin.flush()
 
-        output = yield proc_out.stdout.read_until(bytes('\0', 'utf-8'))
+        output = yield gen.Task(proc_out.stdout.read_until, bytes('\0', 'utf-8'))
 
         proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
         proc_reformat.stdin.write(output)
