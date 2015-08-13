@@ -275,9 +275,9 @@ def translatePipeline(toTranslate, commands):
 def translateSimple(toTranslate, commands):
     proc_in, proc_out = startPipeline(commands)
     assert proc_in == proc_out
-    yield proc_in.stdin.write(bytes(toTranslate, 'utf-8'))
+    yield gen.Task(proc_in.stdin.write, bytes(toTranslate, 'utf-8'))
     proc_in.stdin.close()
-    translated = yield proc_out.stdout.read_until_close()
+    translated = yield gen.Task(proc_out.stdout.read_until_close)
     proc_in.stdout.close()
     return translated.decode('utf-8')
 
