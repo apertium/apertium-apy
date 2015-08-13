@@ -1,7 +1,11 @@
 import re, os, tempfile
 from subprocess import Popen, PIPE
 from tornado import gen
-import tornado.process, tornado.iostream, tornado.locks
+import tornado.process, tornado.iostream
+try: # >=4.2
+    import tornado.locks as locks
+except ImportError:
+    import toro as locks
 import logging
 from select import PIPE_BUF
 from contextlib import contextmanager
@@ -13,7 +17,7 @@ class Pipeline(object):
         # The lock is needed so we don't let two coroutines write
         # simultaneously to a pipeline; then the first call to read might
         # read translations of text put there by the second call …
-        self.lock = tornado.locks.Lock()
+        self.lock = locks.Lock()
         # The users count is how many requests have picked this
         # pipeline for translation. If this is 0, we can safely shut
         # down the pipeline.

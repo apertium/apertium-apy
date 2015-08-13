@@ -11,7 +11,7 @@ from threading import Thread
 from datetime import datetime
 import heapq
 
-import tornado, tornado.web, tornado.httpserver, tornado.process, tornado.iostream, tornado.locks
+import tornado, tornado.web, tornado.httpserver, tornado.process, tornado.iostream
 from tornado import escape, gen
 from tornado.escape import utf8
 try: #3.1
