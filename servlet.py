@@ -20,8 +20,9 @@ except ImportError: #2.1
     from tornado.options import enable_pretty_logging
 
 from modeSearch import searchPath
-from util import getLocalizedLanguages, apertium, bilingualTranslate, removeLast, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, noteUnknownToken, scaleMtLog, TranslationInfo, closeDb, flushUnknownWords, inMemoryUnknownToken
+from util import getLocalizedLanguages, apertium, bilingualTranslate, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, noteUnknownToken, scaleMtLog, TranslationInfo, closeDb, flushUnknownWords, inMemoryUnknownToken
 import translation
+import util
 from keys import getKey
 
 try:
@@ -408,57 +409,52 @@ class TranslateDocHandler(TranslateHandler):
             self.send_error(400, explanation='That pair is not installed')
 
 class AnalyzeHandler(BaseHandler):
+    def postproc_text(self, in_text, result):
+        lexical_units = util.removeDotFromDeformat(in_text, re.findall(r'\^([^\$]*)\$([^\^]*)', result))
+        return [(lu[0], lu[0].split('/')[0] + lu[1])
+                for lu
+                in lexical_units]
+
     @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
-        to_analyze = self.get_argument('q')
+        in_text = self.get_argument('q')
         in_mode = toAlpha3Code(self.get_argument('lang'))
         if in_mode in self.analyzers:
             [path, mode] = self.analyzers[in_mode]
             formatting = 'txt'
             commands = [['apertium', '-d', path, '-f', formatting, mode]]
-            logging.info("%s, %s: %s", path, mode, commands)
-            analysis = yield translation.translateSimple(to_analyze, commands)
-            lexical_units = removeLast(to_analyze, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
-            self.sendResponse([(lu[0], lu[0].split('/')[0] + lu[1])
-                               for lu
-                               in lexical_units])
+            result = yield translation.translateSimple(in_text, commands)
+            self.sendResponse(self.postproc_text(in_text, result))
         else:
             self.send_error(400, explanation='That mode is not installed')
 
 
 class GenerateHandler(BaseHandler):
+    def preproc_text(self, in_text):
+        lexical_units = re.findall(r'(\^[^\$]*\$[^\^]*)', in_text)
+        if len(lexical_units) == 0:
+            lexical_units = ['^%s$' % (in_text,)]
+        return lexical_units, '[SEP]'.join(lexical_units)
+
+    def postproc_text(self, lexical_units, result):
+        return [(generation, lexical_units[i])
+                for (i, generation)
+                in enumerate(result.split('[SEP]'))]
+
     @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
-        mode = toAlpha3Code(self.get_argument('lang'))
-        toGenerate = self.get_argument('q')
-
-        def handleGeneration(generated):
-            if generated is None:
-                self.send_error(408, explanation='Request timed out')
-            else:
-                generated = removeLast(toGenerate, generated)
-                self.sendResponse([(generation, lexicalUnits[index]) for (index, generation) in enumerate(generated.split('[SEP]'))])
-
-        if mode in self.generators:
-            lexicalUnits = re.findall(r'(\^[^\$]*\$[^\^]*)', toGenerate)
-            if len(lexicalUnits) == 0:
-                lexicalUnits = ['^%s$' % toGenerate]
-            pool = Pool(processes=1)
-            result = pool.apply_async(apertium, ('[SEP]'.join(lexicalUnits), self.generators[mode][0], self.generators[mode][1]), {'formatting': 'none'})
-            pool.close()
-
-            @run_async_thread
-            def worker(callback):
-                try:
-                    callback(result.get(timeout=self.timeout))
-                except TimeoutError:
-                    pool.terminate()
-                    callback(None)
-
-            generated = yield tornado.gen.Task(worker)
-            handleGeneration(generated)
+        in_text = self.get_argument('q')
+        in_mode = toAlpha3Code(self.get_argument('lang'))
+        if in_mode in self.generators:
+            [path, mode] = self.generators[in_mode]
+            formatting = 'none'
+            commands = [['apertium', '-d', path, '-f', formatting, mode]]
+            lexical_units, to_generate = self.preproc_text(in_text)
+            result = yield translation.translateSimple(to_generate, commands)
+            logging.info("prep: %s\npost: %s\nresult: %s", lexical_units, self.postproc_text(lexical_units, result), result)
+            self.sendResponse(self.postproc_text(lexical_units, result))
         else:
             self.send_error(400, explanation='That mode is not installed')
 
