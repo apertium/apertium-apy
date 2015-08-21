@@ -150,7 +150,9 @@ def bilingualTranslate(toTranslate, dir, mode):
     output = p2.communicate()[0].decode('utf-8')
     return output
 
-def removeLast(query, analyses):
+def removeDotFromDeformat(query, analyses):
+    """When using the txt format, a dot is added at EOF (also, double line
+    breaks) if the last part of the query isn't itself a dot"""
     if not query[-1] == '.':
         return analyses[:-1]
     else:
@@ -170,7 +172,7 @@ def getCoverages(text, modes, penalize=False):
 
 def getCoverage(text, mode, modeDir, penalize=False):
     analysis = apertium(text, mode, modeDir)
-    lexicalUnits = removeLast(text, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
+    lexicalUnits = removeDotFromDeformat(text, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
     analyzedLexicalUnits = list(filter(lambda x: not x[0].split('/')[1][0] in '*&#', lexicalUnits))
     if len(lexicalUnits) and not penalize:
         return len(analyzedLexicalUnits) / len(lexicalUnits)
@@ -189,7 +191,7 @@ def processPerWord(analyzers, taggers, lang, modes, query):
         if lang in analyzers:
             modeInfo = analyzers[lang]
             analysis = apertium(query, modeInfo[0], modeInfo[1])
-            morph_lexicalUnits = removeLast(query, re.findall(lexicalUnitRE, analysis))
+            morph_lexicalUnits = removeDotFromDeformat(query, re.findall(lexicalUnitRE, analysis))
             outputs['morph'] = [lexicalUnit.split('/')[1:] for lexicalUnit in morph_lexicalUnits]
             outputs['morph_inputs'] = [stripTags(lexicalUnit.split('/')[0]) for lexicalUnit in morph_lexicalUnits]
         else:
@@ -199,7 +201,7 @@ def processPerWord(analyzers, taggers, lang, modes, query):
         if lang in taggers:
             modeInfo = taggers[lang]
             analysis = apertium(query, modeInfo[0], modeInfo[1])
-            tagger_lexicalUnits = removeLast(query, re.findall(lexicalUnitRE, analysis))
+            tagger_lexicalUnits = removeDotFromDeformat(query, re.findall(lexicalUnitRE, analysis))
             outputs['tagger'] = [lexicalUnit.split('/')[1:] if '/' in lexicalUnit else lexicalUnit for lexicalUnit in tagger_lexicalUnits]
             outputs['tagger_inputs'] = [stripTags(lexicalUnit.split('/')[0]) for lexicalUnit in tagger_lexicalUnits]
         else:
