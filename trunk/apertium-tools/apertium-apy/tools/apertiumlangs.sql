@@ -9114,6 +9114,13 @@ INSERT INTO "fixes" VALUES(NULL,'ky','ug','уйгурча');
 INSERT INTO "fixes" VALUES(NULL,'kaa','kk','qazaqsha');
 INSERT INTO "fixes" VALUES(NULL,'kaa','kaa','qaraqalpaqsha');
 INSERT INTO "fixes" VALUES(NULL,'kaa','uz','oʻzbekshe');
+INSERT INTO "fixes" VALUES(NULL,'uz','kaa','qoraqalpoqcha');
+INSERT INTO "fixes" VALUES(NULL,'uz','nog','noʻgʻaycha');
+INSERT INTO "fixes" VALUES(NULL,'uz','sah','saxacha (yoqutcha)');
+INSERT INTO "fixes" VALUES(NULL,'uz','chv','chuvashcha');
+INSERT INTO "fixes" VALUES(NULL,'uz','tyv','tuvacha');
+INSERT INTO "fixes" VALUES(NULL,'uz','kum','qoʻmiqcha');
+INSERT INTO "fixes" VALUES(NULL,'uz','kum','boshqircha');
 
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
 COMMIT;
