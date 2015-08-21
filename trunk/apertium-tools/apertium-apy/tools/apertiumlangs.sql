@@ -9120,7 +9120,7 @@ INSERT INTO "fixes" VALUES(NULL,'uz','sah','saxacha (yoqutcha)');
 INSERT INTO "fixes" VALUES(NULL,'uz','chv','chuvashcha');
 INSERT INTO "fixes" VALUES(NULL,'uz','tyv','tuvacha');
 INSERT INTO "fixes" VALUES(NULL,'uz','kum','qoʻmiqcha');
-INSERT INTO "fixes" VALUES(NULL,'uz','kum','boshqircha');
+INSERT INTO "fixes" VALUES(NULL,'uz','bak','boshqircha');
 
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
 COMMIT;
