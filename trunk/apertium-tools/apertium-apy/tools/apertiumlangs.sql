@@ -9123,6 +9123,9 @@ INSERT INTO "fixes" VALUES(NULL,'uz','chv','chuvashcha');
 INSERT INTO "fixes" VALUES(NULL,'uz','tyv','tuvacha');
 INSERT INTO "fixes" VALUES(NULL,'uz','kum','qoʻmiqcha');
 INSERT INTO "fixes" VALUES(NULL,'uz','bak','boshqircha');
+INSERT INTO "fixes" VALUES(NULL,'tyv','tyv','тыва дылда');
+INSERT INTO "fixes" VALUES(NULL,'nog','nog','ногъайша');
+INSERT INTO "fixes" VALUES(NULL,'sah','sah','сахалыы');
 
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
 COMMIT;
