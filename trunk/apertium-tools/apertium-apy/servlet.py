@@ -409,35 +409,23 @@ class TranslateDocHandler(TranslateHandler):
 
 class AnalyzeHandler(BaseHandler):
     @tornado.web.asynchronous
-    @tornado.gen.coroutine
+    @gen.coroutine
     def get(self):
-        mode = toAlpha3Code(self.get_argument('lang'))
-        toAnalyze = self.get_argument('q')
-
-        def handleAnalysis(analysis):
-            if analysis is None:
-                self.send_error(408, explanation='Request timed out')
-            else:
-                lexicalUnits = removeLast(toAnalyze, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
-                self.sendResponse([(lexicalUnit[0], lexicalUnit[0].split('/')[0] + lexicalUnit[1]) for lexicalUnit in lexicalUnits])
-
-        if mode in self.analyzers:
-            pool = Pool(processes=1)
-            result = pool.apply_async(apertium, [toAnalyze, self.analyzers[mode][0], self.analyzers[mode][1]])
-            pool.close()
-
-            @run_async_thread
-            def worker(callback):
-                try:
-                    callback(result.get(timeout=self.timeout))
-                except TimeoutError:
-                    pool.terminate()
-                    callback(None)
-
-            analysis = yield tornado.gen.Task(worker)
-            handleAnalysis(analysis)
+        to_analyze = self.get_argument('q')
+        in_mode = toAlpha3Code(self.get_argument('lang'))
+        if in_mode in self.analyzers:
+            [path, mode] = self.analyzers[in_mode]
+            formatting = 'txt'
+            commands = [['apertium', '-d', path, '-f', formatting, mode]]
+            logging.info("%s, %s: %s", path, mode, commands)
+            analysis = yield translation.translateSimple(to_analyze, commands)
+            lexical_units = removeLast(to_analyze, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
+            self.sendResponse([(lu[0], lu[0].split('/')[0] + lu[1])
+                               for lu
+                               in lexical_units])
         else:
             self.send_error(400, explanation='That mode is not installed')
+
 
 class GenerateHandler(BaseHandler):
     @tornado.web.asynchronous
