@@ -9114,6 +9114,8 @@ INSERT INTO "fixes" VALUES(NULL,'ky','ug','уйгурча');
 INSERT INTO "fixes" VALUES(NULL,'kaa','kk','qazaqsha');
 INSERT INTO "fixes" VALUES(NULL,'kaa','kaa','qaraqalpaqsha');
 INSERT INTO "fixes" VALUES(NULL,'kaa','uz','oʻzbekshe');
+INSERT INTO "fixes" VALUES(NULL,'kaa','tt','tatarsha');
+INSERT INTO "fixes" VALUES(NULL,'kaa','ky','qırgʻızsha');
 INSERT INTO "fixes" VALUES(NULL,'uz','kaa','qoraqalpoqcha');
 INSERT INTO "fixes" VALUES(NULL,'uz','nog','noʻgʻaycha');
 INSERT INTO "fixes" VALUES(NULL,'uz','sah','saxacha (yoqutcha)');
