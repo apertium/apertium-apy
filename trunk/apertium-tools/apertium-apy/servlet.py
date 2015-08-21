@@ -453,7 +453,6 @@ class GenerateHandler(BaseHandler):
             commands = [['apertium', '-d', path, '-f', formatting, mode]]
             lexical_units, to_generate = self.preproc_text(in_text)
             result = yield translation.translateSimple(to_generate, commands)
-            logging.info("prep: %s\npost: %s\nresult: %s", lexical_units, self.postproc_text(lexical_units, result), result)
             self.sendResponse(self.postproc_text(lexical_units, result))
         else:
             self.send_error(400, explanation='That mode is not installed')
