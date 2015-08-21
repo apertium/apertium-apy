@@ -1,0 +1,109 @@
+#!/bin/bash
+
+### Put e.g. in
+#
+# #!/bin/sh
+# t/run-tests
+#
+### in your .git/hooks/pre-commit and chmod +x .git/hooks/pre-commit
+
+# Tests (TODO: get these from a file instead):
+declare -ar INPUTS=(  "government" "ja"        "ikkje"            "ja<ij>"   "^ja<ij>$")
+declare -ar OUTPUTS=( "Gobierno"   "og"        "ikkje/ikkje<adv>" "ja"       "ja")
+declare -ar MODES=(   "eng|spa"    "sme|nob"   "nno"              "nno"      "nno")
+declare -ar TYPES=(   "translate"  "translate" "analyse"          "generate" "generate")
+
+# Paths to apertium data:
+declare -r INSTALLEDPAIRS=/usr/local/share/apertium
+declare -r NONPAIRS=/l/a/languages
+
+
+### Shouldn't have to change anything below.
+set -e -u -o pipefail
+
+APYPID=
+cleanup () {
+    [[ -n ${APYPID} ]] && kill "${APYPID}"
+}
+trap cleanup EXIT
+
+declare -r CHECK="[2K[999D[1;32m✓[00m"
+declare -r CROSS="[2K[999D[1;31m❌[00m"
+
+wait_for_startup () {
+    local -i max_secs=10
+    local -i i=0
+    while [[ $i -lt ${max_secs} ]]; do
+        echo -n "."
+        sleep 1
+        if curl -s 'http://localhost:2737' >/dev/null; then
+            echo "${CHECK} APY seems to have started up"
+            return 0
+        fi
+        (( i++ )) || true
+    done
+    echo "${CROSS} Waited ${max_secs} secs without any response from APY"
+    return 1
+}
+
+extract_response () {
+    local type=$1
+    case ${type} in
+        translate)
+            jq -r .responseData.translatedText
+            ;;
+        generate|analyse)
+            jq -r .[][] | awk 'NR%2==1'
+            ;;
+        *)
+            echo "Unknown test type ${type}" >&2
+            exit 1
+            ;;
+    esac
+
+
+}
+
+
+run_tests () {
+    local -i failures=0
+    for (( i=0; i<${#INPUTS[@]}; i++ )); do
+        local in=${INPUTS[$i]}
+        local mode=${MODES[$i]}
+        local type=${TYPES[$i]}
+        local url="http://localhost:2737/${type}?lang=${mode}&q=${in}"
+        if [[ ${type} = translate ]]; then
+            url="http://localhost:2737/translate?langpair=${mode}&q=${in}"
+        fi
+        local got=$(curl -s "${url}" | extract_response "${type}")
+        local want=${OUTPUTS[$i]}
+        if [[ ${got} != ${want} ]]; then
+            cat <<EOF
+
+[1;31m❌[00m TEST FAILED FOR ${mode} ${type}
+WANTED: "${want}"
+GOT: "${got}"
+
+EOF
+            (( failures++ )) || true
+        fi
+    done
+    if [[ ${failures} -eq 0 ]]; then
+        cat <<EOF
+${CHECK} All $i tests passed
+EOF
+    else
+        cat <<EOF
+${CROSS} Ran $i tests, ${failures} failures
+EOF
+        return "${failures}"
+    fi
+    return 0
+}
+
+cd "$(dirname "$0")"
+../servlet.py -d -j1 -i3 -u1 -n1 -m3 -s "${NONPAIRS}"  -- "${INSTALLEDPAIRS}" & APYPID=$!
+wait_for_startup
+run_tests
+
+# TODO: concurrency tests
