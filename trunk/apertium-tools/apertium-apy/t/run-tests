@@ -21,6 +21,7 @@ declare -r NONPAIRS=/l/a/languages
 ### Shouldn't have to change anything below.
 set -e -u -o pipefail
 
+PORT=2737
 APYPID=
 cleanup () {
     [[ -n ${APYPID} ]] && kill "${APYPID}"
@@ -36,7 +37,7 @@ wait_for_startup () {
     while [[ $i -lt ${max_secs} ]]; do
         echo -n "."
         sleep 1
-        if curl -s 'http://localhost:2737' >/dev/null; then
+        if curl -s "http://localhost:${PORT}" >/dev/null; then
             echo "${CHECK} APY seems to have started up"
             return 0
         fi
@@ -71,9 +72,9 @@ run_tests () {
         local in=${INPUTS[$i]}
         local mode=${MODES[$i]}
         local type=${TYPES[$i]}
-        local url="http://localhost:2737/${type}?lang=${mode}&q=${in}"
+        local url="http://localhost:${PORT}/${type}?lang=${mode}&q=${in}"
         if [[ ${type} = translate ]]; then
-            url="http://localhost:2737/translate?langpair=${mode}&q=${in}"
+            url="http://localhost:${PORT}/translate?langpair=${mode}&q=${in}"
         fi
         local got=$(curl -s "${url}" | extract_response "${type}")
         local want=${OUTPUTS[$i]}
@@ -100,6 +101,13 @@ EOF
     fi
     return 0
 }
+
+if netstat -lnt|awk "\$4~/:${PORT}\$/"|grep -q .; then
+    lsof -i :2737
+    echo >&2
+    echo "Port ${PORT} seems taken, can't run tests." >&2
+    exit 10
+fi
 
 cd "$(dirname "$0")"
 ../servlet.py -d -j1 -i3 -u1 -n1 -m3 -s "${NONPAIRS}"  -- "${INSTALLEDPAIRS}" & APYPID=$!
