@@ -6,6 +6,8 @@
 # t/run-tests
 #
 ### in your .git/hooks/pre-commit and chmod +x .git/hooks/pre-commit
+###
+### Optional first argument is a free port number to use.
 
 # Tests (TODO: get these from a file instead):
 declare -ar INPUTS=(  "government" "ja"        "ikkje"            "ja<ij>"   "^ja<ij>$")
@@ -21,7 +23,7 @@ declare -r NONPAIRS=/l/a/languages
 ### Shouldn't have to change anything below.
 set -e -u -o pipefail
 
-PORT=2737
+PORT="${1:-2737}"
 APYPID=
 cleanup () {
     [[ -n ${APYPID} ]] && kill "${APYPID}"
@@ -103,14 +105,15 @@ EOF
 }
 
 if netstat -lnt|awk "\$4~/:${PORT}\$/"|grep -q .; then
-    lsof -i :2737
+    lsof -i :"${PORT}"
     echo >&2
-    echo "Port ${PORT} seems taken, can't run tests." >&2
+    echo "Port ${PORT} seems taken, can't run tests" >&2
+    echo "(you can pass an alternative port as first argument to this script)" >&2
     exit 10
 fi
 
 cd "$(dirname "$0")"
-../servlet.py -d -j1 -i3 -u1 -n1 -m3 -s "${NONPAIRS}"  -- "${INSTALLEDPAIRS}" & APYPID=$!
+../servlet.py -p "${PORT}" -d -j1 -i3 -u1 -n1 -m3 -s "${NONPAIRS}"  -- "${INSTALLEDPAIRS}" & APYPID=$!
 wait_for_startup
 run_tests
 
