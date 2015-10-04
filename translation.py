@@ -105,7 +105,7 @@ def startPipeline(commands):
 def parseModeFile(mode_path):
     mode_str = open(mode_path, 'r').read().strip()
     if mode_str:
-        if 'lrx-proc ' in mode_str:
+        if 'ca-oc@aran' in mode_str or  'lrx-proc ' in mode_str:
             do_flush = False
             modes_parentdir = os.path.dirname(os.path.dirname(mode_path))
             mode_name = os.path.splitext(os.path.basename(mode_path))[0]
