@@ -52,6 +52,7 @@ INSERT INTO "fixes" VALUES(NULL,'ru','ug','уйгурский');
 INSERT INTO "fixes" VALUES(NULL,'uz','ug','uyg\'urcha');
 INSERT INTO "fixes" VALUES(NULL,'kk','ug','ұйғұрша');
 INSERT INTO "fixes" VALUES(NULL,'ky','ug','уйгурча');
+INSERT INTO "fixes" VALUES(NULL,'en','crh','Crimean Tatar');
 CREATE TABLE languageNames (id integer primary key, lg text, inLg text, name text, unique(lg, inLg) on conflict replace);
 INSERT INTO "languageNames" VALUES(NULL,'sah','af','Аппырыкааныстыы');
 INSERT INTO "languageNames" VALUES(NULL,'sah','ar','Араабтыы');
