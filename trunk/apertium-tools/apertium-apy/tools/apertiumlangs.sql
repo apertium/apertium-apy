@@ -9141,6 +9141,8 @@ INSERT INTO "fixes" VALUES(NULL,'uig','crh','قرىمتاتارچا');
 INSERT INTO "fixes" VALUES(NULL,'kk','sah','сахаша (якутша)');
 INSERT INTO "fixes" VALUES(NULL,'kk','kaa','қарақалпақша');
 INSERT INTO "fixes" VALUES(NULL,'kk','tyv','тываша');
+INSERT INTO "fixes" VALUES(NULL,'ca','crh','tàtar de Crimea');
+INSERT INTO "fixes" VALUES(NULL,'eus','crh','Krimeako tatarera');
 
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
 COMMIT;
