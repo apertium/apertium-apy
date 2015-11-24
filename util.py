@@ -135,10 +135,11 @@ def closeDb():
 
 def apertium(input, dir, mode, formatting=None):
     p1 = Popen(['echo', input], stdout=PIPE)
+    print(input, dir, mode, formatting)
     if formatting:
         p2 = Popen(['apertium', '-d . -f %s' % formatting, mode], stdin=p1.stdout, stdout=PIPE, cwd=dir)
     else:
-        p2 = Popen(['apertium', '-d .', mode], stdin=p1.stdout, stdout=PIPE, cwd=dir)
+        p2 = Popen(['apertium', '-d {}'.format(dir), mode], stdin=p1.stdout, stdout=PIPE)
     p1.stdout.close()
     output = p2.communicate()[0].decode('utf-8')
     return output
