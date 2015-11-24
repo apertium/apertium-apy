@@ -9135,7 +9135,7 @@ INSERT INTO "fixes" VALUES(NULL,'crh','crh','qırımtatarca');
 INSERT INTO "fixes" VALUES(NULL,'kaa','crh','qırımtatarsha');
 INSERT INTO "fixes" VALUES(NULL,'tt','crh','кырымтатарча');
 INSERT INTO "fixes" VALUES(NULL,'ky','crh','кырымтатарча');
-INSERT INTO "fixes" VALUES(NULL,'kk','crh','қырымтатарча');
+INSERT INTO "fixes" VALUES(NULL,'kk','crh','қырымтатарша');
 INSERT INTO "fixes" VALUES(NULL,'tr','crh','Kırımtatarca');
 INSERT INTO "fixes" VALUES(NULL,'uig','crh','قرىمتاتارچا');
 INSERT INTO "fixes" VALUES(NULL,'kk','sah','сахаша (якутша)');
