@@ -81,12 +81,55 @@
 		<select name="langpair">
 		</select>
 		<br>
+		<input type="checkbox" id="instant"> Instant translation
+		<br>
 		<label>Type text here.</label>
-		<textarea name='q' class='block'></textarea>
+		<textarea name='q' id='q' class='block'></textarea>
 		<br>
 		<input type="button" value="Submit" onClick="sendRequest()">
 	</form>
 	<div id="responsediv">
 	</div>
+	
+	<script>
+
+        var timer, lastPunct = false, punct = [46, 33, 58, 63, 47, 45, 190, 171, 49], timeoutPunct = 500, timeoutOther = 1000;
+        var q = document.getElementById("q");
+        function timeout (event) {
+            if(lastPunct && event.keyCode === 32 || event.keyCode === 13) {
+                // Don't override the short timeout for simple space-after-punctuation
+                return;
+            }
+
+            if(timer && document.getElementById("instant").checked) {
+                clearTimeout(timer);
+            }
+            
+            var timeout;
+
+            if (punct.indexOf(event.keyCode) !== -1) {
+                timeout = timeoutPunct;
+                lastPunct = true;
+            }
+            else {
+                timeout = timeoutOther;
+                lastPunct = false;
+            }
+
+            timer = setTimeout(function () {
+                if(document.getElementById("instant").checked) {
+                    sendRequest();
+                }
+            }, timeout);            
+        }
+        var query = document.getElementById("q");
+        q.addEventListener("keyup", timeout);
+        q.addEventListener("paste", timeout);
+        
+
+
+
+
+    </script>
 	</body>
 </html>
