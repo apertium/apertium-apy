@@ -30,6 +30,9 @@ try:
 except:
     cld2 = None
 
+RECAPTCHA_VERIFICATION_URL = 'https://www.google.com/recaptcha/api/siteverify'
+
+
 def run_async_thread(func):
     @wraps(func)
     def async_func(*args, **kwargs):
@@ -626,6 +629,7 @@ class SuggestionHandler(BaseHandler):
     wiki_session = None
     wiki_edit_token = None
     SUGGEST_URL = None
+    recaptcha_secret = None
 
     @gen.coroutine
     def get(self):
@@ -637,12 +641,36 @@ class SuggestionHandler(BaseHandler):
         word = self.get_argument('word', None)
         newWord = self.get_argument('newWord', None)
         langpair = self.get_argument('langpair', None)
+        recap = self.get_argument('g-recaptcha-response', None)
 
-        if not all([context, word, newWord, langpair]):
-            self.send_error(400, explanation='Context, word, langpair and newWord required')
+        if not all([context, word, newWord, langpair, recap]):
+            self.send_error(400, explanation='All arguments were not provided')
             return
 
         logging.info("Suggestion (%s): Context is %s \n Word: %s ; New Word: %s " % (langpair, context, word, newWord))
+        logging.info('Now verifying ReCAPTCHA.')
+
+        if not self.recaptcha_secret:
+            logging.error('No ReCAPTCHA secret provided!')
+            self.send_error(400, explanation='Server not configured correctly for suggestions')
+            return
+
+        # for nginx or when behind a proxy
+        x_real_ip = self.request.headers.get("X-Real-IP")
+        user_ip = x_real_ip or self.request.remote_ip
+        payload = {
+            'secret': self.recaptcha_secret,
+            'response': recap,
+            'remoteip': user_ip
+        }
+        recapRequest = self.wiki_session.post(RECAPTCHA_VERIFICATION_URL,
+                                              data=payload)
+        if recapRequest.json()['success']:
+            logging.info('ReCAPTCHA verified, adding data to wiki')
+        else:
+            logging.info('ReCAPTCHA verification failed, stopping')
+            self.send_error(400, explanation='ReCAPTCHA verification failed')
+            return
 
         from util import addSuggestion
         data = {
@@ -770,6 +798,7 @@ if __name__ == '__main__':
     parser.add_argument('-wu', '--wiki-username', help="Apertium Wiki account username for SuggestionHandler", default=None)
     parser.add_argument('-wd', '--wiki-url', help="Apertium Wiki page to send data to for SuggestionHandler", default='User:Svineet')
     # Change default for this ^
+    parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA Secret for suggestion validation", default=None)
     args = parser.parse_args()
 
     if args.daemon:
@@ -814,7 +843,7 @@ if __name__ == '__main__':
         (r'/identifyLang', IdentifyLangHandler),
         (r'/getLocale', GetLocaleHandler),
         (r'/pipedebug', PipeDebugHandler),
-        # (r'/suggest', SuggestionHandler)
+        (r'/suggest', SuggestionHandler)
     ])
 
     if all([args.wiki_username, args.wiki_password, args.wiki_url]):
@@ -830,6 +859,7 @@ if __name__ == '__main__':
         if requestsImported:
             from wiki_util import wikiLogin, wikiGetToken
             SuggestionHandler.SUGGEST_URL = args.wiki_url
+            SuggestionHandler.recaptcha_secret = args.recaptcha_secret
             SuggestionHandler.wiki_session = requests.Session()
             SuggestionHandler.auth_token = wikiLogin(
                 SuggestionHandler.wiki_session,
