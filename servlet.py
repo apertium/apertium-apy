@@ -632,11 +632,11 @@ class SuggestionHandler(BaseHandler):
     recaptcha_secret = None
 
     @gen.coroutine
-    def get(self):
-        self.send_error(405, explanation='GET request not supported')
+    def post(self):
+        self.send_error(405, explanation='POST request not supported')
 
     @gen.coroutine
-    def post(self):
+    def get(self):
         context = self.get_argument('context', None)
         word = self.get_argument('word', None)
         newWord = self.get_argument('newWord', None)
