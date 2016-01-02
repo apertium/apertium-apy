@@ -632,18 +632,26 @@ class SuggestionHandler(BaseHandler):
     recaptcha_secret = None
 
     @gen.coroutine
-    def post(self):
-        self.send_error(405, explanation='POST request not supported')
+    def get(self):
+        self.send_error(405, explanation='GET request not supported')
 
     @gen.coroutine
-    def get(self):
+    def post(self):
         context = self.get_argument('context', None)
         word = self.get_argument('word', None)
         newWord = self.get_argument('newWord', None)
         langpair = self.get_argument('langpair', None)
         recap = self.get_argument('g-recaptcha-response', None)
 
-        if not all([context, word, newWord, langpair, recap]):
+        if not newWord:
+            self.send_error(400, explanation='A suggestion is required')
+            return
+
+        if not recap:
+            self.send_error(400, explanation='The ReCAPTCHA is required')
+            return
+
+        if not all([context, word, langpair, newWord, recap]):
             self.send_error(400, explanation='All arguments were not provided')
             return
 
@@ -690,7 +698,23 @@ class SuggestionHandler(BaseHandler):
                 'responseStatus': 200
             })
         else:
-            self.send_error(400, explanation='Page update failed')
+            logging.info('Page update failed, trying to get new edit token')
+            self.wiki_edit_token = wikiGetToken(
+                SuggestionHandler.wiki_session, 'edit', 'info|revisions')
+            logging.info('Obtained new edit token. Trying page update again.')
+            result = addSuggestion(self.wiki_session,
+                                   self.SUGGEST_URL, self.wiki_edit_token,
+                                   data)
+            if result:
+                self.sendResponse({
+                    'responseData': {
+                        'status': 'Success'
+                    },
+                    'responseDetails': None,
+                    'responseStatus': 200
+                })
+            else:
+                self.send_error(400, explanation='Page update failed')
 
 
 class PipeDebugHandler(BaseHandler):

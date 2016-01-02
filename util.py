@@ -271,10 +271,13 @@ def addSuggestion(s, SUGGEST_URL, editToken, data):
     content = wikiAddText(content, data)
     editResult = wikiEditPage(s, SUGGEST_URL, content, editToken)
 
-    if editResult['edit']['result'] == 'Success':
-        logging.info('Update of page %s' % (SUGGEST_URL))
-        return True
-    else:
-        logging.error('Update of page %s failed: %s' % (SUGGEST_URL,
-                                                        editResult))
+    try:
+        if editResult['edit']['result'] == 'Success':
+            logging.info('Update of page %s' % (SUGGEST_URL))
+            return True
+        else:
+            logging.error('Update of page %s failed: %s' % (SUGGEST_URL,
+                                                            editResult))
+            return False
+    except KeyError:
         return False
