@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+# -*- encoding: utf-8 -*-
 # -*- indent-tabs-mode: nil -*-
 # coding=utf-8
-# -*- encoding: utf-8 -*-
 
 import sys, os, re, ssl, argparse, logging, time, signal, tempfile, zipfile
 from subprocess import Popen, PIPE
@@ -696,8 +696,7 @@ def sanity_check():
     u8 = re.compile("UTF-?8", re.IGNORECASE)
     if not any(re.search(u8, os.environ.get(key, ""))
                for key in locale_vars):
-        print("servlet.py: error: APY needs a UTF-8 locale, please set LANG or LC_ALL",
-              file=sys.stderr)
+        print >>sys.stderr, "servlet.py: error: APY needs a UTF-8 locale, please set LANG or LC_ALL"
         sys.exit(1)
 
 if __name__ == '__main__':

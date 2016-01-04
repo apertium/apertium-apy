@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 import re, os, tempfile
 from subprocess import Popen, PIPE
 from tornado import gen
@@ -61,7 +62,8 @@ class FlushingPipeline(Pipeline):
         with self.use():
             all_split = splitForTranslation(toTranslate, n_users=self.users)
             parts = yield [translateNULFlush(part, self) for part in all_split]
-            return "".join(parts)
+            yield "".join(parts)
+            return
 
 class SimplePipeline(Pipeline):
     def __init__(self, commands, *args, **kwargs):
@@ -73,7 +75,8 @@ class SimplePipeline(Pipeline):
         with self.use():
             with (yield self.lock.acquire()):
                 res = yield translateSimple(toTranslate, self.commands)
-                return res
+                yield res
+                return
 
 
 ParsedModes = namedtuple('ParsedModes', 'do_flush commands')
@@ -216,7 +219,8 @@ def translateNULFlush(toTranslate, pipeline):
 
         proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
         proc_reformat.stdin.write(output)
-        return proc_reformat.communicate()[0].decode('utf-8')
+        yield proc_reformat.communicate()[0].decode('utf-8')
+        return
 
 
 def translateWithoutFlush(toTranslate, proc_in, proc_out):
@@ -279,7 +283,8 @@ def translateSimple(toTranslate, commands):
     proc_in.stdin.close()
     translated = yield gen.Task(proc_out.stdout.read_until_close)
     proc_in.stdout.close()
-    return translated.decode('utf-8')
+    yield translated.decode('utf-8')
+    return
 
 def translateDoc(fileToTranslate, fmt, modeFile):
     modesdir = os.path.dirname(os.path.dirname(modeFile))
