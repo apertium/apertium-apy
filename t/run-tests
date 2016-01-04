@@ -87,11 +87,11 @@ ensure_installed () {
             ;;
         generate)
             curl -s "http://localhost:${PORT}/list?q=generators" \
-                | jq -e  ".[]|index(\"${mode}\")" &>/dev/null
+                | jq -e  "has(\"${mode}\")" &>/dev/null
             ;;
         analyse)
             curl -s "http://localhost:${PORT}/list?q=analysers" \
-                | jq -e  ".[]|index(\"${mode}\")" &>/dev/null
+                | jq -e  "has(\"${mode}\")" &>/dev/null
             ;;
     esac
 }
