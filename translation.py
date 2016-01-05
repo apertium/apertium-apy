@@ -11,6 +11,7 @@ from select import PIPE_BUF
 from contextlib import contextmanager
 from collections import namedtuple
 from time import time
+import platform
 
 class Pipeline(object):
     def __init__(self):
@@ -61,8 +62,14 @@ class FlushingPipeline(Pipeline):
         with self.use():
             all_split = splitForTranslation(toTranslate, n_users=self.users)
             parts = yield [translateNULFlush(part, self) for part in all_split]
-            return "".join(parts)
-
+        try:
+            exec('return "".join(parts)')         
+        except SyntaxError:
+            yield "".join(parts)
+            return
+                    
+            
+            
 class SimplePipeline(Pipeline):
     def __init__(self, commands, *args, **kwargs):
         self.commands = commands
@@ -73,8 +80,13 @@ class SimplePipeline(Pipeline):
         with self.use():
             with (yield self.lock.acquire()):
                 res = yield translateSimple(toTranslate, self.commands)
-                return res
-
+            try:
+                exec('return res')           
+            except SyntaxError:
+                yield res
+                return
+                        
+           
 
 ParsedModes = namedtuple('ParsedModes', 'do_flush commands')
 
@@ -185,7 +197,7 @@ def preferPunctBreak(string, last, hardbreak):
 def splitForTranslation(toTranslate, n_users):
     """Splitting it up a bit ensures we don't fill up FIFO buffers (leads
     to processes hanging on read/write)."""
-    allSplit = []	# [].append and join faster than str +=
+    allSplit = [] # [].append and join faster than str +=
     last=0
     rounds=0
     while last < len(toTranslate) and rounds<10:
@@ -216,7 +228,13 @@ def translateNULFlush(toTranslate, pipeline):
 
         proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
         proc_reformat.stdin.write(output)
-        return proc_reformat.communicate()[0].decode('utf-8')
+    try:
+        exec('return proc_reformat.communicate()[0].decode("utf-8")')      
+    except SyntaxError:
+        yield proc_reformat.communicate()[0].decode('utf-8')
+        return
+                
+        
 
 
 def translateWithoutFlush(toTranslate, proc_in, proc_out):
@@ -236,7 +254,13 @@ def translateWithoutFlush(toTranslate, proc_in, proc_out):
 
     proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
     proc_reformat.stdin.write(b"".join(output))
-    return proc_reformat.communicate()[0].decode('utf-8')
+    try:
+        exec('return proc_reformat.communicate()[0].decode("utf-8")')            
+    except SyntaxError:
+        yield proc_reformat.communicate()[0].decode('utf-8')
+        return
+                
+    
 
 @gen.coroutine
 def translatePipeline(toTranslate, commands):
@@ -279,7 +303,12 @@ def translateSimple(toTranslate, commands):
     proc_in.stdin.close()
     translated = yield gen.Task(proc_out.stdout.read_until_close)
     proc_in.stdout.close()
-    return translated.decode('utf-8')
+    try:
+        exec('return translated.decode("utf-8")')
+    except SyntaxError:
+        yield translated.decode('utf-8')
+        return 
+
 
 def translateDoc(fileToTranslate, fmt, modeFile):
     modesdir = os.path.dirname(os.path.dirname(modeFile))
