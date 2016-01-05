@@ -131,6 +131,7 @@ def parseModeFile(mode_path):
 
 def upToBytes(string, max_bytes):
     """Find the unicode string length of the first up-to-max_bytes bytes.
+    
     At least it's much faster than going through the string adding
     bytes of each char.
     """
