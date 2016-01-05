@@ -11,7 +11,6 @@ from select import PIPE_BUF
 from contextlib import contextmanager
 from collections import namedtuple
 from time import time
-import platform
 
 class Pipeline(object):
     def __init__(self):
@@ -62,14 +61,8 @@ class FlushingPipeline(Pipeline):
         with self.use():
             all_split = splitForTranslation(toTranslate, n_users=self.users)
             parts = yield [translateNULFlush(part, self) for part in all_split]
-        try:
-            exec('return "".join(parts)')         
-        except SyntaxError:
-            yield "".join(parts)
-            return
-                    
-            
-            
+            raise StopIteration("".join(parts))
+
 class SimplePipeline(Pipeline):
     def __init__(self, commands, *args, **kwargs):
         self.commands = commands
@@ -80,13 +73,8 @@ class SimplePipeline(Pipeline):
         with self.use():
             with (yield self.lock.acquire()):
                 res = yield translateSimple(toTranslate, self.commands)
-            try:
-                exec('return res')           
-            except SyntaxError:
-                yield res
-                return
-                        
-           
+                raise StopIteration(res)
+
 
 ParsedModes = namedtuple('ParsedModes', 'do_flush commands')
 
@@ -143,10 +131,8 @@ def parseModeFile(mode_path):
 
 def upToBytes(string, max_bytes):
     """Find the unicode string length of the first up-to-max_bytes bytes.
-
     At least it's much faster than going through the string adding
     bytes of each char.
-
     """
     b = bytes(string,'utf-8')
     l = max_bytes
@@ -162,9 +148,7 @@ def hardbreakFn(string, n_users):
     """If others are queueing up to translate at the same time, we send
     short requests, otherwise we try to minimise the number of
     requests, but without letting buffers fill up.
-
     These numbers could probably be tweaked a lot.
-
     """
     if n_users > 2:
         return 1000
@@ -175,7 +159,6 @@ def preferPunctBreak(string, last, hardbreak):
     """We would prefer to split on a period or space seen before the
     hardbreak, if we can. If the remaining string is smaller or equal
     than the hardbreak, return end of the string
-
     """
 
     if(len(string[last:])<= hardbreak):
@@ -197,7 +180,7 @@ def preferPunctBreak(string, last, hardbreak):
 def splitForTranslation(toTranslate, n_users):
     """Splitting it up a bit ensures we don't fill up FIFO buffers (leads
     to processes hanging on read/write)."""
-    allSplit = [] # [].append and join faster than str +=
+    allSplit = []	# [].append and join faster than str +=
     last=0
     rounds=0
     while last < len(toTranslate) and rounds<10:
@@ -228,13 +211,7 @@ def translateNULFlush(toTranslate, pipeline):
 
         proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
         proc_reformat.stdin.write(output)
-    try:
-        exec('return proc_reformat.communicate()[0].decode("utf-8")')      
-    except SyntaxError:
-        yield proc_reformat.communicate()[0].decode('utf-8')
-        return
-                
-        
+        raise StopIteration(proc_reformat.communicate()[0].decode('utf-8'))
 
 
 def translateWithoutFlush(toTranslate, proc_in, proc_out):
@@ -254,13 +231,7 @@ def translateWithoutFlush(toTranslate, proc_in, proc_out):
 
     proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
     proc_reformat.stdin.write(b"".join(output))
-    try:
-        exec('return proc_reformat.communicate()[0].decode("utf-8")')            
-    except SyntaxError:
-        yield proc_reformat.communicate()[0].decode('utf-8')
-        return
-                
-    
+    raise StopIteration(proc_reformat.communicate()[0].decode('utf-8'))
 
 @gen.coroutine
 def translatePipeline(toTranslate, commands):
@@ -303,12 +274,7 @@ def translateSimple(toTranslate, commands):
     proc_in.stdin.close()
     translated = yield gen.Task(proc_out.stdout.read_until_close)
     proc_in.stdout.close()
-    try:
-        exec('return translated.decode("utf-8")')
-    except SyntaxError:
-        yield translated.decode('utf-8')
-        return 
-
+    raise StopIteration(translated.decode('utf-8'))
 
 def translateDoc(fileToTranslate, fmt, modeFile):
     modesdir = os.path.dirname(os.path.dirname(modeFile))
