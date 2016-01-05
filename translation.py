@@ -134,6 +134,7 @@ def upToBytes(string, max_bytes):
     
     At least it's much faster than going through the string adding
     bytes of each char.
+    
     """
     b = bytes(string,'utf-8')
     l = max_bytes
@@ -149,7 +150,9 @@ def hardbreakFn(string, n_users):
     """If others are queueing up to translate at the same time, we send
     short requests, otherwise we try to minimise the number of
     requests, but without letting buffers fill up.
+    
     These numbers could probably be tweaked a lot.
+    
     """
     if n_users > 2:
         return 1000
@@ -160,6 +163,7 @@ def preferPunctBreak(string, last, hardbreak):
     """We would prefer to split on a period or space seen before the
     hardbreak, if we can. If the remaining string is smaller or equal
     than the hardbreak, return end of the string
+    
     """
 
     if(len(string[last:])<= hardbreak):
