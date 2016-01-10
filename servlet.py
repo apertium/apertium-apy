@@ -10,6 +10,7 @@ from functools import wraps
 from threading import Thread
 from datetime import datetime
 import heapq
+import configparser
 
 import tornado, tornado.web, tornado.httpserver, tornado.process, tornado.iostream
 from tornado import escape, gen
@@ -722,7 +723,52 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbosity', help='logging verbosity', type=int, default=0)
     parser.add_argument('-S', '--scalemt-logs', help='generates ScaleMT-like logs; use with --log-path; disables', action='store_true')
     parser.add_argument('-M', '--unknown-memory-limit', help="keeps unknown words in memory until a limit is reached", type=int, default=0)
+    parser.add_argument('-C', '--config', help="Configuration file to load options from", default=None)
     args = parser.parse_args()
+
+    logging.getLogger().setLevel(logging.INFO)
+    enable_pretty_logging()
+
+    if args.config:
+        conf = configparser.ConfigParser()
+        conf.read(args.config)
+
+        if not os.path.isfile(args.config):
+            logging.warning('Configuration file does not exist,'
+                            ' please see http://wiki.apertium.org/'
+                            'wiki/Apy#Configuration for more information')
+        elif 'APY' not in conf:
+            logging.warning('Configuration file does not have APY section,'
+                            ' please see http://wiki.apertium.org/'
+                            'wiki/Apy#Configuration for more information')
+        else:
+            apySection = conf['APY']
+            for (name, value) in vars(args).items():
+                if name in apySection:
+                    # Get default from private variables of argparse
+                    # and type of argument for typecasting later
+                    default = None
+                    for action in parser._actions:
+                        if action.dest == name:
+                            default = action.default
+
+                    # Try typecasting string to type of argparse argument
+                    fn = type(value)
+                    res = None
+                    try:
+                        if fn is type(None):
+                            if apySection[name] == 'None':
+                                res = None
+                            else:
+                                res = apySection[name]
+                        else:
+                            res = fn(apySection[name])
+                    except ValueError:
+                        pass
+
+                    # only override is value (argument) is default
+                    if res is not None and value == default:
+                        setattr(args, name, res)
 
     if args.daemon:
         # regular content logs are output stderr
@@ -730,9 +776,6 @@ if __name__ == '__main__':
         # hence swapping the filenames?
         sys.stderr = open(os.path.join(args.log_path, 'apertium-apy.log'), 'a+')
         sys.stdout = open(os.path.join(args.log_path, 'apertium-apy.err'), 'a+')
-
-    logging.getLogger().setLevel(logging.INFO)
-    enable_pretty_logging()
 
     if args.scalemt_logs:
         logger = logging.getLogger('scale-mt')
