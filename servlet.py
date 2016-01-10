@@ -720,6 +720,13 @@ def apply_config(args, apySection):
                         res = None
                     else:
                         res = apySection[name]
+                elif fn is bool:
+                    if apySection[name] == "False":
+                        res = False
+                    elif apySection[name] == "True":
+                        res = True
+                    else:
+                        res = bool(apySection[name])
                 else:
                     res = fn(apySection[name])
             except ValueError:
