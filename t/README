@@ -1,0 +1,18 @@
+The tests require some test data.
+
+To install the test data on Debian-based systems, first install core
+tools as show at http://wiki.apertium.org/wiki/Debian and then do
+
+    sudo apt-get install apertium-sme-nob apertium-es-en
+    mkdir ~/apy-testdata
+    cd ~/apy-testdata
+    svn co https://svn.code.sf.net/p/apertium/svn/languages/apertium-nno
+    cd apertium-nno
+    ./autogen.sh
+    make -j4
+
+Now go back to the apy directory, and do
+
+    NONPAIRS=~/apy-testdata t/run-tests
+
+to run the tests.

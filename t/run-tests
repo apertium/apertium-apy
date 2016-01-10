@@ -3,24 +3,34 @@
 ### Put e.g. in
 #
 # #!/bin/sh
-# t/run-tests
+# NONPAIRS=/path/to/apertium-nno t/run-tests
 #
 ### in your .git/hooks/pre-commit and chmod +x .git/hooks/pre-commit
 ###
 ### Optional first argument is a free port number to use.
 
-# Tests (TODO: get these from a file instead):
+### Tests (TODO: get these from a file instead):
 declare -ar INPUTS=(  "government" "ja"        "ikkje"            "ja<ij>"   "^ja<ij>$")
 declare -ar OUTPUTS=( "Gobierno"   "og"        "ikkje/ikkje<adv>" "ja"       "ja")
 declare -ar MODES=(   "eng|spa"    "sme|nob"   "nno"              "nno"      "nno")
 declare -ar TYPES=(   "translate"  "translate" "analyse"          "generate" "generate")
 
-# Paths to apertium data:
-declare -r INSTALLEDPAIRS=/usr/local/share/apertium
-declare -r NONPAIRS=/l/a/languages
+### Paths to apertium test data:
+### The tests assume you have apertium-sme-nob and apertium-en-es
+### installed, and apertium-nno checked out from SVN and compiled and
+### available from INSTALLEDPAIRS and NONPAIRS directories
+### respectively:
+declare -r INSTALLEDPAIRS=${INSTALLEDPAIRS:-/usr/share/apertium}
+declare -r NONPAIRS=${NONPAIRS:-/l/a/languages}
+### You don't have to change these variables here, instead run the
+### script like this:
+# $ NONPAIRS=/path/to/apertium-nno t/run-tests
+### to set the path to apertium-nno before running, or
+# $ NONPAIRS=/path/to/apertium-nno INSTALLEDPAIRS=~/local t/run-tests
+### to set both paths before running.
 
 
-### Shouldn't have to change anything below.
+### Actual script follows:
 set -e -u -o pipefail
 
 PORT="${1:-2737}"
@@ -67,9 +77,28 @@ extract_response () {
 
 }
 
+ensure_installed () {
+    local -r mode=$1
+    local -r type=$2
+    case ${type} in
+        translate)
+            curl -s "http://localhost:${PORT}/list?q=pairs" \
+                | jq -e ".responseData|map(.sourceLanguage+\"|\"+.targetLanguage)|index(\"$mode\")" &>/dev/null
+            ;;
+        generate)
+            curl -s "http://localhost:${PORT}/list?q=generators" \
+                | jq -e  "has(\"${mode}\")" &>/dev/null
+            ;;
+        analyse)
+            curl -s "http://localhost:${PORT}/list?q=analysers" \
+                | jq -e  "has(\"${mode}\")" &>/dev/null
+            ;;
+    esac
+}
 
 run_tests () {
     local -i failures=0
+
     for (( i=0; i<${#INPUTS[@]}; i++ )); do
         local in=${INPUTS[$i]}
         local mode=${MODES[$i]}
@@ -77,6 +106,16 @@ run_tests () {
         local url="http://localhost:${PORT}/${type}?lang=${mode}&q=${in}"
         if [[ ${type} = translate ]]; then
             url="http://localhost:${PORT}/translate?langpair=${mode}&q=${in}"
+        fi
+        if ! ensure_installed "${mode}" "${type}"; then
+            cat <<EOF
+[1;31m❌[00m TEST FAILED FOR ${mode} ${type}
+It seems like ${mode} (${type}) is not installed; install ${mode} and
+set NONPAIRS/INSTALLEDPAIRS variables before running this script.
+
+EOF
+            (( failures++ )) || true
+            continue
         fi
         local got=$(curl -s "${url}" | extract_response "${type}")
         local want=${OUTPUTS[$i]}
@@ -91,6 +130,7 @@ EOF
             (( failures++ )) || true
         fi
     done
+
     if [[ ${failures} -eq 0 ]]; then
         cat <<EOF
 ${CHECK} All $i tests passed
@@ -103,6 +143,11 @@ EOF
     fi
     return 0
 }
+
+
+if ! command -V jq &>/dev/null; then
+    echo "Please install jq, e.g. 'sudo apt-get install jq'" 2>/dev/null
+fi
 
 if netstat -lnt|awk "\$4~/:${PORT}\$/"|grep -q .; then
     lsof -i :"${PORT}"
