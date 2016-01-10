@@ -39,6 +39,7 @@ import tornado.iostream
 from tornado import httpclient
 from tornado import gen
 from tornado import escape
+import configparser
 from tornado.escape import utf8
 try:  # 3.1
     from tornado.log import enable_pretty_logging
@@ -1304,6 +1305,40 @@ def sanity_check():
         sys.exit(1)
 
 
+def apply_config(args, apySection):
+    for (name, value) in vars(args).items():
+        if name in apySection:
+            # Get default from private variables of argparse
+            default = None
+            for action in parser._actions:
+                if action.dest == name:
+                    default = action.default
+
+            # Try typecasting string to type of argparse argument
+            fn = type(value)
+            res = None
+            try:
+                if fn is type(None):
+                    if apySection[name] == 'None':
+                        res = None
+                    else:
+                        res = apySection[name]
+                elif fn is bool:
+                    if apySection[name] == "False":
+                        res = False
+                    elif apySection[name] == "True":
+                        res = True
+                    else:
+                        res = bool(apySection[name])
+                else:
+                    res = fn(apySection[name])
+            except ValueError:
+                pass
+
+            # only override is value (argument) is default
+            if res is not None and value == default:
+                setattr(args, name, res)
+
 if __name__ == '__main__':
     sanity_check()
     parser = argparse.ArgumentParser(description='Apertium APY -- API server for machine translation and language analysis')
@@ -1345,7 +1380,28 @@ if __name__ == '__main__':
     parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA secret for suggestion validation", default=None)
     parser.add_argument('-md', '--max-doc-pipes',
                         help='how many concurrent document translation pipelines we allow (default = 3)', type=int, default=3)
+    parser.add_argument('-C', '--config', help="Configuration file to load options from", default=None)
     args = parser.parse_args()
+
+    logging.getLogger().setLevel(logging.INFO)
+    enable_pretty_logging()
+
+    if args.config:
+        conf = configparser.ConfigParser()
+        conf.read(args.config)
+
+        if not os.path.isfile(args.config):
+            logging.warning('Configuration file does not exist,'
+                            ' please see http://wiki.apertium.org/'
+                            'wiki/Apy#Configuration for more information')
+        elif 'APY' not in conf:
+            logging.warning('Configuration file does not have APY section,'
+                            ' please see http://wiki.apertium.org/'
+                            'wiki/Apy#Configuration for more information')
+        else:
+            logging.info('Using configuration file '+args.config)
+            apySection = conf['APY']
+            apply_config(args, apySection)
 
     if args.daemon:
         # regular content logs are output stderr
@@ -1353,9 +1409,6 @@ if __name__ == '__main__':
         # hence swapping the filenames?
         sys.stderr = open(os.path.join(args.log_path, 'apertium-apy.log'), 'a+')
         sys.stdout = open(os.path.join(args.log_path, 'apertium-apy.err'), 'a+')
-
-    logging.getLogger().setLevel(logging.INFO)
-    enable_pretty_logging()
 
     if args.scalemt_logs:
         logger = logging.getLogger('scale-mt')
