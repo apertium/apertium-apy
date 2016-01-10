@@ -723,7 +723,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbosity', help='logging verbosity', type=int, default=0)
     parser.add_argument('-S', '--scalemt-logs', help='generates ScaleMT-like logs; use with --log-path; disables', action='store_true')
     parser.add_argument('-M', '--unknown-memory-limit', help="keeps unknown words in memory until a limit is reached", type=int, default=0)
-    parser.add_argument('-co', '--config', help="Configuration file to load options from", default=None)
+    parser.add_argument('-C', '--config', help="Configuration file to load options from", default=None)
     args = parser.parse_args()
 
     logging.getLogger().setLevel(logging.INFO)
