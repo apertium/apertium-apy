@@ -16,6 +16,7 @@ tests = {
     "urd-hin": ("تحریر ہیں", "लेख हैं"),
     "afr-nld": ("ek", "ik"),
     "ara-mlt": ("و", "u"),
+    "ara-mlt_translit": ("و", "u"),
     "arg-spa": ("e", "es"),
     "spa-arg": ("la", "a"),
     "ast-spa": ("nin", "ni"),
