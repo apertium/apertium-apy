@@ -1,0 +1,5 @@
+See http://wiki.apertium.org/wiki/Apertium-apy
+
+#+CAPTION: Build Status
+[[https://travis-ci.org/goavki/apertium-apy.svg]]
+
