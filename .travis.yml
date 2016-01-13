@@ -1,3 +1,15 @@
+language: python
+
+python:
+    - "3.2"
+    - "3.3"
+    - "3.4"
+    - "3.5"
+    - "3.5-dev"
+    - "nightly"
+
+install: pip3 install --user tornado
+
 before_script:
     - wget http://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
     - sudo apt-get -f install apertium-all-dev
@@ -7,4 +19,4 @@ before_script:
 
 script:
     - NONPAIRS=/tmp/languages t/run-tests
-  
+
