@@ -329,6 +329,27 @@ class TranslateHandler(BaseHandler):
                 after = datetime.now()
                 scaleMtLog(400, after-before, tInfo, key, len(toTranslate))
 
+class TranslatePageHandler(TranslateHandler):
+    @tornado.web.asynchronous
+    def get(self):
+        try:
+            l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
+        except ValueError:
+            self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
+        if '%s-%s' % (l1, l2) in self.pairs:
+            url = self.get_argument('url')
+            logging.info(self.pairs['%s-%s' % (l1, l2)])
+            self.sendResponse({
+                'responseData': {
+                    'translatedPage': translation.translatePage(url, self.pairs['%s-%s' % (l1, l2)]).decode('utf-8')
+                },
+                'responseDetails': None,
+                'responseStatus': 200
+            })
+        else:
+            self.send_error(400, explanation='That pair is not installed')
+
+                
 class TranslateDocHandler(TranslateHandler):
     mimeTypeCommand = None
 

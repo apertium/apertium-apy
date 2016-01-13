@@ -287,3 +287,17 @@ def translateDoc(fileToTranslate, fmt, modeFile):
     mode = os.path.splitext(os.path.basename(modeFile))[0]
     return Popen(['apertium', '-f', fmt, '-d', modesdir, mode],
                  stdin=fileToTranslate, stdout=PIPE).communicate()[0]
+
+def translatePage(url, modeFile):
+    modesdir = os.path.dirname(os.path.dirname(modeFile))
+    mode = os.path.splitext(os.path.basename(modeFile))[0]
+    response = urllib.request.urlopen(url)
+    text = response.read().decode('utf-8')
+    
+    
+    text = text.replace('href="/',  'href="{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(url)))
+    text = re.sub(r'a([^>]+)href=[\'"]?([^\'" >]+)', 'a \\1 href="#" onclick=\'window.parent.translateLink("\\2");\'', text)
+    logging.info(text)
+    return Popen(['apertium', '-f', 'html', '-d', modesdir, mode],
+                 stdin=PIPE, stdout=PIPE).communicate(text.encode('utf-8'))[0]
+
