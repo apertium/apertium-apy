@@ -11,6 +11,13 @@ from select import PIPE_BUF
 from contextlib import contextmanager
 from collections import namedtuple
 from time import time
+from sys import version_info
+
+# Python 3.3 introduced the possibility of returning value from
+# generators, previously only possible with "raise
+# StopIteration(value)"; Python3.5 removed the ability to raise
+# StopIteration in a generator:
+NO_RETURN_FROM_GEN = bool(version_info.minor < 3)
 
 class Pipeline(object):
     def __init__(self):
@@ -62,7 +69,11 @@ class FlushingPipeline(Pipeline):
             all_split = splitForTranslation(toTranslate, n_users=self.users)
             parts = yield [translateNULFlush(part, self) for part in all_split]
             # Equivalent to "return foo" in 3.3, but also works under 3.2:
-            raise StopIteration("".join(parts))
+            retval = "".join(parts)
+            if NO_RETURN_FROM_GEN:
+                raise StopIteration(retval)
+            else:
+                return retval
 
 class SimplePipeline(Pipeline):
     def __init__(self, commands, *args, **kwargs):
@@ -73,8 +84,11 @@ class SimplePipeline(Pipeline):
     def translate(self, toTranslate):
         with self.use():
             with (yield self.lock.acquire()):
-                res = yield translateSimple(toTranslate, self.commands)
-                raise StopIteration(res)
+                retval = yield translateSimple(toTranslate, self.commands)
+                if NO_RETURN_FROM_GEN:
+                    raise StopIteration(res)
+                else:
+                    return retval
 
 
 ParsedModes = namedtuple('ParsedModes', 'do_flush commands')
@@ -217,7 +231,11 @@ def translateNULFlush(toTranslate, pipeline):
 
         proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
         proc_reformat.stdin.write(output)
-        raise StopIteration(proc_reformat.communicate()[0].decode('utf-8'))
+        retval = proc_reformat.communicate()[0].decode('utf-8')
+        if NO_RETURN_FROM_GEN:
+            raise StopIteration(retval)
+        else:
+            return retval
 
 
 def translateWithoutFlush(toTranslate, proc_in, proc_out):
@@ -237,7 +255,11 @@ def translateWithoutFlush(toTranslate, proc_in, proc_out):
 
     proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
     proc_reformat.stdin.write(b"".join(output))
-    raise StopIteration(proc_reformat.communicate()[0].decode('utf-8'))
+    retval = proc_reformat.communicate()[0].decode('utf-8')
+    if NO_RETURN_FROM_GEN:
+        raise StopIteration(retval)
+    else:
+        return retval
 
 @gen.coroutine
 def translatePipeline(toTranslate, commands):
@@ -280,7 +302,11 @@ def translateSimple(toTranslate, commands):
     proc_in.stdin.close()
     translated = yield gen.Task(proc_out.stdout.read_until_close)
     proc_in.stdout.close()
-    raise StopIteration(translated.decode('utf-8'))
+    retval = translated.decode('utf-8')
+    if NO_RETURN_FROM_GEN:
+        raise StopIteration(retval)
+    else:
+        return retval
 
 def translateDoc(fileToTranslate, fmt, modeFile):
     modesdir = os.path.dirname(os.path.dirname(modeFile))
