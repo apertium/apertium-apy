@@ -21,7 +21,12 @@ except ImportError: #2.1
 
 from modeSearch import searchPath
 from util import getLocalizedLanguages, apertium, bilingualTranslate, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, noteUnknownToken, scaleMtLog, TranslationInfo, closeDb, flushUnknownWords, inMemoryUnknownToken
-import translation
+
+if sys.version_info.minor < 3:
+    import translation_py32 as translation
+else:
+    import translation
+
 import util
 from keys import getKey
 

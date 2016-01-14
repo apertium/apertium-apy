@@ -62,7 +62,7 @@ class FlushingPipeline(Pipeline):
             all_split = splitForTranslation(toTranslate, n_users=self.users)
             parts = yield [translateNULFlush(part, self) for part in all_split]
             # Equivalent to "return foo" in 3.3, but also works under 3.2:
-            return "".join(parts)
+            raise StopIteration("".join(parts))
 
 class SimplePipeline(Pipeline):
     def __init__(self, commands, *args, **kwargs):
@@ -74,7 +74,7 @@ class SimplePipeline(Pipeline):
         with self.use():
             with (yield self.lock.acquire()):
                 res = yield translateSimple(toTranslate, self.commands)
-                return res
+                raise StopIteration(res)
 
 
 ParsedModes = namedtuple('ParsedModes', 'do_flush commands')
@@ -217,7 +217,7 @@ def translateNULFlush(toTranslate, pipeline):
 
         proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
         proc_reformat.stdin.write(output)
-        return proc_reformat.communicate()[0].decode('utf-8')
+        raise StopIteration(proc_reformat.communicate()[0].decode('utf-8'))
 
 
 def translateWithoutFlush(toTranslate, proc_in, proc_out):
@@ -237,7 +237,7 @@ def translateWithoutFlush(toTranslate, proc_in, proc_out):
 
     proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
     proc_reformat.stdin.write(b"".join(output))
-    return proc_reformat.communicate()[0].decode('utf-8')
+    raise StopIteration(proc_reformat.communicate()[0].decode('utf-8'))
 
 @gen.coroutine
 def translatePipeline(toTranslate, commands):
@@ -280,7 +280,7 @@ def translateSimple(toTranslate, commands):
     proc_in.stdin.close()
     translated = yield gen.Task(proc_out.stdout.read_until_close)
     proc_in.stdout.close()
-    return translated.decode('utf-8')
+    raise StopIteration(translated.decode('utf-8'))
 
 def translateDoc(fileToTranslate, fmt, modeFile):
     modesdir = os.path.dirname(os.path.dirname(modeFile))
