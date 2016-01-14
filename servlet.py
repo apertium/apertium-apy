@@ -3,7 +3,7 @@
 # coding=utf-8
 # -*- encoding: utf-8 -*-
 
-import sys, os, re, ssl, argparse, logging, time, signal, tempfile, zipfile
+import sys, os, re, argparse, logging, time, signal, tempfile, zipfile
 from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
 from functools import wraps
@@ -14,13 +14,13 @@ import heapq
 import tornado, tornado.web, tornado.httpserver, tornado.process, tornado.iostream
 from tornado import escape, gen
 from tornado.escape import utf8
-try: #3.1
+try: # 3.1
     from tornado.log import enable_pretty_logging
-except ImportError: #2.1
+except ImportError: # 2.1
     from tornado.options import enable_pretty_logging
 
 from modeSearch import searchPath
-from util import getLocalizedLanguages, apertium, bilingualTranslate, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, noteUnknownToken, scaleMtLog, TranslationInfo, closeDb, flushUnknownWords, inMemoryUnknownToken
+from util import getLocalizedLanguages, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, noteUnknownToken, scaleMtLog, TranslationInfo, closeDb, flushUnknownWords, inMemoryUnknownToken
 
 if sys.version_info.minor < 3:
     import translation_py32 as translation
@@ -35,14 +35,16 @@ try:
 except:
     cld2 = None
 
+
 def run_async_thread(func):
     @wraps(func)
     def async_func(*args, **kwargs):
-        func_hl = Thread(target = func, args = args, kwargs = kwargs)
+        func_hl = Thread(target=func, args=args, kwargs=kwargs)
         func_hl.start()
         return func_hl
 
     return async_func
+
 
 def sig_handler(sig, frame):
     global missingFreqsDb
@@ -51,11 +53,12 @@ def sig_handler(sig, frame):
             for child in frame.f_locals['children']:
                 os.kill(child, signal.SIGTERM)
             flushUnknownWords(missingFreqsDb)
-        else: # we are one of the children
+        else:  # we are one of the children
             flushUnknownWords(missingFreqsDb)
     logging.warning('Caught signal: %s', sig)
     closeDb()
     exit()
+
 
 class BaseHandler(tornado.web.RequestHandler):
     pairs = {}
@@ -157,6 +160,7 @@ class BaseHandler(tornado.web.RequestHandler):
         self.set_status(204)
         self.finish()
 
+
 class ListHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
@@ -179,6 +183,7 @@ class ListHandler(BaseHandler):
         else:
             self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, disambiguators or pairs')
 
+
 class StatsHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
@@ -195,10 +200,12 @@ class StatsHandler(BaseHandler):
             'responseStatus': 200
         })
 
+
 class RootHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
         self.redirect("http://wiki.apertium.org/wiki/Apertium-apy")
+
 
 class TranslateHandler(BaseHandler):
     def notePairUsage(self, pair):
@@ -241,7 +248,7 @@ class TranslateHandler(BaseHandler):
             to_clean = set(p for i, p in enumerate(pipes)
                            if self.cleanable(i, pair, p))
             self.pipelines_holding += to_clean
-            pipes[:] = [p for p in pipes if not p in to_clean]
+            pipes[:] = [p for p in pipes if p not in to_clean]
             heapq.heapify(pipes)
         # The holding area lets us restart pipes after n usages next
         # time round, since with lots of traffic an active pipe may
@@ -267,7 +274,7 @@ class TranslateHandler(BaseHandler):
             min_p = pipes[0]
             if len(pipes) < self.max_pipes_per_pair and min_p.users > self.max_users_per_pipe:
                 logging.info("%s-%s has ≥%d users per pipe but only %d pipes",
-                            l1, l2, min_p.users, len(pipes))
+                             l1, l2, min_p.users, len(pipes))
                 return True
             else:
                 return False
@@ -276,7 +283,7 @@ class TranslateHandler(BaseHandler):
         pair = (l1, l2)
         if self.shouldStartPipe(l1, l2):
             logging.info("Starting up a new pipeline for %s-%s …", l1, l2)
-            if not pair in self.pipelines:
+            if pair not in self.pipelines:
                 self.pipelines[pair] = []
             p = translation.makePipeline(self.getPipeCmds(l1, l2))
             heapq.heappush(self.pipelines[pair], p)
@@ -333,6 +340,7 @@ class TranslateHandler(BaseHandler):
                 key = getKey(tInfo.key)
                 after = datetime.now()
                 scaleMtLog(400, after-before, tInfo, key, len(toTranslate))
+
 
 class TranslateDocHandler(TranslateHandler):
     mimeTypeCommand = None
@@ -413,6 +421,7 @@ class TranslateDocHandler(TranslateHandler):
         else:
             self.send_error(400, explanation='That pair is not installed')
 
+
 class AnalyzeHandler(BaseHandler):
     def postproc_text(self, in_text, result):
         lexical_units = util.removeDotFromDeformat(in_text, re.findall(r'\^([^\$]*)\$([^\^]*)', result))
@@ -462,6 +471,7 @@ class GenerateHandler(BaseHandler):
         else:
             self.send_error(400, explanation='That mode is not installed')
 
+
 class ListLanguageNamesHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
@@ -486,6 +496,7 @@ class ListLanguageNamesHandler(BaseHandler):
                 self.sendResponse(getLocalizedLanguages('en', self.langNames))
         else:
             self.sendResponse({})
+
 
 class PerWordHandler(BaseHandler):
     @tornado.web.asynchronous
@@ -556,6 +567,7 @@ class PerWordHandler(BaseHandler):
         output = yield tornado.gen.Task(worker)
         handleOutput(output)
 
+
 class CoverageHandler(BaseHandler):
     @tornado.web.asynchronous
     @gen.coroutine
@@ -590,6 +602,7 @@ class CoverageHandler(BaseHandler):
         else:
             self.send_error(400, explanation='That mode is not installed')
 
+
 class IdentifyLangHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
@@ -603,7 +616,7 @@ class IdentifyLangHandler(BaseHandler):
                 possibleLangs = filter(lambda x: x[1] != 'un', cldResults[2])
                 self.sendResponse({toAlpha3Code(possibleLang[1]): possibleLang[2] for possibleLang in possibleLangs})
             else:
-                self.sendResponse({'nob': 100}) # TODO: Some more reasonable response
+                self.sendResponse({'nob': 100})  # TODO: Some more reasonable response
         else:
             def handleCoverages(coverages):
                 self.sendResponse(coverages)
@@ -613,9 +626,11 @@ class IdentifyLangHandler(BaseHandler):
             pool.close()
             try:
                 coverages = result.get(timeout=self.timeout)
+                # TODO: Coverages are not actually sent!!
             except TimeoutError:
                 self.send_error(408, explanation='Request timed out')
                 pool.terminate()
+
 
 class GetLocaleHandler(BaseHandler):
     @tornado.web.asynchronous
@@ -625,6 +640,7 @@ class GetLocaleHandler(BaseHandler):
             self.sendResponse(locales)
         else:
             self.send_error(400, explanation='Accept-Language missing from request headers')
+
 
 class PipeDebugHandler(BaseHandler):
 
@@ -654,16 +670,17 @@ class PipeDebugHandler(BaseHandler):
 
         self.sendResponse({
             'responseData': {'output': output, 'pipeline': pipeline},
-           'responseDetails': None,
-           'responseStatus': 200
+            'responseDetails': None,
+            'responseStatus': 200
         })
 
 missingFreqsDb = ''
 
+
 def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeout, max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs, restart_pipe_after, verbosity=0, scaleMtLogs=False, memory=0):
 
     global missingFreqsDb
-    missingFreqsDb= missingFreqs
+    missingFreqsDb = missingFreqs
 
     Handler = BaseHandler
     Handler.langNames = langNames
@@ -695,6 +712,7 @@ def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeo
         Handler.generators[lang_pair] = (dirpath, modename)
     for dirpath, modename, lang_pair in modes['tagger']:
         Handler.taggers[lang_pair] = (dirpath, modename)
+
 
 def sanity_check():
     locale_vars = ["LANG", "LC_ALL"]
@@ -743,7 +761,7 @@ if __name__ == '__main__':
         logger = logging.getLogger('scale-mt')
         logger.propagate = False
         smtlog = os.path.join(args.log_path, 'ScaleMTRequests.log')
-        loggingHandler = logging.handlers.TimedRotatingFileHandler(smtlog,'midnight',0)
+        loggingHandler = logging.handlers.TimedRotatingFileHandler(smtlog, 'midnight', 0)
         loggingHandler.suffix = "%Y-%m-%d"
         logger.addHandler(loggingHandler)
 
@@ -775,7 +793,7 @@ if __name__ == '__main__':
 
     global http_server
     if args.ssl_cert and args.ssl_key:
-        http_server = tornado.httpserver.HTTPServer(application, ssl_options = {
+        http_server = tornado.httpserver.HTTPServer(application, ssl_options={
             'certfile': args.ssl_cert,
             'keyfile': args.ssl_key,
         })
