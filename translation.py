@@ -62,7 +62,8 @@ class FlushingPipeline(Pipeline):
     def translate(self, toTranslate):
         with self.use():
             all_split = splitForTranslation(toTranslate, n_users=self.users)
-            parts = yield [translateNULFlush(part, self) for part in all_split]
+            # parts = yield [translateNULFlush(part, self) for part in all_split]
+            parts = yield [translateNULFlush(toTranslate, self)]
             # Equivalent to "return foo" in 3.3, but also works under 3.2:
             return "".join(parts)
 

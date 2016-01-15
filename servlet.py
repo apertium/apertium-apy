@@ -356,7 +356,6 @@ class TranslatePageHandler(TranslateHandler):
     @gen.coroutine
     def get(self):
 
-        logging.info(self.get_argument('langpair'))
         try:
             l1, l2 = self.get_argument('langpair').split('|')
         except ValueError:
