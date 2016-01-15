@@ -351,9 +351,11 @@ class TranslateHandler(BaseHandler):
 
 
 class TranslatePageHandler(TranslateHandler):
+    
     @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
+
         logging.info(self.get_argument('langpair'))
         try:
             l1, l2 = self.get_argument('langpair').split('|')
@@ -361,9 +363,7 @@ class TranslatePageHandler(TranslateHandler):
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
         if '%s-%s' % (l1, l2) in self.pairs:
 #            mode = "%s-%s" % (l1, l2)
-            modeFile = self.pairs["%s-%s" % (l1, l2)]
-            modesdir = os.path.dirname(os.path.dirname(modeFile))
-            mode = os.path.splitext(os.path.basename(modeFile))[0]
+
             url = self.get_argument('url')
             data = urllib.request.urlopen(url).read()
             if chardet:
@@ -373,21 +373,26 @@ class TranslatePageHandler(TranslateHandler):
             text = data.decode(encoding)   
             text = text.replace('href="/',  'href="{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(url)))
             text = re.sub(r'a([^>]+)href=[\'"]?([^\'" >]+)', 'a \\1 href="#" onclick=\'window.parent.translateLink("\\2");\'', text)
-            logging.info(text)
-            commands = [['apertium', '-d', modesdir, '-f', "html", mode]]
-            logging.info("1")
-            result = yield translation.translateSimple(text, commands)
-            logging.info("2")
-            logging.info(result)
+
+            pipeline = self.getPipeline(l1, l2)
+            translated = yield pipeline.translate(text)
             self.sendResponse({
                 'responseData': {
-                    'translatedPage': result
+                    'translatedPage': translated
                 },
                 'responseDetails': None,
                 'responseStatus': 200
             })
+            self.cleanPairs()
         else:
-            self.send_error(400, explanation='That mode is not installed')
+            self.send_error(400, explanation='That pair is not installed')
+            if self.scaleMtLogs:
+                before = datetime.now()
+                tInfo = TranslationInfo(self)
+                key = getKey(tInfo.key)
+                after = datetime.now()
+                scaleMtLog(400, after-before, tInfo, key, len(toTranslate))
+
 
 class TranslateDocHandler(TranslateHandler):
     mimeTypeCommand = None
