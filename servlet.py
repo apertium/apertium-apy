@@ -34,8 +34,16 @@ try:
     import cld2full as cld2
 except:
     cld2 = None
+    
+try:
+    import chardet
+except:
+    chardet = None
+    logging.info("chardet not found, assuming utf-8 encoding for websites")
 
-
+import urllib.request
+from urllib.parse import urlparse
+    
 def run_async_thread(func):
     @wraps(func)
     def async_func(*args, **kwargs):
@@ -342,25 +350,44 @@ class TranslateHandler(BaseHandler):
                 scaleMtLog(400, after-before, tInfo, key, len(toTranslate))
 
 
-class TranslatePageHandler(TranslateHandler):
+class TranslatePageHandler(BaseHandler):
     @tornado.web.asynchronous
+    @gen.coroutine
     def get(self):
+        logging.info(self.get_argument('langpair'))
         try:
-            l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
+            l1, l2 = self.get_argument('langpair').split('|')
         except ValueError:
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
         if '%s-%s' % (l1, l2) in self.pairs:
+#            mode = "%s-%s" % (l1, l2)
+            modeFile = self.pairs["%s-%s" % (l1, l2)]
+            modesdir = os.path.dirname(os.path.dirname(modeFile))
+            mode = os.path.splitext(os.path.basename(modeFile))[0]
             url = self.get_argument('url')
-            logging.info(self.pairs['%s-%s' % (l1, l2)])
+            data = urllib.request.urlopen(url).read()
+            if chardet:
+                encoding = chardet.detect(data)["encoding"]
+            else:
+                encoding = 'utf-8'
+            text = data.decode(encoding)   
+            text = text.replace('href="/',  'href="{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(url)))
+            text = re.sub(r'a([^>]+)href=[\'"]?([^\'" >]+)', 'a \\1 href="#" onclick=\'window.parent.translateLink("\\2");\'', text)
+            logging.info(text)
+            commands = [['apertium', '-d', modesdir, '-f', "html", mode]]
+            logging.info("1")
+            result = yield translation.translateSimple(text, commands)
+            logging.info("2")
+            logging.info(result)
             self.sendResponse({
                 'responseData': {
-                    'translatedPage': translation.translatePage(url, self.pairs['%s-%s' % (l1, l2)]).decode('utf-8')
+                    'translatedPage': result
                 },
                 'responseDetails': None,
                 'responseStatus': 200
             })
         else:
-            self.send_error(400, explanation='That pair is not installed')
+            self.send_error(400, explanation='That mode is not installed')
 
 class TranslateDocHandler(TranslateHandler):
     mimeTypeCommand = None
@@ -801,6 +828,7 @@ if __name__ == '__main__':
         (r'/stats', StatsHandler),
         (r'/translate', TranslateHandler),
         (r'/translateDoc', TranslateDocHandler),
+        (r'/translatePage', TranslatePageHandler),
         (r'/analy[sz]e', AnalyzeHandler),
         (r'/generate', GenerateHandler),
         (r'/listLanguageNames', ListLanguageNamesHandler),
