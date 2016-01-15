@@ -350,7 +350,7 @@ class TranslateHandler(BaseHandler):
                 scaleMtLog(400, after-before, tInfo, key, len(toTranslate))
 
 
-class TranslatePageHandler(BaseHandler):
+class TranslatePageHandler(TranslateHandler):
     @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
