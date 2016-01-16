@@ -34,8 +34,16 @@ try:
     import cld2full as cld2
 except:
     cld2 = None
+    
+try:
+    import chardet
+except:
+    chardet = None
+    logging.info("chardet not found, assuming utf-8 encoding for websites")
 
-
+import urllib.request
+from urllib.parse import urlparse
+    
 def run_async_thread(func):
     @wraps(func)
     def async_func(*args, **kwargs):
@@ -327,6 +335,49 @@ class TranslateHandler(BaseHandler):
             self.sendResponse({
                 'responseData': {
                     'translatedText': self.maybeStripMarks(markUnknown, l1, l2, translated)
+                },
+                'responseDetails': None,
+                'responseStatus': 200
+            })
+            self.cleanPairs()
+        else:
+            self.send_error(400, explanation='That pair is not installed')
+            if self.scaleMtLogs:
+                before = datetime.now()
+                tInfo = TranslationInfo(self)
+                key = getKey(tInfo.key)
+                after = datetime.now()
+                scaleMtLog(400, after-before, tInfo, key, len(toTranslate))
+
+
+class TranslatePageHandler(TranslateHandler):
+    
+    @tornado.web.asynchronous
+    @gen.coroutine
+    def get(self):
+
+        try:
+            l1, l2 = self.get_argument('langpair').split('|')
+        except ValueError:
+            self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
+        if '%s-%s' % (l1, l2) in self.pairs:
+#            mode = "%s-%s" % (l1, l2)
+
+            url = self.get_argument('url')
+            data = urllib.request.urlopen(url).read()
+            if chardet:
+                encoding = chardet.detect(data)["encoding"]
+            else:
+                encoding = 'utf-8'
+            text = data.decode(encoding)   
+            text = text.replace('href="/',  'href="{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(url)))
+            text = re.sub(r'a([^>]+)href=[\'"]?([^\'" >]+)', 'a \\1 href="#" onclick=\'window.parent.translateLink("\\2");\'', text)
+
+            pipeline = self.getPipeline(l1, l2)
+            translated = yield pipeline.translate(text, nosplit=True)
+            self.sendResponse({
+                'responseData': {
+                    'translatedPage': translated
                 },
                 'responseDetails': None,
                 'responseStatus': 200
@@ -781,6 +832,7 @@ if __name__ == '__main__':
         (r'/stats', StatsHandler),
         (r'/translate', TranslateHandler),
         (r'/translateDoc', TranslateDocHandler),
+        (r'/translatePage', TranslatePageHandler),
         (r'/analy[sz]e', AnalyzeHandler),
         (r'/generate', GenerateHandler),
         (r'/listLanguageNames', ListLanguageNamesHandler),

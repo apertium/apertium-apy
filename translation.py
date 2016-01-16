@@ -27,7 +27,7 @@ class Pipeline(object):
         self.useCount = 0
 
     @contextmanager
-    def use(self):
+    def use(self):  
         self.lastUsage = time()
         self.users += 1
         try:
@@ -59,10 +59,11 @@ class FlushingPipeline(Pipeline):
         # server – why?
 
     @gen.coroutine
-    def translate(self, toTranslate):
+    def translate(self, toTranslate, nosplit=False):
         with self.use():
             all_split = splitForTranslation(toTranslate, n_users=self.users)
-            parts = yield [translateNULFlush(part, self) for part in all_split]
+            if nosplit: parts = yield [translateNULFlush(toTranslate, self)]
+            else: parts = yield [translateNULFlush(part, self) for part in all_split]
             # Equivalent to "return foo" in 3.3, but also works under 3.2:
             return "".join(parts)
 
@@ -130,7 +131,7 @@ def parseModeFile(mode_path):
     else:
         logging.error('Could not parse mode file %s', mode_path)
         raise Exception('Could not parse mode file %s', mode_path)
-
+ 
 
 def upToBytes(string, max_bytes):
     """Find the unicode string length of the first up-to-max_bytes bytes.
@@ -294,3 +295,5 @@ def translateDoc(fileToTranslate, fmt, modeFile):
     mode = os.path.splitext(os.path.basename(modeFile))[0]
     return Popen(['apertium', '-f', fmt, '-d', modesdir, mode],
                  stdin=fileToTranslate, stdout=PIPE).communicate()[0]
+
+
