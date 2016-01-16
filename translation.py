@@ -27,7 +27,7 @@ class Pipeline(object):
         self.useCount = 0
 
     @contextmanager
-    def use(self):
+    def use(self):  
         self.lastUsage = time()
         self.users += 1
         try:
@@ -59,11 +59,11 @@ class FlushingPipeline(Pipeline):
         # server – why?
 
     @gen.coroutine
-    def translate(self, toTranslate):
+    def translate(self, toTranslate, nosplit=False):
         with self.use():
             all_split = splitForTranslation(toTranslate, n_users=self.users)
-            # parts = yield [translateNULFlush(part, self) for part in all_split]
-            parts = yield [translateNULFlush(toTranslate, self)]
+            if nosplit: parts = yield [translateNULFlush(toTranslate, self)]
+            else: parts = yield [translateNULFlush(part, self) for part in all_split]
             # Equivalent to "return foo" in 3.3, but also works under 3.2:
             return "".join(parts)
 

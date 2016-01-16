@@ -374,7 +374,7 @@ class TranslatePageHandler(TranslateHandler):
             text = re.sub(r'a([^>]+)href=[\'"]?([^\'" >]+)', 'a \\1 href="#" onclick=\'window.parent.translateLink("\\2");\'', text)
 
             pipeline = self.getPipeline(l1, l2)
-            translated = yield pipeline.translate(text)
+            translated = yield pipeline.translate(text, nosplit=True)
             self.sendResponse({
                 'responseData': {
                     'translatedPage': translated
