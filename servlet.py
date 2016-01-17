@@ -34,16 +34,15 @@ try:
     import cld2full as cld2
 except:
     cld2 = None
-    
+
 try:
     import chardet
 except:
     chardet = None
-    logging.info("chardet not found, assuming utf-8 encoding for websites")
 
 import urllib.request
 from urllib.parse import urlparse
-    
+
 def run_async_thread(func):
     @wraps(func)
     def async_func(*args, **kwargs):
@@ -351,7 +350,7 @@ class TranslateHandler(BaseHandler):
 
 
 class TranslatePageHandler(TranslateHandler):
-    
+
     @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
@@ -369,7 +368,7 @@ class TranslatePageHandler(TranslateHandler):
                 encoding = chardet.detect(data)["encoding"]
             else:
                 encoding = 'utf-8'
-            text = data.decode(encoding)   
+            text = data.decode(encoding)
             text = text.replace('href="/',  'href="{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(url)))
             text = re.sub(r'a([^>]+)href=[\'"]?([^\'" >]+)', 'a \\1 href="#" onclick=\'window.parent.translateLink("\\2");\'', text)
 
@@ -821,7 +820,9 @@ if __name__ == '__main__':
             logging.getLogger("tornado.access").propagate = False
 
     if not cld2:
-        logging.warning('Unable to import CLD2, continuing using naive method of language detection')
+        logging.warning("Unable to import CLD2, continuing using naive method of language detection")
+    if not chardet:
+        logging.warning("Unable to import chardet, assuming utf-8 encoding for all websites")
 
     setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout, args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs, args.restart_pipe_after, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
 
