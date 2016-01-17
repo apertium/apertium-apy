@@ -188,10 +188,10 @@ class StatsHandler(BaseHandler):
         from datetime import timedelta
         times = sum([x[0] for x in self.stats['timeDelta'][-numRequests:]],
                     timedelta())
-        words = sum(x[1] for x in self.stats['timeDelta'][-numRequests:])
+        chars = sum(x[1] for x in self.stats['timeDelta'][-numRequests:])
 
-        if words != 0:
-            calcDelta = words/times.total_seconds()
+        if times.total_seconds() != 0:
+            calcDelta = chars/times.total_seconds()
         else:
             calcDelta = 0
         self.sendResponse({
@@ -203,7 +203,7 @@ class StatsHandler(BaseHandler):
                                   if pipes != [] },
                 'holdingPipes': len(self.pipelines_holding),
                 'timeDelta': calcDelta,
-                'totalWords': words,
+                'totalCharacters': chars,
                 'totalTime': times.total_seconds()
             },
             'responseDetails': None,
@@ -310,7 +310,7 @@ class TranslateHandler(BaseHandler):
         if len(self.stats['timeDelta']) == self.STAT_CAP:
             self.stats['timeDelta'].pop(0)
         self.stats['timeDelta'].append(
-            (after-before, len(toTranslate.split())))
+            (after-before, len(toTranslate)))
 
     @gen.coroutine
     def get(self):
