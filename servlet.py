@@ -69,6 +69,7 @@ class BaseHandler(tornado.web.RequestHandler):
     stats = {
         'useCount': {},
         'vmsize': 0,
+        'timeDelta': []
     }
 
     pipeline_cmds = {} # (l1, l2): translation.ParsedModes
@@ -177,6 +178,22 @@ class ListHandler(BaseHandler):
 class StatsHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
+        numRequests = self.get_argument('requests', 10)
+        if numRequests != 10:
+            try:
+                numRequests = int(numRequests)
+            except ValueError:
+                numRequests = 10
+
+        from datetime import timedelta
+        times = sum([x[0] for x in self.stats['timeDelta'][-numRequests:]],
+                    timedelta())
+        words = sum(x[1] for x in self.stats['timeDelta'][-numRequests:])
+
+        if words != 0:
+            calcDelta = words/times.total_seconds()
+        else:
+            calcDelta = 0
         self.sendResponse({
             'responseData': {
                 'useCount': { '%s-%s' % pair: useCount
@@ -185,6 +202,9 @@ class StatsHandler(BaseHandler):
                                   for pair, pipes in self.pipelines.items()
                                   if pipes != [] },
                 'holdingPipes': len(self.pipelines_holding),
+                'timeDelta': calcDelta,
+                'totalWords': words,
+                'totalTime': times.total_seconds()
             },
             'responseDetails': None,
             'responseStatus': 200
@@ -278,16 +298,19 @@ class TranslateHandler(BaseHandler):
         return self.pipelines[pair][0]
 
     def logBeforeTranslation(self):
-        if self.scaleMtLogs:
-            return datetime.now()
-        return
+        return datetime.now()
 
     def logAfterTranslation(self, before, toTranslate):
+        after = datetime.now()
         if self.scaleMtLogs:
-            after = datetime.now()
             tInfo = TranslationInfo(self)
             key = getKey(tInfo.key)
             scaleMtLog(self.get_status(), after-before, tInfo, key, len(toTranslate))
+
+        if len(self.stats['timeDelta']) == self.STAT_CAP:
+            self.stats['timeDelta'].pop(0)
+        self.stats['timeDelta'].append(
+            (after-before, len(toTranslate.split())))
 
     @gen.coroutine
     def get(self):
@@ -722,6 +745,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbosity', help='logging verbosity', type=int, default=0)
     parser.add_argument('-S', '--scalemt-logs', help='generates ScaleMT-like logs; use with --log-path; disables', action='store_true')
     parser.add_argument('-M', '--unknown-memory-limit', help="keeps unknown words in memory until a limit is reached", type=int, default=0)
+    parser.add_argument('-T', '--stat-cap', help="Number of requests to keep track of for stats", type=int, default=100)
     args = parser.parse_args()
 
     if args.daemon:
@@ -745,6 +769,9 @@ if __name__ == '__main__':
         # if scalemt_logs is enabled, disable tornado.access logs
         if(args.daemon):
             logging.getLogger("tornado.access").propagate = False
+
+    if args.stat_cap:
+        BaseHandler.STAT_CAP = args.stat_cap
 
     if not cld2:
         logging.warning('Unable to import CLD2, continuing using naive method of language detection')
