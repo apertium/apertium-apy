@@ -158,8 +158,15 @@ if netstat -lnt|awk "\$4~/:${PORT}\$/"|grep -q .; then
 fi
 
 cd "$(dirname "$0")"
+rm -f apertium-apy.log apertium-apy.err
 ../servlet.py -p "${PORT}" -d -j1 -i3 -u1 -n1 -m3 -s "${NONPAIRS}"  -- "${INSTALLEDPAIRS}" & APYPID=$!
 wait_for_startup
-run_tests
+if run_tests; then
+    exit $?
+else
+    result=$?
+    tail -n 999 apertium-apy.log apertium-apy.err
+    exit "${result}"
+fi
 
 # TODO: concurrency tests

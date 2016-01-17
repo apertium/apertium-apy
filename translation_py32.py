@@ -27,7 +27,7 @@ class Pipeline(object):
         self.useCount = 0
 
     @contextmanager
-    def use(self):  
+    def use(self):
         self.lastUsage = time()
         self.users += 1
         try:
@@ -59,15 +59,12 @@ class FlushingPipeline(Pipeline):
         # server – why?
 
     @gen.coroutine
-    def translate(self, toTranslate, nosplit=False):
+    def translate(self, toTranslate):
         with self.use():
-            if nosplit:
-                res = yield translateNULFlush(toTranslate, self)
-                return res
-            else:
-                all_split = splitForTranslation(toTranslate, n_users=self.users)
-                parts = yield [translateNULFlush(part, self) for part in all_split]
-                return "".join(parts)
+            all_split = splitForTranslation(toTranslate, n_users=self.users)
+            parts = yield [translateNULFlush(part, self) for part in all_split]
+            # Equivalent to "return foo" in 3.3, but also works under 3.2:
+            raise StopIteration("".join(parts))
 
 class SimplePipeline(Pipeline):
     def __init__(self, commands, *args, **kwargs):
@@ -79,7 +76,7 @@ class SimplePipeline(Pipeline):
         with self.use():
             with (yield self.lock.acquire()):
                 res = yield translateSimple(toTranslate, self.commands)
-                return res
+                raise StopIteration(res)
 
 
 ParsedModes = namedtuple('ParsedModes', 'do_flush commands')
@@ -133,7 +130,7 @@ def parseModeFile(mode_path):
     else:
         logging.error('Could not parse mode file %s', mode_path)
         raise Exception('Could not parse mode file %s', mode_path)
- 
+
 
 def upToBytes(string, max_bytes):
     """Find the unicode string length of the first up-to-max_bytes bytes.
@@ -224,7 +221,7 @@ def translateNULFlush(toTranslate, pipeline):
 
         proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
         proc_reformat.stdin.write(output)
-        return proc_reformat.communicate()[0].decode('utf-8')
+        raise StopIteration(proc_reformat.communicate()[0].decode('utf-8'))
 
 
 def translateWithoutFlush(toTranslate, proc_in, proc_out):
@@ -244,7 +241,7 @@ def translateWithoutFlush(toTranslate, proc_in, proc_out):
 
     proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
     proc_reformat.stdin.write(b"".join(output))
-    return proc_reformat.communicate()[0].decode('utf-8')
+    raise StopIteration(proc_reformat.communicate()[0].decode('utf-8'))
 
 
 @gen.coroutine
@@ -289,7 +286,7 @@ def translateSimple(toTranslate, commands):
     proc_in.stdin.close()
     translated = yield gen.Task(proc_out.stdout.read_until_close)
     proc_in.stdout.close()
-    return translated.decode('utf-8')
+    raise StopIteration(translated.decode('utf-8'))
 
 
 def translateDoc(fileToTranslate, fmt, modeFile):
@@ -297,5 +294,3 @@ def translateDoc(fileToTranslate, fmt, modeFile):
     mode = os.path.splitext(os.path.basename(modeFile))[0]
     return Popen(['apertium', '-f', fmt, '-d', modesdir, mode],
                  stdin=fileToTranslate, stdout=PIPE).communicate()[0]
-
-
