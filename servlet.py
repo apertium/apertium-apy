@@ -12,7 +12,9 @@ from datetime import datetime
 import heapq
 
 import tornado, tornado.web, tornado.httpserver, tornado.process, tornado.iostream
-from tornado import escape, gen
+from tornado import httpclient
+from tornado import gen
+from tornado import escape
 from tornado.escape import utf8
 try: # 3.1
     from tornado.log import enable_pretty_logging
@@ -21,6 +23,8 @@ except ImportError: # 2.1
 
 from modeSearch import searchPath
 from util import getLocalizedLanguages, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, noteUnknownToken, scaleMtLog, TranslationInfo, closeDb, flushUnknownWords, inMemoryUnknownToken
+
+from urllib.parse import urlparse
 
 if sys.version_info.minor < 3:
     import translation_py32 as translation
@@ -39,9 +43,6 @@ try:
     import chardet
 except:
     chardet = None
-
-import urllib.request
-from urllib.parse import urlparse
 
 def run_async_thread(func):
     @wraps(func)
@@ -375,11 +376,17 @@ class TranslateHandler(BaseHandler):
 
 class TranslatePageHandler(TranslateHandler):
     def fetch(self, url):
-        data = urllib.request.urlopen(url).read()
+        http_client = httpclient.AsyncHTTPClient()
+        request = httpclient.HTTPRequest(url=url,
+                                         # TODO: tweak
+                                         connect_timeout=20.0,
+                                         request_timeout=20.0)
+        response = yield http_client.fetch(request)
+        data = response.body
         if chardet:
             encoding = chardet.detect(data).get("encoding", "utf-8")
         else:
-            encoding = 'utf-8'
+            encoding = "utf-8"
         text = data.decode(encoding)
         text = text.replace('href="/',  'href="{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(url)))
         text = re.sub(r'a([^>]+)href=[\'"]?([^\'" >]+)', 'a \\1 href="#" onclick=\'window.parent.translateLink("\\2");\'', text)
@@ -392,7 +399,9 @@ class TranslatePageHandler(TranslateHandler):
                                    -1)
         if pair is not None:
             pipeline = self.getPipeline(pair)
-            toTranslate = self.fetch(self.get_argument('url'))
+            logging.info("fetching")
+            toTranslate = yield from self.fetch(self.get_argument('url'))
+            logging.info("fetched")
             yield self.translateAndRespond(pair,
                                            pipeline,
                                            toTranslate,
