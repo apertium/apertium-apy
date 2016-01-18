@@ -340,18 +340,15 @@ class TranslateHandler(BaseHandler):
             l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
         except ValueError:
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
-            if self.scaleMtLogs:
-                before = datetime.now()
-                tInfo = TranslationInfo(self)
-                key = getKey(tInfo.key)
-                after = datetime.now()
-                scaleMtLog(400, after-before, tInfo, key, len(toTranslate))
+            self.logAfterTranslation(self.logBeforeTranslation(), toTranslate)
             return
-
-        if '%s-%s' % (l1, l2) in self.pairs:
-            before = self.logBeforeTranslation()
+        if '%s-%s' % (l1, l2) not in self.pairs:
+            self.send_error(400, explanation='That pair is not installed')
+            self.logAfterTranslation(self.logBeforeTranslation(), toTranslate)
+        else:
             pipeline = self.getPipeline(l1, l2)
             self.notePairUsage((l1, l2))
+            before = self.logBeforeTranslation()
             translated = yield pipeline.translate(toTranslate)
             self.logAfterTranslation(before, toTranslate)
             self.sendResponse({
@@ -362,14 +359,6 @@ class TranslateHandler(BaseHandler):
                 'responseStatus': 200
             })
             self.cleanPairs()
-        else:
-            self.send_error(400, explanation='That pair is not installed')
-            if self.scaleMtLogs:
-                before = datetime.now()
-                tInfo = TranslationInfo(self)
-                key = getKey(tInfo.key)
-                after = datetime.now()
-                scaleMtLog(400, after-before, tInfo, key, len(toTranslate))
 
 
 class TranslatePageHandler(TranslateHandler):
