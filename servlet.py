@@ -375,19 +375,12 @@ class TranslateHandler(BaseHandler):
 
 
 class TranslatePageHandler(TranslateHandler):
-    def fetch(self, url):
-        http_client = httpclient.AsyncHTTPClient()
-        request = httpclient.HTTPRequest(url=url,
-                                         # TODO: tweak
-                                         connect_timeout=20.0,
-                                         request_timeout=20.0)
-        response = yield http_client.fetch(request)
-        data = response.body
+    def htmlToText(self, html, url):
         if chardet:
-            encoding = chardet.detect(data).get("encoding", "utf-8")
+            encoding = chardet.detect(html).get("encoding", "utf-8")
         else:
             encoding = "utf-8"
-        text = data.decode(encoding)
+        text = html.decode(encoding)
         text = text.replace('href="/',  'href="{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(url)))
         text = re.sub(r'a([^>]+)href=[\'"]?([^\'" >]+)', 'a \\1 href="#" onclick=\'window.parent.translateLink("\\2");\'', text)
         return text
@@ -399,9 +392,14 @@ class TranslatePageHandler(TranslateHandler):
                                    -1)
         if pair is not None:
             pipeline = self.getPipeline(pair)
-            logging.info("fetching")
-            toTranslate = yield from self.fetch(self.get_argument('url'))
-            logging.info("fetched")
+            http_client = httpclient.AsyncHTTPClient()
+            url = self.get_argument('url')
+            request = httpclient.HTTPRequest(url=url,
+                                            # TODO: tweak
+                                            connect_timeout=20.0,
+                                            request_timeout=20.0)
+            response = yield http_client.fetch(request)
+            toTranslate = self.htmlToText(response.body, url)
             yield self.translateAndRespond(pair,
                                            pipeline,
                                            toTranslate,
