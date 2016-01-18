@@ -233,14 +233,13 @@ class RootHandler(BaseHandler):
     def get(self):
         self.redirect("http://wiki.apertium.org/wiki/Apertium-apy")
 
-
 class TranslateHandler(BaseHandler):
     def notePairUsage(self, pair):
         self.stats['useCount'][pair] = 1 + self.stats['useCount'].get(pair, 0)
 
     unknownMarkRE = re.compile(r'\*([^.,;:\t\* ]+)')
-    def maybeStripMarks(self, markUnknown, l1, l2, translated):
-        self.noteUnknownTokens("%s-%s" % (l1, l2), translated)
+    def maybeStripMarks(self, markUnknown, pair, translated):
+        self.noteUnknownTokens("%s-%s" % pair, translated)
         if markUnknown:
             return translated
         else:
@@ -306,8 +305,8 @@ class TranslateHandler(BaseHandler):
             else:
                 return False
 
-    def getPipeline(self, l1, l2):
-        pair = (l1, l2)
+    def getPipeline(self, pair):
+        (l1, l2) = pair
         if self.shouldStartPipe(l1, l2):
             logging.info("Starting up a new pipeline for %s-%s …", l1, l2)
             if pair not in self.pipelines:
@@ -319,89 +318,86 @@ class TranslateHandler(BaseHandler):
     def logBeforeTranslation(self):
         return datetime.now()
 
-    def logAfterTranslation(self, before, toTranslate):
+    def logAfterTranslation(self, before, length):
         after = datetime.now()
         if self.scaleMtLogs:
             tInfo = TranslationInfo(self)
             key = getKey(tInfo.key)
-            scaleMtLog(self.get_status(), after-before, tInfo, key, len(toTranslate))
+            scaleMtLog(self.get_status(), after-before, tInfo, key, length)
 
-        if len(self.stats['timeDelta']) == self.STAT_CAP:
-            self.stats['timeDelta'].pop(0)
-        self.stats['timeDelta'].append(
-            (after-before, len(toTranslate)))
+        if self.get_status() == 200:
+            if len(self.stats['timeDelta']) == self.STAT_CAP:
+                self.stats['timeDelta'].pop(0)
+            self.stats['timeDelta'].append(
+                (after-before, length))
+
+    def getPairOrError(self, langpair, text_length):
+        try:
+            l1, l2 = map(toAlpha3Code, langpair.split('|'))
+        except ValueError:
+            self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
+            self.logAfterTranslation(self.logBeforeTranslation(), text_length)
+            return False
+        if '%s-%s' % (l1, l2) not in self.pairs:
+            self.send_error(400, explanation='That pair is not installed')
+            self.logAfterTranslation(self.logBeforeTranslation(), text_length)
+            return False
+        else:
+            return (l1, l2)
+
+    @gen.coroutine
+    def translateAndRespond(self, pair, pipeline, toTranslate, markUnknown, nosplit=False):
+        markUnknown = markUnknown in ['yes', 'true', '1']
+        self.notePairUsage(pair)
+        before = self.logBeforeTranslation()
+        translated = yield pipeline.translate(toTranslate, nosplit)
+        self.logAfterTranslation(before, toTranslate)
+        self.sendResponse({
+            'responseData': {
+                'translatedText': self.maybeStripMarks(markUnknown, pair, translated)
+            },
+            'responseDetails': None,
+            'responseStatus': 200
+        })
+        self.cleanPairs()
 
     @gen.coroutine
     def get(self):
-        toTranslate = self.get_argument('q')
-        markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
-
-        try:
-            l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
-        except ValueError:
-            self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
-            self.logAfterTranslation(self.logBeforeTranslation(), toTranslate)
-            return
-        if '%s-%s' % (l1, l2) not in self.pairs:
-            self.send_error(400, explanation='That pair is not installed')
-            self.logAfterTranslation(self.logBeforeTranslation(), toTranslate)
-        else:
-            pipeline = self.getPipeline(l1, l2)
-            self.notePairUsage((l1, l2))
-            before = self.logBeforeTranslation()
-            translated = yield pipeline.translate(toTranslate)
-            self.logAfterTranslation(before, toTranslate)
-            self.sendResponse({
-                'responseData': {
-                    'translatedText': self.maybeStripMarks(markUnknown, l1, l2, translated)
-                },
-                'responseDetails': None,
-                'responseStatus': 200
-            })
-            self.cleanPairs()
+        pair = self.getPairOrError(self.get_argument('langpair'),
+                                   len(self.get_argument('q')))
+        if pair is not None:
+            pipeline = self.getPipeline(pair)
+            yield self.translateAndRespond(pair,
+                                           pipeline,
+                                           self.get_argument('q'),
+                                           self.get_argument('markUnknown', default='yes'))
 
 
 class TranslatePageHandler(TranslateHandler):
+    def fetch(self, url):
+        data = urllib.request.urlopen(url).read()
+        if chardet:
+            encoding = chardet.detect(data).get("encoding", "utf-8")
+        else:
+            encoding = 'utf-8'
+        text = data.decode(encoding)
+        text = text.replace('href="/',  'href="{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(url)))
+        text = re.sub(r'a([^>]+)href=[\'"]?([^\'" >]+)', 'a \\1 href="#" onclick=\'window.parent.translateLink("\\2");\'', text)
+        return text
 
-    @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
-
-        try:
-            l1, l2 = self.get_argument('langpair').split('|')
-        except ValueError:
-            self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
-        if '%s-%s' % (l1, l2) in self.pairs:
-#            mode = "%s-%s" % (l1, l2)
-
-            url = self.get_argument('url')
-            data = urllib.request.urlopen(url).read()
-            if chardet:
-                encoding = chardet.detect(data)["encoding"]
-            else:
-                encoding = 'utf-8'
-            text = data.decode(encoding)
-            text = text.replace('href="/',  'href="{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(url)))
-            text = re.sub(r'a([^>]+)href=[\'"]?([^\'" >]+)', 'a \\1 href="#" onclick=\'window.parent.translateLink("\\2");\'', text)
-
-            pipeline = self.getPipeline(l1, l2)
-            translated = yield pipeline.translate(text, nosplit=True)
-            self.sendResponse({
-                'responseData': {
-                    'translatedPage': translated
-                },
-                'responseDetails': None,
-                'responseStatus': 200
-            })
-            self.cleanPairs()
-        else:
-            self.send_error(400, explanation='That pair is not installed')
-            if self.scaleMtLogs:
-                before = datetime.now()
-                tInfo = TranslationInfo(self)
-                key = getKey(tInfo.key)
-                after = datetime.now()
-                scaleMtLog(400, after-before, tInfo, key, len(toTranslate))
+        pair = self.getPairOrError(self.get_argument('langpair'),
+                                   # Don't yet know the size of the text, and don't want to fetch it unnecessarily:
+                                   -1)
+        if pair is not None:
+            pipeline = self.getPipeline(pair)
+            toTranslate = self.fetch(self.get_argument('url'))
+            yield self.translateAndRespond(pair,
+                                           pipeline,
+                                           toTranslate,
+                                           self.get_argument('markUnknown', default='yes'),
+                                           nosplit=True)
 
 
 class TranslateDocHandler(TranslateHandler):
@@ -441,6 +437,10 @@ class TranslateDocHandler(TranslateHandler):
         else:
             return mimeType
 
+    # TODO: Some kind of locking. Although we can't easily re-use open
+    # pairs here (would have to reimplement lots of
+    # /usr/bin/apertium), we still want some limits on concurrent doc
+    # translation.
     @tornado.web.asynchronous
     def get(self):
         try:
