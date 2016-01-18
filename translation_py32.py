@@ -59,12 +59,15 @@ class FlushingPipeline(Pipeline):
         # server – why?
 
     @gen.coroutine
-    def translate(self, toTranslate):
+    def translate(self, toTranslate, nosplit=False):
         with self.use():
-            all_split = splitForTranslation(toTranslate, n_users=self.users)
-            parts = yield [translateNULFlush(part, self) for part in all_split]
-            # Equivalent to "return foo" in 3.3, but also works under 3.2:
-            raise StopIteration("".join(parts))
+            if nosplit:
+                res = yield translateNULFlush(toTranslate, self)
+                raise StopIteration(res)
+            else:
+                all_split = splitForTranslation(toTranslate, n_users=self.users)
+                parts = yield [translateNULFlush(part, self) for part in all_split]
+                raise StopIteration("".join(parts))
 
 class SimplePipeline(Pipeline):
     def __init__(self, commands, *args, **kwargs):
