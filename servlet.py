@@ -455,6 +455,8 @@ class TranslateDocHandler(TranslateHandler):
         except ValueError:
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
 
+        markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
+
         allowedMimeTypes = {
             'text/plain': 'txt',
             'text/html': 'html-noent',
@@ -483,7 +485,10 @@ class TranslateDocHandler(TranslateHandler):
                         self.request.headers['Content-Type'] = 'application/octet-stream'
                         self.request.headers['Content-Disposition'] = 'attachment'
 
-                        self.write(translation.translateDoc(tempFile, allowedMimeTypes[mtype], self.pairs['%s-%s' % (l1, l2)]))
+                        if markUnknown:
+                          self.write(translation.translateDoc(tempFile, allowedMimeTypes[mtype], self.pairs['%s-%s' % (l1, l2)],True))
+                        else:
+                          self.write(translation.translateDoc(tempFile, allowedMimeTypes[mtype], self.pairs['%s-%s' % (l1, l2)],False))
                         self.finish()
                     else:
                         self.send_error(400, explanation='Invalid file type %s' % mtype)
