@@ -57,6 +57,7 @@ tests = {
     "nld-afr": ("ik", "ek"),
     "nno-dan": ("kva", "hvad"),
     "dan-nno": ("hvad", "kva"),
+    "dan-nob": ("hvad", "hva"),
     "nno_e-nno": ("korleis", "korleis"),
     "nno-nob": ("korleis", "hvordan"),
     "nno-nno_e": ("korleis", "korleis"),
