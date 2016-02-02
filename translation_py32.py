@@ -1,8 +1,8 @@
-import re, os, tempfile
+import re, os
 from subprocess import Popen, PIPE
 from tornado import gen
 import tornado.process, tornado.iostream
-try: # >=4.2
+try:  # >=4.2
     import tornado.locks as locks
 except ImportError:
     import toro as locks
@@ -11,6 +11,7 @@ from select import PIPE_BUF
 from contextlib import contextmanager
 from collections import namedtuple
 from time import time
+
 
 class Pipeline(object):
     def __init__(self):
@@ -43,6 +44,7 @@ class Pipeline(object):
     def translate(self, _):
         raise Exception("Not implemented, subclass me!")
 
+
 class FlushingPipeline(Pipeline):
     def __init__(self, commands, *args, **kwargs):
         self.inpipe, self.outpipe = startPipeline(commands)
@@ -57,12 +59,15 @@ class FlushingPipeline(Pipeline):
         # server – why?
 
     @gen.coroutine
-    def translate(self, toTranslate):
+    def translate(self, toTranslate, nosplit=False):
         with self.use():
-            all_split = splitForTranslation(toTranslate, n_users=self.users)
-            parts = yield [translateNULFlush(part, self) for part in all_split]
-            # Equivalent to "return foo" in 3.3, but also works under 3.2:
-            raise StopIteration("".join(parts))
+            if nosplit:
+                res = yield translateNULFlush(toTranslate, self)
+                raise StopIteration(res)
+            else:
+                all_split = splitForTranslation(toTranslate, n_users=self.users)
+                parts = yield [translateNULFlush(part, self) for part in all_split]
+                raise StopIteration("".join(parts))
 
 class SimplePipeline(Pipeline):
     def __init__(self, commands, *args, **kwargs):
@@ -137,7 +142,7 @@ def upToBytes(string, max_bytes):
     bytes of each char.
 
     """
-    b = bytes(string,'utf-8')
+    b = bytes(string, 'utf-8')
     l = max_bytes
     while l:
         try:
@@ -167,30 +172,31 @@ def preferPunctBreak(string, last, hardbreak):
 
     """
 
-    if(len(string[last:])<= hardbreak):
+    if(len(string[last:]) <= hardbreak):
         return last+hardbreak+1
 
     softbreak = int(hardbreak/2)+1
     softnext = last + softbreak
     hardnext = last + hardbreak
     dot = string.rfind(".", softnext, hardnext)
-    if dot>-1:
+    if dot > -1:
         return dot+1
     else:
         space = string.rfind(" ", softnext, hardnext)
-        if space>-1:
+        if space > -1:
             return space+1
         else:
             return hardnext
 
+
 def splitForTranslation(toTranslate, n_users):
     """Splitting it up a bit ensures we don't fill up FIFO buffers (leads
     to processes hanging on read/write)."""
-    allSplit = []	# [].append and join faster than str +=
-    last=0
-    rounds=0
-    while last < len(toTranslate) and rounds<10:
-        rounds+=1
+    allSplit = []              # [].append and join faster than str +=
+    last = 0
+    rounds = 0
+    while last < len(toTranslate) and rounds < 10:
+        rounds += 1
         hardbreak = hardbreakFn(toTranslate[last:], n_users)
         next = preferPunctBreak(toTranslate, last, hardbreak)
         allSplit.append(toTranslate[last:next])
@@ -198,6 +204,7 @@ def splitForTranslation(toTranslate, n_users):
         logging.debug("splitForTranslation: last:%s hardbreak:%s next:%s appending:%s"%(last,hardbreak,next,toTranslate[last:next]))
         last = next
     return allSplit
+
 
 @gen.coroutine
 def translateNULFlush(toTranslate, pipeline):
@@ -239,6 +246,7 @@ def translateWithoutFlush(toTranslate, proc_in, proc_out):
     proc_reformat.stdin.write(b"".join(output))
     raise StopIteration(proc_reformat.communicate()[0].decode('utf-8'))
 
+
 @gen.coroutine
 def translatePipeline(toTranslate, commands):
 
@@ -272,6 +280,7 @@ def translatePipeline(toTranslate, commands):
 
     return output, all_cmds
 
+
 @gen.coroutine
 def translateSimple(toTranslate, commands):
     proc_in, proc_out = startPipeline(commands)
@@ -282,8 +291,13 @@ def translateSimple(toTranslate, commands):
     proc_in.stdout.close()
     raise StopIteration(translated.decode('utf-8'))
 
-def translateDoc(fileToTranslate, fmt, modeFile):
+
+def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks = False):
     modesdir = os.path.dirname(os.path.dirname(modeFile))
     mode = os.path.splitext(os.path.basename(modeFile))[0]
-    return Popen(['apertium', '-f', fmt, '-d', modesdir, mode],
+    if unknownMarks:
+      return Popen(['apertium', '-f', fmt, '-d', modesdir, mode],
+                 stdin=fileToTranslate, stdout=PIPE).communicate()[0]
+    else:
+      return Popen(['apertium', '-f', fmt, '-u', '-d', modesdir, mode],
                  stdin=fileToTranslate, stdout=PIPE).communicate()[0]

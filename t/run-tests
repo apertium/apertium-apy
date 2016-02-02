@@ -10,10 +10,11 @@
 ### Optional first argument is a free port number to use.
 
 ### Tests (TODO: get these from a file instead):
-declare -ar INPUTS=(  "government" "ja"        "ikkje"            "ja<ij>"   "^ja<ij>$")
-declare -ar OUTPUTS=( "Gobierno"   "og"        "ikkje/ikkje<adv>" "ja"       "ja")
-declare -ar MODES=(   "eng|spa"    "sme|nob"   "nno"              "nno"      "nno")
-declare -ar TYPES=(   "translate"  "translate" "analyse"          "generate" "generate")
+declare -ar INPUTS=(   "government" "ja"        "ikkje"            "ja<ij>"   "^ja<ij>$" "ignored"    "ignored")
+declare -ar OUTPUTS=(  "Gobierno"   "og"        "ikkje/ikkje<adv>" "ja"       "ja"       "400"        "400")
+declare -ar MODES=(    "eng|spa"    "sme|nob"   "nno"              "nno"      "nno"      "typomode"   "non|mod")
+declare -ar TYPES=(    "translate"  "translate" "analyse"          "generate" "generate" "translate?" "translate?")
+declare -ar EXTRACTS=( ""           ""          ""                 ""         ""         ".code"      ".code")
 
 ### Paths to apertium test data:
 ### The tests assume you have apertium-sme-nob and apertium-en-es
@@ -60,26 +61,29 @@ wait_for_startup () {
 }
 
 extract_response () {
-    local type=$1
-    case ${type} in
-        translate)
-            jq -r .responseData.translatedText
-            ;;
-        generate|analyse)
-            jq -r .[][] | awk 'NR%2==1'
-            ;;
-        *)
-            echo "Unknown test type ${type}" >&2
-            exit 1
-            ;;
-    esac
-
-
+    local type=${TYPES[$1]}
+    local extract=${EXTRACTS[$1]}
+    if [[ ${extract} = "" ]]; then
+        case ${type} in
+            translate)
+                jq -r .responseData.translatedText
+                ;;
+            generate|analyse)
+                jq -r .[][] | awk 'NR%2==1'
+                ;;
+            *)
+                echo "Unknown test type ${type} and no method given in EXTRACTS" >&2
+                exit 1
+                ;;
+        esac
+    else
+        jq -r "${extract}"
+    fi
 }
 
 ensure_installed () {
-    local -r mode=$1
-    local -r type=$2
+    local type=${TYPES[$1]}
+    local mode=${MODES[$1]}
     case ${type} in
         translate)
             curl -s "http://localhost:${PORT}/list?q=pairs" \
@@ -93,43 +97,56 @@ ensure_installed () {
             curl -s "http://localhost:${PORT}/list?q=analysers" \
                 | jq -e  "has(\"${mode}\")" &>/dev/null
             ;;
+        # Anything else we let slide
     esac
 }
 
-run_tests () {
-    local -i failures=0
-
-    for (( i=0; i<${#INPUTS[@]}; i++ )); do
-        local in=${INPUTS[$i]}
-        local mode=${MODES[$i]}
-        local type=${TYPES[$i]}
-        local url="http://localhost:${PORT}/${type}?lang=${mode}&q=${in}"
-        if [[ ${type} = translate ]]; then
-            url="http://localhost:${PORT}/translate?langpair=${mode}&q=${in}"
-        fi
-        if ! ensure_installed "${mode}" "${type}"; then
-            cat <<EOF
+run_test () {
+    local -ri i=$1
+    local -r in=${INPUTS[$i]}
+    local -r mode=${MODES[$i]}
+    local -r type=${TYPES[$i]}
+    local url="http://localhost:${PORT}/${type}?lang=${mode}&q=${in}"
+    if [[ ${type} = translate ]]; then
+        url="http://localhost:${PORT}/translate?langpair=${mode}&q=${in}"
+    fi
+    if ! ensure_installed "$i"; then
+        cat <<EOF
 [1;31m❌[00m TEST FAILED FOR ${mode} ${type}
 It seems like ${mode} (${type}) is not installed; install ${mode} and
 set NONPAIRS/INSTALLEDPAIRS variables before running this script.
 
 EOF
-            (( failures++ )) || true
-            continue
-        fi
-        local got=$(curl -s "${url}" | extract_response "${type}")
-        local want=${OUTPUTS[$i]}
-        if [[ ${got} != ${want} ]]; then
-            cat <<EOF
+        return 1
+    fi
+    local -r got=$(curl -s "${url}" | extract_response "$i")
+    local -r want=${OUTPUTS[$i]}
+    if [[ ${got} != ${want} ]]; then
+        cat <<EOF
 
 [1;31m❌[00m TEST FAILED FOR ${mode} ${type}
 WANTED: "${want}"
 GOT: "${got}"
 
 EOF
+        return 1
+    fi
+    return 0
+}
+
+run_tests () {
+    local -i failures=0
+
+    for (( i=0; i<${#INPUTS[@]}; i++ )); do
+        if ! run_test "$i"; then
             (( failures++ )) || true
         fi
     done
+
+    local got=$(curl -s "http://localhost:${PORT}/translate?langpair=typo&q=whatever" | jq -r .code)
+    if [[ "${got}" -ne 400 ]]; then
+        (( failures++ )) || true
+    fi
 
     if [[ ${failures} -eq 0 ]]; then
         cat <<EOF

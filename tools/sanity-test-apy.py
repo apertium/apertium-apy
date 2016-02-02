@@ -17,6 +17,8 @@ tests = {
     "afr-nld": ("ek", "ik"),
     "ara-mlt": ("و", "u"),
     "ara-mlt_translit": ("و", "u"),
+    "arg-cat": ("e", "és"),
+    "cat-arg": ("la", "a"),
     "arg-spa": ("e", "es"),
     "spa-arg": ("la", "a"),
     "ast-spa": ("nin", "ni"),

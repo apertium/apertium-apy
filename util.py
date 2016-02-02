@@ -235,7 +235,7 @@ def processPerWord(analyzers, taggers, lang, modes, query):
             return
 
     return (outputs, tagger_lexicalUnits, morph_lexicalUnits)
-      
+
 def getTimestamp():
     return datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
 
@@ -243,17 +243,17 @@ def timedeltaToMilliseconds(td):
     return td.days*86400000 + td.seconds*1000 + int(td.microseconds/1000)
 
 def scaleMtLog(status, time, tInfo, key, length):
-	logging.getLogger('scale-mt').error("%s %s %s html %s %s %s %s %s %s", 
-									  getTimestamp(), 
-									  timedeltaToMilliseconds(time), 
-									  tInfo.langpair, 
-									  key,
-									  tInfo.ip,
-									  tInfo.referer,
-									  status,
-									  length,
-									  'null'
-	)
+    logging.getLogger('scale-mt').error("%s %s %s html %s %s %s %s %s %s",
+                                        getTimestamp(),
+                                        timedeltaToMilliseconds(time),
+                                        tInfo.langpair,
+                                        key,
+                                        tInfo.ip,
+                                        tInfo.referer,
+                                        status,
+                                        length,
+                                        'null'
+    )
 
 
 class TranslationInfo:
