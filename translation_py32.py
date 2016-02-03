@@ -292,8 +292,12 @@ def translateSimple(toTranslate, commands):
     raise StopIteration(translated.decode('utf-8'))
 
 
-def translateDoc(fileToTranslate, fmt, modeFile):
+def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks = False):
     modesdir = os.path.dirname(os.path.dirname(modeFile))
     mode = os.path.splitext(os.path.basename(modeFile))[0]
-    return Popen(['apertium', '-f', fmt, '-d', modesdir, mode],
+    if unknownMarks:
+      return Popen(['apertium', '-f', fmt, '-d', modesdir, mode],
+                 stdin=fileToTranslate, stdout=PIPE).communicate()[0]
+    else:
+      return Popen(['apertium', '-f', fmt, '-u', '-d', modesdir, mode],
                  stdin=fileToTranslate, stdout=PIPE).communicate()[0]
