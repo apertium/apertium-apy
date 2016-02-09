@@ -83,6 +83,7 @@ class BaseHandler(tornado.web.RequestHandler):
     verbosity = 0
 
     stats = {
+        'startdate': datetime.now(),
         'useCount': {},
         'vmsize': 0,
         'timing': []
@@ -213,14 +214,20 @@ class StatsHandler(BaseHandler):
         nrequests = len(periodStats)
         maxAge = (datetime.now()-periodStats[0][0]).total_seconds() if periodStats else 0
 
+        uptime = int((datetime.now()-self.stats['startdate']).total_seconds())
+        useCount = { '%s-%s' % pair: useCount
+                     for pair, useCount in self.stats['useCount'].items() }
+        runningPipes = { '%s-%s' % pair: len(pipes)
+                         for pair, pipes in self.pipelines.items()
+                         if pipes != [] }
+        holdingPipes = len(self.pipelines_holding)
+
         self.sendResponse({
             'responseData': {
-                'useCount': { '%s-%s' % pair: useCount
-                              for pair, useCount in self.stats['useCount'].items() },
-                'runningPipes': { '%s-%s' % pair: len(pipes)
-                                  for pair, pipes in self.pipelines.items()
-                                  if pipes != [] },
-                'holdingPipes': len(self.pipelines_holding),
+                'uptime': uptime,
+                'useCount': useCount,
+                'runningPipes': runningPipes,
+                'holdingPipes': holdingPipes,
                 'periodStats': {
                     'charsPerSec': charsPerSec,
                     'totChars': chars,
