@@ -85,7 +85,7 @@ class BaseHandler(tornado.web.RequestHandler):
     stats = {
         'useCount': {},
         'vmsize': 0,
-        'timeDelta': []
+        'timing': []
     }
 
     pipeline_cmds = {} # (l1, l2): translation.ParsedModes
@@ -196,20 +196,23 @@ class ListHandler(BaseHandler):
 class StatsHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
-        numRequests = self.get_argument('requests', 10)
+        numRequests = self.get_argument('requests', 1000)
         try:
             numRequests = int(numRequests)
         except ValueError:
-            numRequests = 10
+            numRequests = 1000
 
-        times = sum([x[0] for x in self.stats['timeDelta'][-numRequests:]],
+        periodStats = self.stats['timing'][-numRequests:]
+        times = sum([x[1]-x[0] for x in periodStats],
                     timedelta())
-        chars = sum(x[1] for x in self.stats['timeDelta'][-numRequests:])
-
+        chars = sum(x[2] for x in periodStats)
         if times.total_seconds() != 0:
-            calcDelta = chars/times.total_seconds()
+            charsPerSec = round(chars/times.total_seconds(), 2)
         else:
-            calcDelta = 0
+            charsPerSec = 0.0
+        nrequests = len(periodStats)
+        maxAge = (datetime.now()-periodStats[0][0]).total_seconds() if periodStats else 0
+
         self.sendResponse({
             'responseData': {
                 'useCount': { '%s-%s' % pair: useCount
@@ -218,9 +221,13 @@ class StatsHandler(BaseHandler):
                                   for pair, pipes in self.pipelines.items()
                                   if pipes != [] },
                 'holdingPipes': len(self.pipelines_holding),
-                'timeDelta': calcDelta,
-                'totalCharacters': chars,
-                'totalTime': times.total_seconds()
+                'periodStats': {
+                    'charsPerSec': charsPerSec,
+                    'totChars': chars,
+                    'totTimeSpent': times.total_seconds(),
+                    'requests': nrequests,
+                    'ageFirstRequest': maxAge
+                }
             },
             'responseDetails': None,
             'responseStatus': 200
@@ -325,10 +332,11 @@ class TranslateHandler(BaseHandler):
             scaleMtLog(self.get_status(), after-before, tInfo, key, length)
 
         if self.get_status() == 200:
-            if len(self.stats['timeDelta']) == self.STAT_CAP:
-                self.stats['timeDelta'].pop(0)
-            self.stats['timeDelta'].append(
-                (after-before, length))
+            oldest = self.stats['timing'][0][0] if self.stats['timing'] else datetime.now()
+            if datetime.now() - oldest > self.STAT_PERIOD_MAX_AGE:
+                self.stats['timing'].pop(0)
+            self.stats['timing'].append(
+                (before, after, length))
 
     def getPairOrError(self, langpair, text_length):
         try:
@@ -817,7 +825,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbosity', help='logging verbosity', type=int, default=0)
     parser.add_argument('-S', '--scalemt-logs', help='generates ScaleMT-like logs; use with --log-path; disables', action='store_true')
     parser.add_argument('-M', '--unknown-memory-limit', help="keeps unknown words in memory until a limit is reached", type=int, default=0)
-    parser.add_argument('-T', '--stat-cap', help="Number of requests to keep track of for stats", type=int, default=100)
+    parser.add_argument('-T', '--stat-period-max-age', help="How many seconds back to keep track request timing stats", type=int, default=3600)
     args = parser.parse_args()
 
     if args.daemon:
@@ -842,8 +850,8 @@ if __name__ == '__main__':
         if(args.daemon):
             logging.getLogger("tornado.access").propagate = False
 
-    if args.stat_cap:
-        BaseHandler.STAT_CAP = args.stat_cap
+    if args.stat_period_max_age:
+        BaseHandler.STAT_PERIOD_MAX_AGE = timedelta(0, args.stat_period_max_age, 0)
 
     if not cld2:
         logging.warning("Unable to import CLD2, continuing using naive method of language detection")
