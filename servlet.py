@@ -8,7 +8,7 @@ from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
 from functools import wraps
 from threading import Thread
-from datetime import datetime
+from datetime import datetime, timedelta
 import heapq
 
 import tornado, tornado.web, tornado.httpserver, tornado.process, tornado.iostream
@@ -197,13 +197,11 @@ class StatsHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
         numRequests = self.get_argument('requests', 10)
-        if numRequests != 10:
-            try:
-                numRequests = int(numRequests)
-            except ValueError:
-                numRequests = 10
+        try:
+            numRequests = int(numRequests)
+        except ValueError:
+            numRequests = 10
 
-        from datetime import timedelta
         times = sum([x[0] for x in self.stats['timeDelta'][-numRequests:]],
                     timedelta())
         chars = sum(x[1] for x in self.stats['timeDelta'][-numRequests:])
@@ -352,7 +350,7 @@ class TranslateHandler(BaseHandler):
         self.notePairUsage(pair)
         before = self.logBeforeTranslation()
         translated = yield pipeline.translate(toTranslate, nosplit)
-        self.logAfterTranslation(before, toTranslate)
+        self.logAfterTranslation(before, len(toTranslate))
         self.sendResponse({
             'responseData': {
                 'translatedText': self.maybeStripMarks(markUnknown, pair, translated)
