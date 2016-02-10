@@ -44,6 +44,8 @@ try:
 except:
     chardet = None
 
+__version__ = "0.9.0"
+
 def run_async_thread(func):
     @wraps(func)
     def async_func(*args, **kwargs):
@@ -812,7 +814,7 @@ def sanity_check():
 
 if __name__ == '__main__':
     sanity_check()
-    parser = argparse.ArgumentParser(description='Start Apertium APY')
+    parser = argparse.ArgumentParser(description='Apertium APY -- API server for machine translation and language analysis')
     parser.add_argument('pairs_path', help='path to Apertium installed pairs (all modes files in this path are included)')
     parser.add_argument('-s', '--nonpairs-path', help='path to Apertium SVN (only non-translator debug modes are included from this path)')
     parser.add_argument('-l', '--lang-names', help='path to localised language names sqlite database (default = langNames.db)', default='langNames.db')
@@ -830,6 +832,7 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--max-idle-secs', help='if specified, shut down pipelines that have not been used in this many seconds', type=int, default=0)
     parser.add_argument('-r', '--restart-pipe-after', help='restart a pipeline if it has had this many requests (default = 1000)', type=int, default=1000)
     parser.add_argument('-v', '--verbosity', help='logging verbosity', type=int, default=0)
+    parser.add_argument('-V', '--version', help='show APY version', action='version', version="%(prog)s version " + __version__)
     parser.add_argument('-S', '--scalemt-logs', help='generates ScaleMT-like logs; use with --log-path; disables', action='store_true')
     parser.add_argument('-M', '--unknown-memory-limit', help="keeps unknown words in memory until a limit is reached", type=int, default=0)
     parser.add_argument('-T', '--stat-period-max-age', help="How many seconds back to keep track request timing stats", type=int, default=3600)
