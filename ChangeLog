@@ -1,0 +1,1390 @@
+See NEWS for a per-release summary, this is just the git log.
+
+2016-02-11  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* ChangeLog, NEWS: NEWS, ChangeLog; should close #13
+
+2016-02-10  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: ANN: New APY release! New features include: - version number
+
+2016-02-09  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: usecounts rather useless without uptime
+
+2016-02-09  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: hopefully more readable, informative /stats
+
+2016-02-09  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: send len(q), not q to logAfterTranslation the joy of dynamic typing
+
+2016-02-03  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* : commit 57960f74a878d65cd1b500c79ac8f6da5b6a9c44 Author: Kevin
+	Brubeck Unhammer <unhammer@fsfe.org> Date:   Wed Feb 3 11:33:10 2016
+	+0100
+
+2016-02-02  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* : commit 0fe763d71eb00b6dd0c977c9813301d9fa621955 Author: Kevin
+	Brubeck Unhammer <unhammer@fsfe.org> Date:   Tue Feb 2 10:42:19 2016
+	+0100
+
+2016-02-01  Kevin Brubeck Unhammer <unhammer+dill@mm.st>
+
+	* : Merge pull request #11 from danielmartinez/master Add option for unknown marks in translateDoc
+
+2016-01-18  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: no 'yield from' in py32
+
+2016-01-18  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* : commit 77b2b1b1ff8923fef392d7bba0f53182a1a7cc09 Author: Kevin
+	Brubeck Unhammer <unhammer@fsfe.org> Date:   Mon Jan 18 11:03:14
+	2016 +0100
+
+2016-01-18  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: fix: /translatePage shouldn't block while fetching the
+	page
+
+2016-01-18  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: let translatepagehandler use more of translatehandler
+
+2016-01-18  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py, util.py: less redundant scalemt calls (get_status will
+	DTRT if called after send_error)
+
+2016-01-18  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* t/run-tests: test for 400's
+
+2016-01-18  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* t/run-tests: run_tests { run_test () }
+
+2016-01-17  Sai Vineet <saivineet89@gmail.com>
+
+	* : commit 5ffe1ce2a1fd5afe2825c31a6cb9357ff8b42ca3 Author: Sai
+	Vineet <saivineet89@gmail.com> Date:   Sun Jan 17 16:05:30 2016
+	+0530
+
+2016-01-17  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: warnings consistency
+
+2016-01-17  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* translation.py: don't split if we're not going to use it
+
+2016-01-17  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/sanity-test-apy.py: arg-cat tests
+
+2016-01-17  Sai Vineet <saivineet89@gmail.com>
+
+	* servlet.py: Add more stats
+
+2016-01-16  Kevin Brubeck Unhammer <unhammer+dill@mm.st>
+
+	* : Merge pull request #9 from sabertooth-cat/master Add page translation capability :) (waiting a bit with the html-side
+	of things)
+
+2016-01-15  E <ethanchi@ethanchi.attlocal.net>
+
+	* servlet.py, translation.py: Fix splitting error
+
+2016-01-15  E <ethanchi@ethanchi.attlocal.net>
+
+	* servlet.py, translation.py: Subclassed TranslateHandler
+
+2016-01-15  E <ethanchi@ethanchi.attlocal.net>
+
+	* servlet.py: Modified TranslatePageHandler to subclass
+	TranslateHandler
+
+2016-01-15  E <ethanchi@ethanchi.attlocal.net>
+
+	* servlet.py, translation.py: Modified page translation feature to
+	be asynchronous
+
+2016-01-15  E <ethanchi@ethanchi.attlocal.net>
+
+	* : Fix conflict in servlet.py
+
+2016-01-14  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py, translation.py, translation_py32.py: support both py32
+	and py35+ by splitting translation.py into two modules (try-except won't work,
+	since py32 calls return-from-gen a SyntaxError on _reading_ the
+	file; StopIteration deprected in py35)
+
+2016-01-14  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* README.org: travis: fix link
+
+2016-01-13  E <ethanchi@ethanchi.attlocal.net>
+
+	* servlet.py, translation.py: Add page translation capability
+
+2016-01-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* t/run-tests: show logs on error; clear before run
+
+2016-01-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* .travis.yml: travis: try to stay in source dir
+
+2016-01-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* .travis.yml: travis: no --user
+
+2016-01-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* README, README.org: travis img
+
+2016-01-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* .travis.yml: travis: lang python, pip install tornado
+
+2016-01-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* .travis.yml: travis
+
+2016-01-12  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/sanity-test-apy.py: test for ara-mlt_translit
+
+2016-01-12  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/sanity-test-apy.py: test for dan-nno
+
+2016-01-06  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* translation.py: comment the return-from-generator, since it looks
+	a bit weird
+
+2016-01-05  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* translation.py: Made compatible with Python <=3.3 Squashed from commit dd129f7ce3fe996566b97c3d90b5480e45c1fb8d Author:
+	jatinluthra14 <jatinluthra14@gmail.com> Date:   Tue Jan 5 20:05:22
+	2016 +0530 see http://stackoverflow.com/a/16780113/69663
+
+2016-01-04  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* t/README: how to get data needed for t/run-tests
+
+2016-01-04  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* t/run-tests: better installed-check
+
+2016-01-04  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* t/run-tests: allow overriding data paths before running and better errors if data is simply not installed
+
+2015-12-10  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/apertium-viewer.html: translates as you type, gci work by
+	ethan a chi
+
+2015-11-24  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: eus→eu
+
+2015-11-24  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: more crh
+
+2015-11-24  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: a few more kaz fixes
+
+2015-11-24  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: agh, kazakh
+
+2015-11-24  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: more langs
+
+2015-11-24  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql, tools/turkic.sql, util.py: some updates,
+	including crh name in some Turkic languages
+
+2015-10-15  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* translation.py: flush lrx-proc
+
+2015-10-04  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* translation.py: don't keep pipes open for ca-oc@aran pair Seems this one keeps getting clogged, presumably transfer isn't
+	outputting some <b pos=N/>
+
+2015-09-25  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* t/run-tests: allow passing port as first arg
+
+2015-09-25  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* translation.py: use flushing even if hfst-proc (lrx-proc still
+	TODO)
+
+2015-09-25  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* t/run-tests: don't run tests if port taken
+
+2015-08-21  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* t/run-tests: extremely simple regression tests
+
+2015-08-21  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: -old debug output
+
+2015-08-21  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py, util.py: much simplified GenerateHandler as well using
+	translateSimple +cleanup
+
+2015-08-21  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: much simplified AnalyzeHandler using translateSimple
+
+2015-08-21  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: some Turkic name defaults
+
+2015-08-21  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: a few qaraqalpaq additions
+
+2015-08-21  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: copy-pasta fix
+
+2015-08-21  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: uzbek names for some Turkic languages
+
+2015-08-20  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: some language names in Kyrgyz
+
+2015-08-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* translation.py: tornado3: use gen.Task wrapper for translateSimple
+	as well
+
+2015-08-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* toro.py: add a license header for toro
+
+2015-08-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* translation.py: read_until requires a callback in tornado3,
+	gen.Task wrapper turns callbacks into yieldables
+
+2015-08-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py, translation.py: use toro if no tornado.locks
+
+2015-08-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* toro.py: s/Queue/queue for py3
+
+2015-08-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* toro.py: __init__.py from 524fbe5b8f of
+	https://github.com/ajdavis/toro/
+
+2015-08-11  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: doc more
+
+2015-08-11  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py, translation.py: --restart-pipe-after it has had that
+	many requests Pipelines to be shut down now put in a holding area until there are
+	no more users of that object, so we can restart high-traffic
+	pipelines
+
+2015-08-11  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: --min-pipes-per-pair implemented e.g. to keep at least one pipeline per pair open
+
+2015-08-11  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py, translation.py: implement --max-pipes-per-pair and
+	--max-users-per-pipe Pipeline is now an object, subclasses: Simple~ and Flushing~ locks
+	and use-count initialised in Pipeline FlushingPipeline opens pipes
+	on init and closes on del translate is a method of a Pipeline http server has a list of pipelines per pair, default max-len 1, but
+	e.g. -i3 does help with high loads even on my 3-core test machine
+
+2015-08-11  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py, translation.py: use tornado 4.2 instead of toro so that was easy
+
+2015-08-07  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: bump lastUsage _before_ translating, decrease chances
+	of concurrent requests running shutdownPair on us --max-idle-secs is still a bit dangerous in the case where a long
+	request takes more time to process than max_idle_secs, but that
+	value should hopefully be larger than the time taken to translate
+	the largest possible request … Or we can keep a semaphore for each pair counting how many requests
+	are waiting for it, and only shutdown if none are (but should switch
+	from toro to tornado.lock first)
+
+2015-08-07  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: default to -j1 since we don't want to default to
+	eating all your ram Use -j0 (or -j -- ) to run one http server per core, but note that
+	for each http server you will have all available language pairs in
+	memory (and each pair uses around 7 processes).
+
+2015-08-07  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* translation.py: put the dot/space found when splitting long
+	strings at end of prev (not beginning of next) string
+
+2015-08-01  Xavi Ivars <xavi.ivars@gmail.com>
+
+	* translation.py: [apy] Fixing bug incorrectly splitting short
+	strings
+
+2015-08-01  Xavi Ivars <xavi.ivars@gmail.com>
+
+	* translation.py: [apy] Fixing bug incorrectly splitting short
+	strings
+
+2015-07-11  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: some minor fixes to Turkic language names
+
+2015-07-03  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: bail out if it doesn't seem we have a utf-8 locale
+
+2015-04-27  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/sanity-test-apy.py: skip some
+
+2015-04-27  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* translation.py: each arg gets quoted individually (did this ever
+	work?)
+
+2015-03-19  Xavi Ivars <xavi.ivars@gmail.com>
+
+	* servlet.py, tools/apertium-viewer.html, translation.py: [APY]
+	Adding /pipedebug mode
+
+2014-12-09  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/apertium-viewer.html: apertium-viewer.html by GCI student
+	Rap /pipedebug not implemented in apy yet, so this is only using a fake
+	hardcoded response
+	http://www.google-melange.com/gci/task/view/google/gci2014/6466660768677888
+
+2014-11-07  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* translation.py: hardbreakFn now sends up to PIPE_BUF bytes;
+	rush-hour test checks if lock.locked()
+
+2014-11-06  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: / redirect to wiki/apy
+
+2014-11-06  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py, translation.py: select/poll-style translation instead
+	of threading We now yield a Future from a PipeIOStream in translate, using
+	tornado.process.Subprocess instead of Popen.  Depends on toro for the locking, so do "pip3 install toro"
+	(unfortunately not in Debian yet).  Much cleanup, e.g. startPipeline really belongs in translation.py;
+	pipeline_cmds now contains the do_flush bool and commands string.  Shows vmsize increases if verbosity>1.
+
+2014-11-06  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/README: deps for langNamesScraper
+
+2014-11-06  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* README, servlet.py: servlet doesn't actually use lxml.etree
+
+2014-11-05  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* COPYING: copying
+
+2014-11-04  Xavi Ivars <xavi.ivars@gmail.com>
+
+	* servlet.py, util.py: [apy] Better handling DB
+
+2014-11-04  Xavi Ivars <xavi.ivars@gmail.com>
+
+	* servlet.py: Only close de DB once
+
+2014-10-21  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: let missingFreqs.db=None by default since it really
+	shouldn't be required for apy to work
+
+2014-10-20  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/sanity-test-apy.py: test hin-urd, hbs-eng; timeout 15
+
+2014-10-17  Xavi Ivars <xavi.ivars@gmail.com>
+
+	* servlet.py: [APY] New mode -M to keep unknown words in memory
+	until a threshold is achieved (fix indent)
+
+2014-10-15  Xavi Ivars <xavi.ivars@gmail.com>
+
+	* util.py: [APY] New mode -M to keep unknown words in memory until a
+	threshold is achieved (missing file)
+
+2014-10-15  Xavi Ivars <xavi.ivars@gmail.com>
+
+	* servlet.py: [APY] New mode -M to keep unknown words in memory
+	until a threshold is achieved
+
+2014-10-09  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* Makefile: rm -f
+
+2014-10-09  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* Makefile: a clean target
+
+2014-10-06  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* translation.py: https://sourceforge.net/p/apertium/tickets/45/
+	don't flush with lrx-proc yet
+
+2014-10-01  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/sanity-test-apy.py: exit(1) if anything failed
+
+2014-09-16  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: simply remove async_callback
+	https://github.com/tornadoweb/tornado/blob/branch3.1/tornado/web.py#L1036says async_callback is Obsolete and unnecessary since Tornado 1.1
+
+2014-09-07  Xavi Ivars <xavi.ivars@gmail.com>
+
+	* util.py: [fix] Real IP behind a proxy
+
+2014-08-18  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: odt support
+
+2014-08-05  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: check extracted file list if detected as
+	application/zip
+
+2014-08-03  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: break
+
+2014-08-01  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: mimetype > xdg-mime > file
+
+2014-08-01  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py, translation.py: fixes
+
+2014-07-28  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Better file command parsing
+
+2014-07-28  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Switch errors
+
+2014-07-27  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Add download headers to /translateDoc
+
+2014-07-27  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py, translation.py: Use file command to detect MIME type
+
+2014-07-27  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py, translation.py: Functional document translation --
+	still needs threading and logging
+
+2014-07-26  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py, translation.py: cleanup
+
+2014-07-26  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Start on document translation support
+
+2014-07-25  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: better ʻ
+
+2014-07-25  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: a couple kaa names
+
+2014-07-24  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: '?mode' -> '?lang', '/coverage' -> '/calcCoverage' NOT
+	BACKWARDS COMPATIBILITY
+
+2014-07-06  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: possibly stop complaining about unicode chars in
+	source code
+
+2014-07-06  Xavi Ivars <xavi.ivars@gmail.com>
+
+	* servlet.py, translation.py: Code review feedback
+
+2014-07-06  Xavi Ivars <xavi.ivars@gmail.com>
+
+	* keys.py, servlet.py, translation.py, util.py: [Softcatalà]
+	Integrate ScaleMT-like logs into APY
+
+2014-06-28  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: pretty sure a star before a space can't be an unknown
+	word mark, that'd only work if spaces were in <alphabet> this should hopefully fix the overly greedy noteUnknownTokens
+
+2014-06-28  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/sanity-test-apy.py: some output while running so it doesn't
+	seem like we've stalled
+
+2014-06-28  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/langNamesScraper.py: s/unicode/langNames/
+
+2014-06-28  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* Makefile: WARNING: unicode.db now called langNames.db (fix your
+	apy startup scripts)
+
+2014-06-27  Sushain Cherivirala <sushain@skc.name>
+
+	* Makefile, servlet.py, util.py: Add missing freqs database (ticket
+	#30)
+
+2014-06-26  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py, util.py: formatting/style changes
+
+2014-06-19  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/systemd/README, tools/systemd/apy.service: systemd example
+	service file
+
+2014-06-18  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py, translation.py: use -f html-noent instead of -f html
+
+2014-06-18  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: rename confusing fn name
+
+2014-06-17  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Make all modes accept ISO 639-1 codes
+
+2014-06-17  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: /listPairs?include_deprecated_codes to include
+	two-letter codes in output
+
+2014-06-17  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: silently fail to fail if client passes two-letter
+	codes to /translate
+
+2014-06-10  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* translation.py: -unused fluff
+
+2014-06-10  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: stripUnknownMarks in a fn
+
+2014-06-09  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: sub-optimal implementation of markUnknown for
+	/translate
+
+2014-06-08  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: -چا to چە
+
+2014-06-05  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: db updates
+
+2014-06-04  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/turkic.sql: uy>ug
+
+2014-05-30  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: reversed
+
+2014-05-30  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql, tools/turkic.sql: updated databases or
+	something
+
+2014-05-15  Sushain Cherivirala <sushain@skc.name>
+
+	* Makefile: don't try deleting non-existent unicode.db
+
+2014-05-15  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: def isFlushable in case other cmds are unflushable as
+	well
+
+2014-05-15  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py, translation.py: No flushing for hfst-proc pairs
+	(restart on each translation) Still uses a lock, so should at least not spawn a several processes
+	per pipeline at once.  Entries in BaseHandler.pipelines now have a third arg do_flush Closes https://sourceforge.net/p/apertium/tickets/22/
+
+2014-05-15  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: start pipeline (if necessary) in the _worker, since
+	this is the function that starts translation
+
+2014-05-15  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: cleanPairs/notePairUsage only used by /translate,
+	don't need to be in BaseHandler
+
+2014-05-13  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: attempt to fix gen.coroutine import error
+
+2014-05-13  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: python 3.3. doesn't like generators with return None
+
+2014-05-09  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: 400 -> 408 HTTP errors
+
+2014-05-09  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Enable CORS
+
+2014-05-08  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: json error responses, closes
+	https://sourceforge.net/p/apertium/tickets/19/
+
+2014-05-08  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: fixed: /listPairs?q=adsf was treated as /listPairs
+
+2014-05-08  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: enable_pretty_logging doesn't seem to work if
+	logging's been used once already
+
+2014-05-08  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Make /analyze, /generate, /perWord and /coverage
+	non-blocking
+
+2014-05-08  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Use CLD for language detection and fallback to naive
+	approach if CLD not installed
+
+2014-05-07  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: /stats and -mN to shut down pipelines that haven't
+	been used in the last N secs (not too useful, but was so easy to
+	implement …)
+
+2014-05-07  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/sanity-test-apy.py: more tests
+
+2014-05-06  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/sanity-test-apy.py: output some stuff
+
+2014-05-06  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/sanity-test-apy.py: more tests, still just kaz-tat/sme-nob
+	failing
+
+2014-05-06  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/sanity-test-apy.py: insanity-untest
+
+2014-04-28  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* Makefile: rm unicode.db before running sqlite in case it already
+	exists
+
+2014-04-11  Francis Tyers <ftyers@users.noreply.github.com>
+
+	* tools/apertiumlangs.sql: add some avar translations
+
+2014-04-09  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: return 400 on modefile parse fail (better than
+	nothing)
+
+2014-04-09  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py, translation.py: per-pipeline locks! zomg.
+
+2014-04-09  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: doh! use sendResponse, not just finish, got wrong
+	headers etc
+
+2014-04-09  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py, translation.py: Start translate() in a separate thread
+	while still reusing pipelines, using ThreadableMixin Made it split on fairly short segments, might want to tweak
+	"hardbreak" constants
+
+2014-04-09  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Non-blocking requests
+
+2014-04-08  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: wops :)
+
+2014-04-08  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* modeSearch.py, servlet.py: Main arg to servlet.py now includes
+	_all_ .mode files under that path.  This now finds all my 88 /usr/local/share/apertium/modes, vs only 14
+	before … To specify a path for non-pair modes only, pass the
+	-s/--nonpairs-path argument: ./servlet.py /path/to/include/all/modes/from -s
+	/path/to/include/tagger/analyser/generator/modes/from Also has real symlink loop checking.  Pass -v2 to show the discovered modes on startup.
+
+2014-04-08  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* Makefile: how to make unicode.db, rather important …
+
+2014-04-07  Sushain Cherivirala <sushain@skc.name>
+
+	* util.py: oops, precedence rules are weird
+
+2014-04-07  Sushain Cherivirala <sushain@skc.name>
+
+	* modeSearch.py, util.py: Support variations in mode search
+
+2014-04-07  Francis Tyers <ftyers@users.noreply.github.com>
+
+	* modeSearch.py: add support for finding variants
+
+2014-04-05  selimcan <selimcan@72bbbca6-d526-0410-a7d9-f06f51895060>
+
+	* tools/apertiumlangs.sql: add tatar words for 'english' and
+	'spanish'
+
+2014-04-05  Francis Tyers <ftyers@users.noreply.github.com>
+
+	* tools/apertiumlangs.sql: add new langs in aragonese
+
+2014-04-04  Sushain Cherivirala <sushain@skc.name>
+
+	* tools/apertiumlangs.sql: Regenerate language name DB
+
+2014-04-04  Sushain Cherivirala <sushain@skc.name>
+
+	* tools/langNamesScraper.py: Fix bug with language list generation,
+	add some languages to list manually
+
+2014-04-04  Francis Tyers <ftyers@users.noreply.github.com>
+
+	* tools/apertiumlangs.sql: new langs
+
+2014-02-02  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* modeSearch.py, translation.py: linux line breaks on all py files
+
+2014-02-02  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* util.py: vim modeline
+
+2014-02-02  Sushain Cherivirala <sushain@skc.name>
+
+	* util.py: Fix indentation and add error message
+
+2014-02-02  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* util.py: keep global track of dbConn
+
+2014-02-01  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: fixes: az in tt, ky in ru
+
+2014-02-01  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: Tatar names for languages
+
+2014-02-01  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/sysvinit/apy.sh: updated script, points to new db
+
+2014-02-01  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: line to update languageNames table with
+	fixes table
+
+2014-02-01  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: fixes table
+
+2014-02-01  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: apertium languages, gonna fuċ more later
+
+2014-02-01  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/turkic.sql: two tables
+
+2014-01-26  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/turkic.sql: a few names for Chuvash
+
+2014-01-25  Sushain Cherivirala <sushain@skc.name>
+
+	* modeSearch.py: Follow symlinks when searching for modes Impose
+	limit on search depth
+
+2014-01-25  Sushain Cherivirala <sushain@skc.name>
+
+	* modeSearch.py, servlet.py, tools.py, tools/langNamesScraper.py,
+	util.py: Add a few ISO code mappings Make lang name scraper depend
+	on util for ISO code conversion Rename tools.py to util.py
+
+2014-01-25  Sushain Cherivirala <sushain@skc.name>
+
+	* modeSearch.py, translation.py: Optimize mode search performance
+	(even more)
+
+2014-01-25  Sushain Cherivirala <sushain@skc.name>
+
+	* modeSearch.py: Optimize mode search performance (more)
+
+2014-01-25  Sushain Cherivirala <sushain@skc.name>
+
+	* modeSearch.py: Optimize mode search performance (hopefully)
+
+2014-01-25  Sushain Cherivirala <sushain@skc.name>
+
+	* modeSearch.py, servlet.py: Improve mode searching functionality
+	(walk through all dirs recursively)
+
+2014-01-24  Sushain Cherivirala <sushain@skc.name>
+
+	* tools/langNamesScraper.py: Make usage appear only when no
+	arguments provided
+
+2014-01-23  Sushain Cherivirala <sushain@skc.name>
+
+	* modeSearch.py, servlet.py, tools.py: Regularize all APY language
+	listings to 3 alpha language codes
+
+2014-01-20  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/turkic.sql: use ша/ше, not тілі :\
+
+2014-01-20  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* translation.py: extra DEBUG lines, but all commented out
+
+2014-01-15  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: removed unused constant
+
+2014-01-14  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/sysvinit/apy.sh: init script
+
+2014-01-14  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* servlet.py: logging
+
+2014-01-14  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: well ioloop, if you're too spineless to kill them I'll
+	have to do it myself
+
+2014-01-13  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/turkic.sql: Kyrgyz and Karakalpak spelling in English
+
+2014-01-12  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* servlet.py: signal stuff
+
+2014-01-12  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/turkic.sql: bak in bak
+
+2014-01-11  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Prevent APY 500 on empty text for /identifyLang and
+	/coverage
+
+2014-01-11  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/turkic.sql: bak = ba
+
+2014-01-11  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/turkic.sql: bak, kum
+
+2014-01-09  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/turkic.sql: some fixes that shouldn't've been necessary.
+	native speakers need to go through and clean this stuff up :(
+
+2014-01-09  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/langNamesScraper.py, tools/turkic.sql: Apertium language
+	names in Turkic languages, English, and Russian Proper header for
+	langNamesScraper.py
+
+2014-01-08  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/upstart/apertium-apy.conf: fixed logging
+
+2014-01-08  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/upstart/apertium-all.conf,
+	tools/upstart/apertium-apy-gateway.conf,
+	tools/upstart/apertium-apy.conf,
+	tools/upstart/apertium-html-tools.conf: updated so apertium-all
+	controls stuff
+
+2014-01-08  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/upstart/apertium-all.conf: oh, and this too
+
+2014-01-08  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/upstart/apertium-apy-gateway.conf,
+	tools/upstart/apertium-apy.conf,
+	tools/upstart/apertium-html-tools.conf: new scripts
+
+2014-01-08  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/upstart/apertium-all.conf,
+	tools/upstart/apertium-apy-gateway.conf,
+	tools/upstart/apertium-apy.conf,
+	tools/upstart/apertium-html-tools.conf: logging added
+
+2014-01-08  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/upstart/apertium, tools/upstart/apertium-all.conf,
+	tools/upstart/apertium-apy-gateway.conf,
+	tools/upstart/apertium-apy.conf,
+	tools/upstart/apertium-html-tools.conf: all apertium upstart configs
+
+2014-01-07  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/upstart/apertium-apy-gateway.conf,
+	tools/upstart/apertium-apy.conf: upstart scripts
+
+2014-01-04  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* langNamesScraper.py, tools/langNamesScraper.py: here's the right
+	one
+
+2014-01-04  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools.py, tools/lgNameScraper.py: GAAH
+
+2014-01-04  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools.py, tools/lgNameScraper.py: hmm
+
+2014-01-04  Sushain Cherivirala <sushain@skc.name>
+
+	* tools.py: Fix bug in /getLocalizedLanguages in APY when both two
+	and three character code for same language are requested
+
+2014-01-04  Sushain Cherivirala <sushain@skc.name>
+
+	* gateway.py: Simplify APY gateway routing and fix bug with
+	/getLocale
+
+2014-01-03  Sushain Cherivirala <sushain@skc.name>
+
+	* gateway.py: Switch APY Gateway load balancer
+
+2014-01-02  Sushain Cherivirala <sushain@skc.name>
+
+	* gateway.py: Fix bug with translation request routing in APY
+	gateway
+
+2014-01-01  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Restore compatibility with Python 3.2
+
+2013-12-31  Ng Wei En <wei2912@users.noreply.github.com>
+
+	* servlet.py, tools.py: Fix high memory usage issue.
+
+2013-12-30  Sushain Cherivirala <sushain@skc.name>
+
+	* gateway.py, tools.py: Make Fastest paradigm balancer work with all
+	APY modes Fix minor bugs in gateway request handling (evident on
+	304s) Fix minor bugs in APY coverage mode
+
+2013-12-28  ericye16 <ericye16@72bbbca6-d526-0410-a7d9-f06f51895060>
+
+	* gateway.py, serverlist-example: Added example serverlist,
+	commented what needs to be done for gateway-scaleMT compatibility
+
+2013-12-28  ericye16 <ericye16@72bbbca6-d526-0410-a7d9-f06f51895060>
+
+	* gateway.py: Beginning support for scaleMT
+
+2013-12-28  ericye16 <ericye16@72bbbca6-d526-0410-a7d9-f06f51895060>
+
+	* gateway.py: Fixed /perWord
+
+2013-12-27  Sushain Cherivirala <sushain@skc.name>
+
+	* gateway.py: Improve Fastest paradigm load balancer in APY gateway
+
+2013-12-27  Sushain Cherivirala <sushain@skc.name>
+
+	* gateway.py: Make some APY gateway balancers compatible with
+	changes to get_server call
+
+2013-12-27  ericye16 <ericye16@72bbbca6-d526-0410-a7d9-f06f51895060>
+
+	* gateway.py: Fixed JS bug
+
+2013-12-27  ericye16 <ericye16@72bbbca6-d526-0410-a7d9-f06f51895060>
+
+	* gateway.py: Changed structure of capabilities dictionary, more
+	documentation
+
+2013-12-27  ericye16 <ericye16@72bbbca6-d526-0410-a7d9-f06f51895060>
+
+	* gateway.py: Smarter balancing -- going for servers with the
+	correct langpairs
+
+2013-12-26  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py, tools.py: Add coverage mode to APY Add preliminary
+	language identification mode to APY
+
+2013-12-25  ericye16 <ericye16@72bbbca6-d526-0410-a7d9-f06f51895060>
+
+	* gateway.py: Resolved the conflict, moved things around
+
+2013-12-25  Sushain Cherivirala <sushain@skc.name>
+
+	* gateway.py, servlet.py: Add Fastest paradigm load balancer for APY
+	Make pool terminate properly to prevent blocking
+
+2013-12-23  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py, translation.py: Modularize translation functionality
+	in APY Make translation calls asynchronous with timeout Handle
+	invalid translation pair errors properly (not in translateSplitting
+	and with 400)
+
+2013-12-23  ericye16 <ericye16@72bbbca6-d526-0410-a7d9-f06f51895060>
+
+	* gateway.py: now dropping dead servers, checking against empty
+	serverlists
+
+2013-12-23  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Fix bug in APY translate mode from port to Tornado
+
+2013-12-23  ericye16 <ericye16@72bbbca6-d526-0410-a7d9-f06f51895060>
+
+	* gateway.py: forwarding request headers
+
+2013-12-23  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Reject /getLocale requests without proper headers in
+	APY Send back proper HTTP 408 response for timed out requests
+
+2013-12-23  ericye16 <ericye16@72bbbca6-d526-0410-a7d9-f06f51895060>
+
+	* gateway.py: should keep going now
+
+2013-12-23  ericye16 <ericye16@72bbbca6-d526-0410-a7d9-f06f51895060>
+
+	* gateway.py: if our port's being used, use the next
+
+2013-12-23  Sushain Cherivirala <sushain@skc.name>
+
+	* gateway.py: Change server list file format and add debug mode to
+	APY gateway Remove empty folder
+
+2013-12-23  Sushain Cherivirala <sushain@skc.name>
+
+	* langNamesScraper.py: Move language name scraper
+
+2013-12-23  Sushain Cherivirala <sushain@skc.name>
+
+	* gateway.py: Generalize balancer class in APY gateway Use generator
+	for Round Robin balancer Add Least Connections balancer (incomplete)
+	Add Random balancer Improve logging Add testing interval support
+
+2013-12-22  Sushain Cherivirala <sushain@skc.name>
+
+	* gateway.py: Add a few preliminary tests to APY Gateway
+
+2013-12-22  ericye16 <ericye16@72bbbca6-d526-0410-a7d9-f06f51895060>
+
+	* servlet.py: Compatibility with python3.2 and earlier by not using
+	with statements
+
+2013-12-22  ericye16 <ericye16@72bbbca6-d526-0410-a7d9-f06f51895060>
+
+	* gateway.py, servlet.py: including support for tornado 3.1.1, a bit
+	for python3.2
+
+2013-12-22  Sushain Cherivirala <sushain@skc.name>
+
+	* gateway.py, servlet.py: Modify APY gateway arguments Add
+	preliminary testing functionality to gateway Remove unnecessary
+	self.finish() in post handlers
+
+2013-12-21  Sushain Cherivirala <sushain@skc.name>
+
+	* modeSearch.py, servlet.py, tools.py: Make more parts of APY
+	asynchronous Make APY arguments more user-friendly Allow APY to run
+	with multiple request serving threads Start modularizing APY
+
+2013-12-21  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Add alternative approaches to /perWord output in APY
+	Fix response headers Improve logging
+
+2013-12-21  ericye16 <ericye16@72bbbca6-d526-0410-a7d9-f06f51895060>
+
+	* gateway.py: With headers now
+
+2013-12-21  ericye16 <ericye16@72bbbca6-d526-0410-a7d9-f06f51895060>
+
+	* gateway.py: a very unintelligent round-robin gateway
+
+2013-12-21  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Make analyzation and generation in APY non-blocking
+
+2013-12-20  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Clean up BaseHandler in APY Add pos argument to
+	/perWords in APY
+
+2013-12-20  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Improve /perWord functionality in APY
+
+2013-12-20  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Make it clearer when APY launches Prevent extra token
+	in /perWord requests Fix SSL support bug
+
+2013-12-19  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Fix bugs in APY
+
+2013-12-19  Francis Tyers <ftyers@users.noreply.github.com>
+
+	* servlet.py: updates
+
+2013-12-19  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Port Apertium APY to Tornado web framework
+
+2013-12-19  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Simplify output of list analyzers/generators/taggers
+	in APY Fix bug with POST to APY
+
+2013-12-18  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Add alias for /list?q=taggers and fix input value in
+	/perWords outputs
+
+2013-12-18  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Condense list URL mappings Add perWord URL mapping
+	with functionality General cleanup Search for taggers in Apertium
+	path
+
+2013-12-17  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Add translation by word support to APY
+
+2013-12-15  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Make html-tools translation interface auto-detect
+	locale correctly
+
+2013-12-14  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Make localized language names database optional
+	argument Allow ISO 639-2 codes in localized language name requests
+
+2013-12-12  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Add HTTP access to APY localized language names
+	functionality
+
+2013-12-10  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Improve Unicode.org language name scraper and APY
+	localized language function
+
+2013-12-10  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Add localized languages function to APY Add
+	Unicode.org localized language name scraper
+
+2013-12-08  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: support en_APERTIUM
+
+2013-12-07  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Add SSL support to Apertium APY
+
+2013-12-04  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Fix morphological analyzer mode detection regexp in
+	APY
+
+2013-12-01  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Make morphological generator work for single input
+	without ^...$
+
+2013-12-01  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Add preliminary morphological analyzer and generator
+	support to simple-html interface
+
+2013-12-01  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Add list generators/analyzers functions to APY
+
+2013-12-01  Sushain Cherivirala <sushain@skc.name>
+
+	* servlet.py: Add morphological analysis and generation support to
+	APY
+
+2013-10-10  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: Threading request handler, to handle multiple users Uses TCPServer inheriting ThreadingMixIn. A lock on translateMode
+	(which has to have at most one thread per pipeline) ensures that
+	part stays single-threaded (to avoid Alice getting Bob's text).  http://stackoverflow.com/a/487281/69663 recommends select/polling
+	over threading (http://docs.python.org/3.3/library/socketserver.html
+	for diffs) but requires either lots of manually written dispatching
+	code (http://pymotw.com/2/select/) or a framework like Twisted.  Try testing with e.g.  python3 servlet "$APERTIUMPATH" 2737 & curl -s --data-urlencode 'langpair=nb|nn' --data-urlencode \
+	'q@/tmp/reallybigfile' 'http://localhost:2737/translate'
+	>/tmp/output & curl 'http://localhost:2737/translate?langpair=nb|nn&q=men+ikke+den'
+	curl 'http://localhost:2737/translate?langpair=nb|nn&q=men+ikke+den'
+	curl 'http://localhost:2737/translate?langpair=nb|nn&q=men+ikke+den' And see how the last three (after a slight wait) start outputting
+	before the first request is done.
+
+2013-09-20  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: doh, typo in do_GET
+
+2013-09-20  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: split up big requests before sending to pipeline so we
+	don't fill up buffers This doesn't handle parallel requests, simply to avoid deadlocking
+	on read/write. Also, support POST, e.g. curl --data-urlencode
+	'langpair=nb|nn' --data-urlencode 'q@file' localhost:2737/translate
+
+2013-09-20  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* servlet.py: a little debugging
+
+2013-09-19  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: fflush after writing the NUL (instead of writing it
+	twice); use deformat; read apertiumpath/port from command line
+	arguments
+
+2013-09-14  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* servlet.py: proper handling of apertium-pretransfer
+
+2013-09-08  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* servlet.py: a small bug fix and some more debugs
+
+2013-09-08  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* servlet.py: skip pretransfer
+
+2013-09-04  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* servlet.py: apertium-transfer -z fails.  also, script needs to be
+	async / threaded
+
+2013-09-03  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* servlet.py: another test to prevent failure
+
+2013-08-25  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* servlet.py: return False stack could be collapsed to a single line
+
+2013-08-25  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* servlet.py: getting stuck at procOut.stdout.read(1)
+
+2013-08-25  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* servlet.py: now requires r46823 for lrx-proc
+
+2013-08-25  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* servlet.py: three different ways to translate: modes file direct,
+	modes file deep, and apertium direct
+
+2013-08-25  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* servlet.py: uses .mode files
+
+2013-08-25  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* servlet.py: programming fail
+
+2013-08-24  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* servlet.py: now with callback support, I think
+
+2013-08-24  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* servlet.py: some cleaning up of commented-out code
+
+2013-08-24  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* apertium-apy, where apy=APy, and stands for API in Python
+
