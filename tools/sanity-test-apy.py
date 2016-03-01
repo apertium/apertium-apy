@@ -94,6 +94,7 @@ tests = {
     "spa-por": ("tengo", "tenho"),
     "spa-por_BR": ("tengo", "tenho"),
     "swe-dan": ("vad", "hvad"),
+    "dan-swe": ("hvad", "vad"),
     "swe-isl": ("Av", "Af"),
     "tat-kaz": ("ул", "ол"),
 }
