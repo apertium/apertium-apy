@@ -353,11 +353,11 @@ class TranslateHandler(BaseHandler):
         except ValueError:
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
             self.logAfterTranslation(self.logBeforeTranslation(), text_length)
-            return False
+            return None
         if '%s-%s' % (l1, l2) not in self.pairs:
             self.send_error(400, explanation='That pair is not installed')
             self.logAfterTranslation(self.logBeforeTranslation(), text_length)
-            return False
+            return None
         else:
             return (l1, l2)
 
