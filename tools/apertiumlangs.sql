@@ -9143,6 +9143,8 @@ INSERT INTO "fixes" VALUES(NULL,'kk','kaa','қарақалпақша');
 INSERT INTO "fixes" VALUES(NULL,'kk','tyv','тываша');
 INSERT INTO "fixes" VALUES(NULL,'ca','crh','tàtar de Crimea');
 INSERT INTO "fixes" VALUES(NULL,'eu','crh','Krimeako tatarera');
+INSERT INTO "fixes" VALUES(NULL,'en','oct_aran','Occitan Aranese');
+INSERT INTO "fixes" VALUES(NULL,'de','oct_aran','Okzitanisch Aranesisch');
 
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
 COMMIT;
