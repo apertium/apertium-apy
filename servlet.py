@@ -22,7 +22,9 @@ except ImportError: # 2.1
     from tornado.options import enable_pretty_logging
 
 from modeSearch import searchPath
-from util import getLocalizedLanguages, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, noteUnknownToken, scaleMtLog, TranslationInfo, closeDb, flushUnknownWords, inMemoryUnknownToken
+from util import getLocalizedLanguages, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, scaleMtLog, TranslationInfo
+
+import missingdb
 
 from urllib.parse import urlparse
 
@@ -56,17 +58,20 @@ def run_async_thread(func):
     return async_func
 
 
+missingFreqsDb = None       # has to be global for sig_handler :-/
+
 def sig_handler(sig, frame):
     global missingFreqsDb
-    if missingFreqsDb:
+    if missingFreqsDb is not None:
         if 'children' in frame.f_locals:
             for child in frame.f_locals['children']:
                 os.kill(child, signal.SIGTERM)
-            flushUnknownWords(missingFreqsDb)
-        else:  # we are one of the children
-            flushUnknownWords(missingFreqsDb)
+            missingFreqsDb.commit()
+        else:
+            # we are one of the children
+            missingFreqsDb.commit()
     logging.warning('Caught signal: %s', sig)
-    closeDb()
+    missingFreqsDb.closeDb()
     exit()
 
 
@@ -80,8 +85,6 @@ class BaseHandler(tornado.web.RequestHandler):
     callback = None
     timeout = None
     scaleMtLogs = False
-    inMemoryUnknown = False
-    inMemoryLimit = -1
     verbosity = 0
 
     stats = {
@@ -261,12 +264,10 @@ class TranslateHandler(BaseHandler):
             return re.sub(self.unknownMarkRE, r'\1', translated)
 
     def noteUnknownTokens(self, pair, text):
-        if self.missingFreqs:
+        global missingFreqsDb
+        if missingFreqsDb is not None:
             for token in re.findall(self.unknownMarkRE, text):
-                if self.inMemoryUnknown:
-                    inMemoryUnknownToken(token, pair, self.missingFreqs, self.inMemoryLimit)
-                else:
-                    noteUnknownToken(token, pair, self.missingFreqs)
+                missingFreqsDb.noteUnknown(token, pair)
 
     def cleanable(self, i, pair, pipe):
         if pipe.useCount > self.restart_pipe_after:
@@ -763,17 +764,15 @@ class PipeDebugHandler(BaseHandler):
             'responseStatus': 200
         })
 
-missingFreqsDb = ''
 
-
-def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeout, max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs, restart_pipe_after, verbosity=0, scaleMtLogs=False, memory=0):
+def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqsPath, timeout, max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs, restart_pipe_after, verbosity=0, scaleMtLogs=False, memory=1000):
 
     global missingFreqsDb
-    missingFreqsDb = missingFreqs
+    if missingFreqsPath:
+        missingFreqsDb = missingdb.MissingDb(missingFreqsPath, memory)
 
     Handler = BaseHandler
     Handler.langNames = langNames
-    Handler.missingFreqs = missingFreqs
     Handler.timeout = timeout
     Handler.max_pipes_per_pair = max_pipes_per_pair
     Handler.min_pipes_per_pair = min_pipes_per_pair
@@ -781,8 +780,6 @@ def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqs, timeo
     Handler.max_idle_secs = max_idle_secs
     Handler.restart_pipe_after = restart_pipe_after
     Handler.scaleMtLogs = scaleMtLogs
-    Handler.inMemoryUnknown = True if memory > 0 else False
-    Handler.inMemoryLimit = memory
     Handler.verbosity = verbosity
 
     modes = searchPath(pairs_path, verbosity=verbosity)
@@ -834,8 +831,8 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbosity', help='logging verbosity', type=int, default=0)
     parser.add_argument('-V', '--version', help='show APY version', action='version', version="%(prog)s version " + __version__)
     parser.add_argument('-S', '--scalemt-logs', help='generates ScaleMT-like logs; use with --log-path; disables', action='store_true')
-    parser.add_argument('-M', '--unknown-memory-limit', help="keeps unknown words in memory until a limit is reached", type=int, default=0)
-    parser.add_argument('-T', '--stat-period-max-age', help="How many seconds back to keep track request timing stats", type=int, default=3600)
+    parser.add_argument('-M', '--unknown-memory-limit', help="keeps unknown words in memory until a limit is reached (default = 1000)", type=int, default=1000)
+    parser.add_argument('-T', '--stat-period-max-age', help="How many seconds back to keep track request timing stats (default = 3600)", type=int, default=3600)
     args = parser.parse_args()
 
     if args.daemon:
