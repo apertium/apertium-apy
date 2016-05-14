@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recaptcha test</title>
+
+    <script src='https://www.google.com/recaptcha/api.js'></script>
+</head>
+<body>
+    <form action="http://localhost:2737/suggest" method="get">
+        <span>Language pair</span>
+        <input type="text" name="langpair" placeholder='eng|esp'>
+        <br>
+        <span>Context</span>
+        <input type="text" name='context' placeholder='context'>
+        <br>
+        <span>word</span>
+        <input type="text" name='word' placeholder='word'>
+        <br>
+        <span>newword</span>
+        <input type="text" name='newWord' placeholder='newWord'>
+    
+
+        <div class="g-recaptcha" data-sitekey="6LedqOgSAAAAAKEbYmAXZTTahn8H08JuO0b2BmE3"></div>
+        <input type="submit" value="Submit">
+    </form>
+</body>
+</html>
