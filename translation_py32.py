@@ -41,7 +41,7 @@ class Pipeline(object):
         return self.users < other.users
 
     @gen.coroutine
-    def translate(self, toTranslate, nosplit=False):
+    def translate(self, toTranslate, nosplit):
         raise Exception("Not implemented, subclass me!")
 
 
