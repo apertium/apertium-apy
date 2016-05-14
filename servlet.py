@@ -930,7 +930,6 @@ if __name__ == '__main__':
     parser.add_argument('-wd', '--wiki-url', help="Apertium Wiki page to send data to for SuggestionHandler", default='User:Svineet')
     # Change default for this ^
     parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA secret for suggestion validation", default=None)
-    parser.add_argument('-T', '--stat-cap', help="Number of requests to keep track of for stats", type=int, default=100)
     parser.add_argument('-M', '--unknown-memory-limit', help="keeps unknown words in memory until a limit is reached (default = 1000)", type=int, default=1000)
     parser.add_argument('-T', '--stat-period-max-age', help="How many seconds back to keep track request timing stats (default = 3600)", type=int, default=3600)
     args = parser.parse_args()
