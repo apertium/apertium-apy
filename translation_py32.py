@@ -126,9 +126,13 @@ def parseModeFile(mode_path):
             do_flush = True
             commands = []
             for cmd in mode_str.strip().split('|'):
+                # TODO: we should make language pairs install
+                # modes.xml instead; this is brittle (what if a path
+                # has | or " in it?)
                 cmd = cmd.replace('$2', '').replace('$1', '-g')
-                cmd = re.sub(r'^(\S*)', r'\g<1> -z', cmd)
-                commands.append(cmd.split())
+                cmd = re.sub(r'^\s*(\S*)', r'\g<1> -z', cmd)
+                commands.append([c.strip("'")
+                                 for c in cmd.split()])
         return ParsedModes(do_flush, commands)
     else:
         logging.error('Could not parse mode file %s', mode_path)
