@@ -1,0 +1,64 @@
+# -*- mode:org -*-
+#+STARTUP: showall
+
+* Version 0.9.0, 2016-02-11
+  Git rev: 1d0e110cd1e9a74f0099138823ec31f4c145ea73
+
+  Changes since r61425 / 0dd2cd:
+
+  - First official release with a version number :-)
+
+  - Should now be compatible with all Python versions from 3.2 to
+    3.5-dev (raises StopIteration in 3.2, returns from generator in
+    higher versions)
+
+  - APY now has some simple regression tests and Continuous
+    Integration. See t/README if you want to run them yourself, but
+    they are also run at https://travis-ci.org/goavki/apertium-apy on
+    every pull request or push to
+    https://github.org/goavki/apertium-apy
+
+  - /translateDoc now accepts optional argument &markUnknown which can
+    be either "yes" or "no", as /translate already does. Defaults to
+    "yes", which will put a "*" in front of any unknown word.
+
+  - New, *experimental* endpoint
+    /translatePage?url=URL&langpair=FROM|TO which will retrieve an URL
+    and return HTML with translated text. Like /translate, accepts
+    optional argument &markUnknown which can be either "yes" or "no",
+    and does not block other requests (but if there are few pipelines
+    per pair, long page translations may currently hold up shorter
+    requests to the same language pair, since we translate the whole
+    page in one go instead of splitting it up).
+
+  - New/improved language name localisations (Kyrgyz, Uzbek,
+    Qaraqalpaq, Kazakh, Basque, Crimean Tatar, …)
+
+  - More information in /stats: Now shows number of requests, chars
+    and time spent actively translating during the last N seconds
+    (defaults to 3600, changable with new optional argument -T /
+    --stat-period-max-age), and total server uptime.
+
+  - Now does NUL-flushing (keeps pipelines open) even if the pair uses
+    hfst-proc or lrx-proc (NUL-flushing works in those programs as of
+    2015-10-15).
+
+  - Analysis/generation now both use translateSimple, less duplicate
+    code.
+
+  - tools/apertium-viewer.html – a simple one-page HTML interface to
+    APY translation, meant for debugging – now does translate as you
+    type.
+
+  - tools/sanity-test-apy.py updated to do a healthcheck on all pairs
+    currently running on https://apertium.org
+
+  - Minor cleanups suggested by flake8.
+
+* r61425, 2015-08-13
+  Git rev: 0dd2cdba544e228b6268f0c0babbdf1698af27f8
+
+  - Unofficial release, but in Debian sid as 0.1.0~r61425-1
+
+  - See http://wiki.apertium.org/wiki/Apy for an overview of what APY
+    can do.

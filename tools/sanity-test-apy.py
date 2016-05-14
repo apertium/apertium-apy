@@ -59,6 +59,7 @@ tests = {
     "nld-afr": ("ik", "ek"),
     "nno-dan": ("kva", "hvad"),
     "dan-nno": ("hvad", "kva"),
+    "dan-nob": ("hvad", "hva"),
     "nno_e-nno": ("korleis", "korleis"),
     "nno-nob": ("korleis", "hvordan"),
     "nno-nno_e": ("korleis", "korleis"),
@@ -93,6 +94,7 @@ tests = {
     "spa-por": ("tengo", "tenho"),
     "spa-por_BR": ("tengo", "tenho"),
     "swe-dan": ("vad", "hvad"),
+    "dan-swe": ("hvad", "vad"),
     "swe-isl": ("Av", "Af"),
     "tat-kaz": ("ул", "ол"),
 }

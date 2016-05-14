@@ -4,8 +4,6 @@
 import sqlite3, re, os, logging
 from subprocess import Popen, PIPE
 from datetime import datetime
-import threading
-from collections import defaultdict
 
 from wiki_util import wikiGetPage, wikiEditPage, wikiAddText
 
@@ -17,8 +15,8 @@ iso639Codes = {"abk":"ab","aar":"aa","afr":"af","aka":"ak","sqi":"sq","amh":"am"
         JSON.stringify(out);
 '''
 
+# TODO: does this need a lock?
 langNamesDBConn = None
-missingFreqsDBConn = None
 
 def toAlpha2Code(code):
     if '_' in code:
@@ -71,69 +69,6 @@ def getLocalizedLanguages(locale, dbPath, languages=[]):
             output[languageResult[2]] = languageResult[3]
     return output
 
-def noteUnknownToken(token, pair, dbPath):
-    global missingFreqsDBConn
-    if not missingFreqsDBConn:
-        missingFreqsDBConn = sqlite3.connect(dbPath)
-    c = missingFreqsDBConn.cursor()
-
-    c.execute('CREATE TABLE IF NOT EXISTS missingFreqs (pair TEXT, token TEXT, frequency INTEGER, UNIQUE(pair, token))')
-    c.execute('INSERT OR REPLACE INTO missingFreqs VALUES (:pair, :token, COALESCE((SELECT frequency FROM missingFreqs WHERE pair=:pair AND token=:token), 0) + 1)', {'pair': pair, 'token': token})
-    missingFreqsDBConn.commit()
-
-
-unknownLock = threading.RLock()
-unknownWords = defaultdict(lambda: defaultdict(lambda: 0))
-unknownCount = 0
-
-def inMemoryUnknownToken(token, pair, dbPath, limit):
-    global unknownLock
-    global unknownCount
-    global unknownWords
-
-    try:
-        unknownLock.acquire()
-        unknownWords[pair][token] += 1
-        unknownCount += 1
-
-        if unknownCount > limit:
-            flushUnknownWords(dbPath)
-            unknownWords.clear()
-            unknownCount = 0
-    finally:
-        unknownLock.release()
-
-
-def flushUnknownWords(dbPath):
-    global unknownWords
-    global missingFreqsDBConn
-
-    timeBefore = datetime.now()
-
-    if not missingFreqsDBConn:
-        missingFreqsDBConn = sqlite3.connect(dbPath)
-
-    c = missingFreqsDBConn.cursor()
-    c.execute("PRAGMA synchronous = NORMAL")
-
-    c.execute('CREATE TABLE IF NOT EXISTS missingFreqs (pair TEXT, token TEXT, frequency INTEGER, UNIQUE(pair, token))')
-
-    c.executemany('INSERT OR REPLACE INTO missingFreqs VALUES (:pair, :token, COALESCE((SELECT frequency FROM missingFreqs WHERE pair=:pair AND token=:token), 0) + :amount)',
-                  ({'pair': pair, 'token': token, 'amount' : unknownWords[pair][token]} for pair in unknownWords for token in unknownWords[pair]))
-
-    missingFreqsDBConn.commit()
-
-    ms = timedeltaToMilliseconds(datetime.now() - timeBefore)
-    logging.info("\tSaving %s unknown words to the DB (%s ms)", unknownCount, ms)
-
-def closeDb():
-    global missingFreqsDBConn
-    if not missingFreqsDBConn:
-        logging.warning('no connection')
-        return
-    logging.warning('closing connection')
-    missingFreqsDBConn.close()
-    missingFreqsDBConn = False
 
 def apertium(input, dir, mode, formatting=None):
     p1 = Popen(['echo', input], stdout=PIPE)
@@ -240,9 +175,6 @@ def processPerWord(analyzers, taggers, lang, modes, query):
 
 def getTimestamp():
     return datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]
-
-def timedeltaToMilliseconds(td):
-    return td.days*86400000 + td.seconds*1000 + int(td.microseconds/1000)
 
 def scaleMtLog(status, time, tInfo, key, length):
     logging.getLogger('scale-mt').error("%s %s %s html %s %s %s %s %s %s",
