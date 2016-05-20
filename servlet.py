@@ -70,8 +70,8 @@ def sig_handler(sig, frame):
         else:
             # we are one of the children
             missingFreqsDb.commit()
+        missingFreqsDb.closeDb()
     logging.warning('Caught signal: %s', sig)
-    missingFreqsDb.closeDb()
     exit()
 
 
