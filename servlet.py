@@ -24,6 +24,7 @@ except ImportError: # 2.1
 from modeSearch import searchPath
 from util import getLocalizedLanguages, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, scaleMtLog, TranslationInfo
 
+import systemd
 import missingdb
 
 from urllib.parse import urlparse
@@ -46,7 +47,7 @@ try:
 except:
     chardet = None
 
-__version__ = "0.9.0"
+__version__ = "0.9.1"
 
 def run_async_thread(func):
     @wraps(func)
@@ -901,4 +902,11 @@ if __name__ == '__main__':
 
     http_server.bind(args.port)
     http_server.start(args.num_processes)
-    tornado.ioloop.IOLoop.instance().start()
+
+    loop = tornado.ioloop.IOLoop.instance()
+    wd = systemd.setup_watchdog()
+    if wd is not None:
+        wd.systemd_ready()
+        logging.info("Initialised systemd watchdog, pinging every {}s".format(1000*wd.period))
+        tornado.ioloop.PeriodicCallback(wd.watchdog_ping, 1000*wd.period, loop).start()
+    loop.start()

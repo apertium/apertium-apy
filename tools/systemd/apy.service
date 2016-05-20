@@ -12,6 +12,9 @@ ExecStart=/usr/bin/python3 servlet.py /usr/local/share/apertium
 # By default, if it restarts >10 times within 5 secs, it marks it as failed and gives up:
 Restart=always
 
+# Restart the service if it doesn't do a watchdog ping within 10 seconds:
+WatchdogSec=10s
+
 # No reason to have access to shared tmp files:
 PrivateTmp=yes
 
