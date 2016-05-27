@@ -49,7 +49,6 @@ def searchPath(rootpath, include_pairs=True, verbosity=1):
                     if mtype != 'pair':
                         modename = m.group(1) # e.g. en-es-anmorph
                         langlist = [toAlpha3Code(l) for l in m.group(2).split('-')]
-                        lang_src = langlist[0]         # e.g. en
                         lang_pair = '-'.join(langlist) # e.g. en-es
                         dir_of_modes = os.path.dirname(dirpath)
                         mode = (dir_of_modes,
