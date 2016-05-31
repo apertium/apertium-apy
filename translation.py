@@ -71,7 +71,7 @@ class FlushingPipeline(Pipeline):
 
 class SimplePipeline(Pipeline):
     def __init__(self, commands, *args, **kwargs):
-        self.commands = commands
+        self.commands = list(commands)
         super().__init__(*args, **kwargs)
 
     @gen.coroutine
