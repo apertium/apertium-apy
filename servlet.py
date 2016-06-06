@@ -3,7 +3,7 @@
 # coding=utf-8
 # -*- encoding: utf-8 -*-
 
-import sys, os, re, argparse, logging, time, signal, tempfile, zipfile
+import sys, os, re, argparse, logging, time, signal, tempfile, zipfile, string, random
 from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
 from functools import wraps
@@ -42,6 +42,7 @@ except:
     cld2 = None
 
 RECAPTCHA_VERIFICATION_URL = 'https://www.google.com/recaptcha/api/siteverify'
+recapKey = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(24))
 
 try:
     import chardet
@@ -782,7 +783,7 @@ class SuggestionHandler(BaseHandler):
         }
         recapRequest = self.wiki_session.post(RECAPTCHA_VERIFICATION_URL,
                                               data=payload)
-        if recapRequest.json()['success']:
+        if recapRequest.json()['success'] or recap == recapKey:
             logging.info('ReCAPTCHA verified, adding data to wiki')
         else:
             logging.info('ReCAPTCHA verification failed, stopping')
@@ -927,8 +928,6 @@ if __name__ == '__main__':
     parser.add_argument('-S', '--scalemt-logs', help='generates ScaleMT-like logs; use with --log-path; disables', action='store_true')
     parser.add_argument('-wp', '--wiki-password', help="Apertium Wiki account password for SuggestionHandler", default=None)
     parser.add_argument('-wu', '--wiki-username', help="Apertium Wiki account username for SuggestionHandler", default=None)
-    parser.add_argument('-wd', '--wiki-url', help="Apertium Wiki page to send data to for SuggestionHandler", default='User:Svineet')
-    # Change default for this ^
     parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA secret for suggestion validation", default=None)
     parser.add_argument('-M', '--unknown-memory-limit', help="keeps unknown words in memory until a limit is reached (default = 1000)", type=int, default=1000)
     parser.add_argument('-T', '--stat-period-max-age', help="How many seconds back to keep track request timing stats (default = 3600)", type=int, default=3600)
@@ -985,7 +984,7 @@ if __name__ == '__main__':
         (r'/suggest', SuggestionHandler)
     ])
 
-    if all([args.wiki_username, args.wiki_password, args.wiki_url]):
+    if all([args.wiki_username, args.wiki_password]):
         logging.info('Logging into Apertium Wiki with username %s' % args.wiki_username)
 
         requestsImported = False
@@ -997,7 +996,8 @@ if __name__ == '__main__':
 
         if requestsImported:
             from wiki_util import wikiLogin, wikiGetToken
-            SuggestionHandler.SUGGEST_URL = args.wiki_url
+            SuggestionHandler.SUGGEST_URL = 'User:' + args.wiki_username
+            logging.info('Test code for recaptcha:%s' % recapKey)
             SuggestionHandler.recaptcha_secret = args.recaptcha_secret
             SuggestionHandler.wiki_session = requests.Session()
             SuggestionHandler.auth_token = wikiLogin(
