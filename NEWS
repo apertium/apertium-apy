@@ -1,6 +1,27 @@
 # -*- mode:org -*-
 #+STARTUP: showall
 
+* Version 0.9.1, 2016-06-10
+  Git rev: 3c536b37def552d073ddda4d27d9358103e304c4
+
+  Changes since 0.9.0:
+
+  - Various minor cleanups and lints
+
+  - systemd watchdog – if APY was started by systemd and the .service
+    file has e.g. WatchdogSec=10s, we send a watchdog ping every <10s.
+    See tools/systemd for example .service file.
+
+  - rewrote missingFreqs-handling to fix locking (in its own class
+    now); and don't try to close missingFreqsDb unless it was actually
+    open
+
+  - Handle .mode files from newest Apertium (which now quotes paths
+    correctly there)
+
+  - fix #14 false was sent by getPairOrError instead of None
+
+
 * Version 0.9.0, 2016-02-11
   Git rev: 1d0e110cd1e9a74f0099138823ec31f4c145ea73
 

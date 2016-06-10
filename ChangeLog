@@ -1,8 +1,86 @@
 See NEWS for a per-release summary, this is just the git log.
 
+2016-06-10  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/sanity-test-apy.py: test swe-nor
+
+2016-05-31  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* : commit 72eb4dad68cb8d4a12f2d74a2395cafec3b7af96 Author: Kevin
+	Brubeck Unhammer <unhammer@fsfe.org> Date:   Tue May 31 15:37:53
+	2016 +0200
+
+2016-05-27  Kevin Brubeck Unhammer <unhammer+dill@mm.st>
+
+	* : Merge pull request #21 from Putti/variable Remove unused variable
+
+2016-05-27  Joonas Kylmälä <j.kylmala@gmail.com>
+
+	* modeSearch.py: Remove unused variable
+
+2016-05-27  Joonas Kylmälä <j.kylmala@gmail.com>
+
+	* modeSearch.py: Move mode logging to it's own function
+
+2016-05-20  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* .travis.yml: travis: lint
+
+2016-05-20  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* .travis.yml: travis: irc notify
+
+2016-05-20  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* .gitignore: ignores
+
+2016-05-20  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* .gitignore, servlet.py, systemd.py, tools/systemd/apy.service: 
+	systemd watchdog; only used if started by systemd and the .service file has e.g. WatchdogSec=10s
+
+2016-05-20  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: don't try to close missingFreqsDb unless open
+
+2016-05-15  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* translation_py32.py: rm arbitrary diff from translation.py
+
+2016-05-15  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* translation_py32.py: merge 8f8ffda to py32 as well
+
+2016-05-14  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* translation.py: allow space around '|' in .mode files really, we should just make all language pairs install modes.xml
+	though
+
+2016-04-29  Kevin Brubeck Unhammer <unhammer+dill@mm.st>
+
+	* : Merge pull request #16 from wolfgangth/master Update apertiumlangs.sql
+
+2016-04-29  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* missingdb.py: missingdb: close cursor each time as well
+
+2016-04-29  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* missingdb.py, servlet.py, util.py: rewrote missingFreqs-handling
+	to fix locking in its own class, all relevant variables kept there, only one
+	function that commits, lock at the right spot
+
+2016-04-03  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: getPairOrError callers expect None if error should close #14
+
+2016-03-01  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/sanity-test-apy.py: dan→swe in tests
+
 2016-02-11  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-	* ChangeLog, NEWS: NEWS, ChangeLog; should close #13
+	* ChangeLog, NEWS: NEWS with readable summaries; git2cl > ChangeLog should close #13
 
 2016-02-10  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
