@@ -42,7 +42,7 @@ except:
     cld2 = None
 
 RECAPTCHA_VERIFICATION_URL = 'https://www.google.com/recaptcha/api/siteverify'
-recapKey = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(24))
+testingToken = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(24))
 
 try:
     import chardet
@@ -783,7 +783,7 @@ class SuggestionHandler(BaseHandler):
         }
         recapRequest = self.wiki_session.post(RECAPTCHA_VERIFICATION_URL,
                                               data=payload)
-        if recapRequest.json()['success'] or recap == recapKey:
+        if recapRequest.json()['success'] or recap == testingToken:
             logging.info('ReCAPTCHA verified, adding data to wiki')
         else:
             logging.info('ReCAPTCHA verification failed, stopping')
@@ -997,7 +997,7 @@ if __name__ == '__main__':
         if requestsImported:
             from wiki_util import wikiLogin, wikiGetToken
             SuggestionHandler.SUGGEST_URL = 'User:' + args.wiki_username
-            logging.info('Test code for recaptcha:%s' % recapKey)
+            logging.info('reCaptcha bypass for testing:%s' % testingToken)
             SuggestionHandler.recaptcha_secret = args.recaptcha_secret
             SuggestionHandler.wiki_session = requests.Session()
             SuggestionHandler.auth_token = wikiLogin(
