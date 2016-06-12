@@ -773,22 +773,26 @@ class SuggestionHandler(BaseHandler):
             self.send_error(400, explanation='Server not configured correctly for suggestions')
             return
 
-        # for nginx or when behind a proxy
-        x_real_ip = self.request.headers.get("X-Real-IP")
-        user_ip = x_real_ip or self.request.remote_ip
-        payload = {
-            'secret': self.recaptcha_secret,
-            'response': recap,
-            'remoteip': user_ip
-        }
-        recapRequest = self.wiki_session.post(RECAPTCHA_VERIFICATION_URL,
+        if recap == testingToken:
+            logging.info('Adding data to wiki with testing token')
+        else:        
+
+            # for nginx or when behind a proxy
+            x_real_ip = self.request.headers.get("X-Real-IP")
+            user_ip = x_real_ip or self.request.remote_ip
+            payload = {
+                'secret': self.recaptcha_secret,
+                'response': recap,
+                'remoteip': user_ip
+            }
+            recapRequest = self.wiki_session.post(RECAPTCHA_VERIFICATION_URL,
                                               data=payload)
-        if recapRequest.json()['success'] or recap == testingToken:
-            logging.info('ReCAPTCHA verified, adding data to wiki')
-        else:
-            logging.info('ReCAPTCHA verification failed, stopping')
-            self.send_error(400, explanation='ReCAPTCHA verification failed')
-            return
+            if recapRequest.json()['success']:
+                logging.info('ReCAPTCHA verified, adding data to wiki')
+            else:
+                logging.info('ReCAPTCHA verification failed, stopping')
+                self.send_error(400, explanation='ReCAPTCHA verification failed')
+                return
 
         from util import addSuggestion
         data = {
