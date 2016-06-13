@@ -7,7 +7,7 @@ After=network.target
 # Change this to your username and edit to how you start apy:
 User=apertium
 WorkingDirectory=/usr/share/apertium-apy
-ExecStart=/usr/bin/python3 servlet.py /usr/share/apertium
+ExecStart=/usr/bin/python3 servlet.py /usr/share/apertium/modes
 
 # By default, if it restarts >10 times within 5 secs, it marks it as failed and gives up:
 Restart=always
