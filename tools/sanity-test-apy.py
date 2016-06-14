@@ -57,6 +57,7 @@ tests = {
     "mkd-eng": ("триесет", "thirty"),
     "mlt-ara": ("u", "و"),
     "nld-afr": ("ik", "ek"),
+    "nob-swe": ("hva", "vad"),
     "nno-swe": ("kva", "vad"),
     "swe-nno": ("vad", "kva"),
     "swe-nob": ("vad", "hva"),
