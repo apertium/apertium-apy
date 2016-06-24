@@ -77,8 +77,8 @@ def wikiAddText(content, data):
 
     src, dst = data['langpair'].split('|')
     content += '\n* {{suggest|%s|%s|%s|%s|%s}}' % (src, dst,
-                                                   data['context'],
                                                    data['word'],
-                                                   data['newWord'])
+                                                   data['newWord'],
+                                                   data['context'],)
 
     return content
