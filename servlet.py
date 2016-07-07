@@ -709,12 +709,6 @@ class IdentifyLangHandler(BaseHandler):
                 detected_langs.append(elem)
             result = dict(detected_langs)
             self.sendResponse(result)
-            #cldResults = cld2.detect(text)
-            #if cldResults[0]:
-            #    possibleLangs = filter(lambda x: x[1] != 'un', cldResults[2])
-            #    self.sendResponse({toAlpha3Code(possibleLang[1]): possibleLang[2] for possibleLang in possibleLangs})
-            #else:
-            #    self.sendResponse({'nob': 100})  # TODO: Some more reasonable response
         else:
             def handleCoverages(coverages):
                 self.sendResponse(coverages)
