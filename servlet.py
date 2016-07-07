@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3detcted
 # -*- indent-tabs-mode: nil -*-
 # coding=utf-8
 # -*- encoding: utf-8 -*-
@@ -38,9 +38,9 @@ import util
 from keys import getKey
 
 try:
-    import cld2full as cld2
+    from langdetect import detect_langs
 except:
-    cld2 = None
+    detect_langs = None
 
 try:
     import chardet
@@ -701,13 +701,20 @@ class IdentifyLangHandler(BaseHandler):
         if not text:
             return self.send_error(400, explanation='Missing q argument')
 
-        if cld2:
-            cldResults = cld2.detect(text)
-            if cldResults[0]:
-                possibleLangs = filter(lambda x: x[1] != 'un', cldResults[2])
-                self.sendResponse({toAlpha3Code(possibleLang[1]): possibleLang[2] for possibleLang in possibleLangs})
-            else:
-                self.sendResponse({'nob': 100})  # TODO: Some more reasonable response
+        if detect_langs:
+            detected_langs = []
+            answers = detect_langs(text)
+            for elem in answers:
+                elem = tuple(str(elem).split(':'))
+                detected_langs.append(elem)
+            result = dict(detected_langs)
+            self.sendResponse(result)
+            #cldResults = cld2.detect(text)
+            #if cldResults[0]:
+            #    possibleLangs = filter(lambda x: x[1] != 'un', cldResults[2])
+            #    self.sendResponse({toAlpha3Code(possibleLang[1]): possibleLang[2] for possibleLang in possibleLangs})
+            #else:
+            #    self.sendResponse({'nob': 100})  # TODO: Some more reasonable response
         else:
             def handleCoverages(coverages):
                 self.sendResponse(coverages)
@@ -861,8 +868,8 @@ if __name__ == '__main__':
     if args.stat_period_max_age:
         BaseHandler.STAT_PERIOD_MAX_AGE = timedelta(0, args.stat_period_max_age, 0)
 
-    if not cld2:
-        logging.warning("Unable to import CLD2, continuing using naive method of language detection")
+    if not detect_langs:
+        logging.warning("Unable to import langdetect, continuing using naive method of language detection")
     if not chardet:
         logging.warning("Unable to import chardet, assuming utf-8 encoding for all websites")
 
