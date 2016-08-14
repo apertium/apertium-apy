@@ -1,4 +1,4 @@
-#!/usr/bin/env python3detcted
+#!/usr/bin/env python3
 # -*- indent-tabs-mode: nil -*-
 # coding=utf-8
 # -*- encoding: utf-8 -*-
