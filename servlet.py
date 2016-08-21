@@ -3,7 +3,7 @@
 # coding=utf-8
 # -*- encoding: utf-8 -*-
 
-import sys, os, re, argparse, logging, time, signal, tempfile, zipfile
+import sys, os, re, argparse, logging, time, signal, tempfile, zipfile, string, random
 from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
 from functools import wraps
@@ -41,6 +41,9 @@ try:
     import cld2full as cld2
 except:
     cld2 = None
+
+RECAPTCHA_VERIFICATION_URL = 'https://www.google.com/recaptcha/api/siteverify'
+bypassToken = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(24))
 
 try:
     import chardet
@@ -733,6 +736,102 @@ class GetLocaleHandler(BaseHandler):
             self.send_error(400, explanation='Accept-Language missing from request headers')
 
 
+class SuggestionHandler(BaseHandler):
+    wiki_session = None
+    wiki_edit_token = None
+    SUGGEST_URL = None
+    recaptcha_secret = None
+
+    @gen.coroutine
+    def get(self):
+        self.send_error(405, explanation='GET request not supported')
+
+    @gen.coroutine
+    def post(self):
+        context = self.get_argument('context', None)
+        word = self.get_argument('word', None)
+        newWord = self.get_argument('newWord', None)
+        langpair = self.get_argument('langpair', None)
+        recap = self.get_argument('g-recaptcha-response', None)
+
+        if not newWord:
+            self.send_error(400, explanation='A suggestion is required')
+            return
+
+        if not recap:
+            self.send_error(400, explanation='The ReCAPTCHA is required')
+            return
+
+        if not all([context, word, langpair, newWord, recap]):
+            self.send_error(400, explanation='All arguments were not provided')
+            return
+
+        logging.info("Suggestion (%s): Context is %s \n Word: %s ; New Word: %s " % (langpair, context, word, newWord))
+        logging.info('Now verifying ReCAPTCHA.')
+
+        if not self.recaptcha_secret:
+            logging.error('No ReCAPTCHA secret provided!')
+            self.send_error(400, explanation='Server not configured correctly for suggestions')
+            return
+
+        if recap == bypassToken:
+            logging.info('Adding data to wiki with bypass token')
+        else:        
+
+            # for nginx or when behind a proxy
+            x_real_ip = self.request.headers.get("X-Real-IP")
+            user_ip = x_real_ip or self.request.remote_ip
+            payload = {
+                'secret': self.recaptcha_secret,
+                'response': recap,
+                'remoteip': user_ip
+            }
+            recapRequest = self.wiki_session.post(RECAPTCHA_VERIFICATION_URL,
+                                              data=payload)
+            if recapRequest.json()['success']:
+                logging.info('ReCAPTCHA verified, adding data to wiki')
+            else:
+                logging.info('ReCAPTCHA verification failed, stopping')
+                self.send_error(400, explanation='ReCAPTCHA verification failed')
+                return
+
+        from util import addSuggestion
+        data = {
+            'context': context, 'langpair': langpair,
+            'word': word, 'newWord': newWord
+        }
+        result = addSuggestion(self.wiki_session,
+                               self.SUGGEST_URL, self.wiki_edit_token,
+                               data)
+
+        if result:
+            self.sendResponse({
+                'responseData': {
+                    'status': 'Success'
+                },
+                'responseDetails': None,
+                'responseStatus': 200
+            })
+        else:
+            logging.info('Page update failed, trying to get new edit token')
+            self.wiki_edit_token = wikiGetToken(
+                SuggestionHandler.wiki_session, 'edit', 'info|revisions')
+            logging.info('Obtained new edit token. Trying page update again.')
+            result = addSuggestion(self.wiki_session,
+                                   self.SUGGEST_URL, self.wiki_edit_token,
+                                   data)
+            if result:
+                self.sendResponse({
+                    'responseData': {
+                        'status': 'Success'
+                    },
+                    'responseDetails': None,
+                    'responseStatus': 200
+                })
+            else:
+                self.send_error(400, explanation='Page update failed')
+
+
 class PipeDebugHandler(BaseHandler):
 
     @gen.coroutine
@@ -832,6 +931,10 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbosity', help='logging verbosity', type=int, default=0)
     parser.add_argument('-V', '--version', help='show APY version', action='version', version="%(prog)s version " + __version__)
     parser.add_argument('-S', '--scalemt-logs', help='generates ScaleMT-like logs; use with --log-path; disables', action='store_true')
+    parser.add_argument('-wp', '--wiki-password', help="Apertium Wiki account password for SuggestionHandler", default=None)
+    parser.add_argument('-wu', '--wiki-username', help="Apertium Wiki account username for SuggestionHandler", default=None)
+    parser.add_argument('-b', '--bypass-token', help="ReCAPTCHA bypass token", action='store_true')
+    parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA secret for suggestion validation", default=None)
     parser.add_argument('-M', '--unknown-memory-limit', help="keeps unknown words in memory until a limit is reached (default = 1000)", type=int, default=1000)
     parser.add_argument('-T', '--stat-period-max-age', help="How many seconds back to keep track request timing stats (default = 3600)", type=int, default=3600)
     args = parser.parse_args()
@@ -883,8 +986,34 @@ if __name__ == '__main__':
         (r'/calcCoverage', CoverageHandler),
         (r'/identifyLang', IdentifyLangHandler),
         (r'/getLocale', GetLocaleHandler),
-        (r'/pipedebug', PipeDebugHandler)
+        (r'/pipedebug', PipeDebugHandler),
+        (r'/suggest', SuggestionHandler)
     ])
+
+    if args.bypass_token:
+         logging.info('reCaptcha bypass for testing:%s' % bypassToken)
+
+    if all([args.wiki_username, args.wiki_password]):
+        logging.info('Logging into Apertium Wiki with username %s' % args.wiki_username)
+
+        requestsImported = False
+        try:
+            import requests
+            requestsImported = True
+        except ImportError:
+            logging.error('requests module is required for SuggestionHandler')
+
+        if requestsImported:
+            from wiki_util import wikiLogin, wikiGetToken
+            SuggestionHandler.SUGGEST_URL = 'User:' + args.wiki_username
+            SuggestionHandler.recaptcha_secret = args.recaptcha_secret
+            SuggestionHandler.wiki_session = requests.Session()
+            SuggestionHandler.auth_token = wikiLogin(
+                SuggestionHandler.wiki_session,
+                args.wiki_username,
+                args.wiki_password)
+            SuggestionHandler.wiki_edit_token = wikiGetToken(
+                SuggestionHandler.wiki_session, 'edit', 'info|revisions')
 
     global http_server
     if args.ssl_cert and args.ssl_key:
