@@ -8,7 +8,9 @@ python:
     - "3.5-dev"
     - "nightly"
 
-install: pip3 install tornado
+install: 
+    - pip3 install tornado
+    - pip3 install flake8
 
 before_script:
     - wget http://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
@@ -16,6 +18,7 @@ before_script:
     - sudo apt-get -f install apertium-sme-nob apertium-es-en
     - svn co https://svn.code.sf.net/p/apertium/svn/languages/apertium-nno /tmp/languages/apertium-nno
     - ( cd /tmp/languages/apertium-nno && ./autogen.sh && make -j2 )
+    - flake8 . --max-line-length 140
 
 script:
     - NONPAIRS=/tmp/languages t/run-tests
