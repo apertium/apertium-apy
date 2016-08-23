@@ -1,7 +1,9 @@
-import re, os
+import re
+import os
 from subprocess import Popen, PIPE
 from tornado import gen
-import tornado.process, tornado.iostream
+import tornado.process
+import tornado.iostream
 try:  # >=4.2
     import tornado.locks as locks
 except ImportError:
@@ -14,6 +16,7 @@ from time import time
 
 
 class Pipeline(object):
+
     def __init__(self):
         # The lock is needed so we don't let two coroutines write
         # simultaneously to a pipeline; then the first call to read might
@@ -46,6 +49,7 @@ class Pipeline(object):
 
 
 class FlushingPipeline(Pipeline):
+
     def __init__(self, commands, *args, **kwargs):
         self.inpipe, self.outpipe = startPipeline(commands)
         super().__init__(*args, **kwargs)
@@ -69,7 +73,9 @@ class FlushingPipeline(Pipeline):
                 parts = yield [translateNULFlush(part, self) for part in all_split]
                 return "".join(parts)
 
+
 class SimplePipeline(Pipeline):
+
     def __init__(self, commands, *args, **kwargs):
         self.commands = list(commands)
         super().__init__(*args, **kwargs)
@@ -83,6 +89,7 @@ class SimplePipeline(Pipeline):
 
 
 ParsedModes = namedtuple('ParsedModes', 'do_flush commands')
+
 
 def makePipeline(modes_parsed):
     if modes_parsed.do_flush:
@@ -98,7 +105,7 @@ def startPipeline(commands):
             in_from = tornado.process.Subprocess.STREAM
         else:
             in_from = procs[-1].stdout
-        if i == len(commands)-1:
+        if i == len(commands) - 1:
             out_from = tornado.process.Subprocess.STREAM
         else:
             out_from = PIPE
@@ -156,6 +163,7 @@ def upToBytes(string, max_bytes):
             l -= 1
     return 0
 
+
 def hardbreakFn(string, n_users):
     """If others are queueing up to translate at the same time, we send
     short requests, otherwise we try to minimise the number of
@@ -169,6 +177,7 @@ def hardbreakFn(string, n_users):
     else:
         return upToBytes(string, PIPE_BUF)
 
+
 def preferPunctBreak(string, last, hardbreak):
     """We would prefer to split on a period or space seen before the
     hardbreak, if we can. If the remaining string is smaller or equal
@@ -177,18 +186,18 @@ def preferPunctBreak(string, last, hardbreak):
     """
 
     if(len(string[last:]) <= hardbreak):
-        return last+hardbreak+1
+        return last + hardbreak + 1
 
-    softbreak = int(hardbreak/2)+1
+    softbreak = int(hardbreak / 2) + 1
     softnext = last + softbreak
     hardnext = last + hardbreak
     dot = string.rfind(".", softnext, hardnext)
     if dot > -1:
-        return dot+1
+        return dot + 1
     else:
         space = string.rfind(" ", softnext, hardnext)
         if space > -1:
-            return space+1
+            return space + 1
         else:
             return hardnext
 
@@ -204,8 +213,8 @@ def splitForTranslation(toTranslate, n_users):
         hardbreak = hardbreakFn(toTranslate[last:], n_users)
         next = preferPunctBreak(toTranslate, last, hardbreak)
         allSplit.append(toTranslate[last:next])
-        #logging.getLogger().setLevel(logging.DEBUG)
-        logging.debug("splitForTranslation: last:%s hardbreak:%s next:%s appending:%s"%(last,hardbreak,next,toTranslate[last:next]))
+        # logging.getLogger().setLevel(logging.DEBUG)
+        logging.debug("splitForTranslation: last:%s hardbreak:%s next:%s appending:%s" % (last, hardbreak, next, toTranslate[last:next]))
         last = next
     return allSplit
 
@@ -222,7 +231,7 @@ def translateNULFlush(toTranslate, pipeline):
         proc_in.stdin.write(deformatted)
         proc_in.stdin.write(bytes('\0', "utf-8"))
         # TODO: PipeIOStream has no flush, but seems to work anyway?
-        #proc_in.stdin.flush()
+        # proc_in.stdin.flush()
 
         output = yield gen.Task(proc_out.stdout.read_until, bytes('\0', 'utf-8'))
 
@@ -296,12 +305,12 @@ def translateSimple(toTranslate, commands):
     return translated.decode('utf-8')
 
 
-def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks = False):
+def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
     modesdir = os.path.dirname(os.path.dirname(modeFile))
     mode = os.path.splitext(os.path.basename(modeFile))[0]
     if unknownMarks:
-      return Popen(['apertium', '-f', fmt, '-d', modesdir, mode],
-                 stdin=fileToTranslate, stdout=PIPE).communicate()[0]
+        return Popen(['apertium', '-f', fmt, '-d', modesdir, mode],
+                     stdin=fileToTranslate, stdout=PIPE).communicate()[0]
     else:
-      return Popen(['apertium', '-f', fmt, '-u', '-d', modesdir, mode],
-                 stdin=fileToTranslate, stdout=PIPE).communicate()[0]
+        return Popen(['apertium', '-f', fmt, '-u', '-d', modesdir, mode],
+                     stdin=fileToTranslate, stdout=PIPE).communicate()[0]

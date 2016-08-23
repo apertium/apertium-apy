@@ -32,7 +32,7 @@ def watchdog_period():
     val = os.environ.get("WATCHDOG_USEC", None)
     if not val:
         return None
-    return int(val)/1000000
+    return int(val) / 1000000
 
 
 def notify_socket(clean_environment=True):
@@ -69,9 +69,10 @@ def notify_socket(clean_environment=True):
 
 
 class Watchdog(object):
+
     def __init__(self, period, address, sock):
         # "The daemon should then issue sd_notify("WATCHDOG=1") calls every half of that interval."
-        self.period = float(period)/2.0
+        self.period = float(period) / 2.0
         self.address = address
         self.sock = sock
 

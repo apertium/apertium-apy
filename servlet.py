@@ -3,39 +3,48 @@
 # coding=utf-8
 # -*- encoding: utf-8 -*-
 
-import sys, os, re, argparse, logging, time, signal, tempfile, zipfile
+import sys
+import os
+import re
+import argparse
+import logging
+import time
+import signal
+import tempfile
+import zipfile
 from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
 from functools import wraps
 from threading import Thread
 from datetime import datetime, timedelta
+from urllib.parse import urlparse
 import heapq
 
-import tornado, tornado.web, tornado.httpserver, tornado.process, tornado.iostream
+import tornado
+import tornado.web
+import tornado.httpserver
+import tornado.process
+import tornado.iostream
 from tornado import httpclient
 from tornado import gen
 from tornado import escape
 from tornado.escape import utf8
-try: # 3.1
+try:  # 3.1
     from tornado.log import enable_pretty_logging
-except ImportError: # 2.1
+except ImportError:  # 2.1
     from tornado.options import enable_pretty_logging
 
 from modeSearch import searchPath
-from util import getLocalizedLanguages, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, scaleMtLog, TranslationInfo
+from keys import getKey
+from util import getLocalizedLanguages, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, scaleMtLog, TranslationInfo, removeDotFromDeformat
 
 import systemd
 import missingdb
-
-from urllib.parse import urlparse
 
 if sys.version_info.minor < 3:
     import translation_py32 as translation
 else:
     import translation
-
-import util
-from keys import getKey
 
 try:
     import cld2full as cld2
@@ -49,6 +58,7 @@ except:
 
 __version__ = "0.9.1"
 
+
 def run_async_thread(func):
     @wraps(func)
     def async_func(*args, **kwargs):
@@ -60,6 +70,7 @@ def run_async_thread(func):
 
 
 missingFreqsDb = None       # has to be global for sig_handler :-/
+
 
 def sig_handler(sig, frame):
     global missingFreqsDb
@@ -81,7 +92,7 @@ class BaseHandler(tornado.web.RequestHandler):
     analyzers = {}
     generators = {}
     taggers = {}
-    pipelines = {} # (l1, l2): [translation.Pipeline], only contains flushing pairs!
+    pipelines = {}  # (l1, l2): [translation.Pipeline], only contains flushing pairs!
     pipelines_holding = []
     callback = None
     timeout = None
@@ -95,7 +106,7 @@ class BaseHandler(tornado.web.RequestHandler):
         'timing': []
     }
 
-    pipeline_cmds = {} # (l1, l2): translation.ParsedModes
+    pipeline_cmds = {}  # (l1, l2): translation.ParsedModes
     max_pipes_per_pair = 1
     min_pipes_per_pair = 0
     max_users_per_pipe = 5
@@ -122,7 +133,6 @@ class BaseHandler(tornado.web.RequestHandler):
         except:
             # don't let a stupid logging function mess us up
             pass
-
 
     def sendResponse(self, data):
         self.log_vmsize()
@@ -178,6 +188,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
 
 class ListHandler(BaseHandler):
+
     @tornado.web.asynchronous
     def get(self):
         query = self.get_argument('q', default='pairs')
@@ -201,6 +212,7 @@ class ListHandler(BaseHandler):
 
 
 class StatsHandler(BaseHandler):
+
     @tornado.web.asynchronous
     def get(self):
         numRequests = self.get_argument('requests', 1000)
@@ -210,22 +222,22 @@ class StatsHandler(BaseHandler):
             numRequests = 1000
 
         periodStats = self.stats['timing'][-numRequests:]
-        times = sum([x[1]-x[0] for x in periodStats],
+        times = sum([x[1] - x[0] for x in periodStats],
                     timedelta())
         chars = sum(x[2] for x in periodStats)
         if times.total_seconds() != 0:
-            charsPerSec = round(chars/times.total_seconds(), 2)
+            charsPerSec = round(chars / times.total_seconds(), 2)
         else:
             charsPerSec = 0.0
         nrequests = len(periodStats)
-        maxAge = (datetime.now()-periodStats[0][0]).total_seconds() if periodStats else 0
+        maxAge = (datetime.now() - periodStats[0][0]).total_seconds() if periodStats else 0
 
-        uptime = int((datetime.now()-self.stats['startdate']).total_seconds())
-        useCount = { '%s-%s' % pair: useCount
-                     for pair, useCount in self.stats['useCount'].items() }
-        runningPipes = { '%s-%s' % pair: len(pipes)
-                         for pair, pipes in self.pipelines.items()
-                         if pipes != [] }
+        uptime = int((datetime.now() - self.stats['startdate']).total_seconds())
+        useCount = {'%s-%s' % pair: useCount
+                    for pair, useCount in self.stats['useCount'].items()}
+        runningPipes = {'%s-%s' % pair: len(pipes)
+                        for pair, pipes in self.pipelines.items()
+                        if pipes != []}
         holdingPipes = len(self.pipelines_holding)
 
         self.sendResponse({
@@ -248,15 +260,19 @@ class StatsHandler(BaseHandler):
 
 
 class RootHandler(BaseHandler):
+
     @tornado.web.asynchronous
     def get(self):
         self.redirect("http://wiki.apertium.org/wiki/Apertium-apy")
 
+
 class TranslateHandler(BaseHandler):
+
     def notePairUsage(self, pair):
         self.stats['useCount'][pair] = 1 + self.stats['useCount'].get(pair, 0)
 
     unknownMarkRE = re.compile(r'\*([^.,;:\t\* ]+)')
+
     def maybeStripMarks(self, markUnknown, pair, translated):
         self.noteUnknownTokens("%s-%s" % pair, translated)
         if markUnknown:
@@ -276,9 +292,9 @@ class TranslateHandler(BaseHandler):
             logging.info('A pipe for pair %s-%s has handled %d requests, scheduling restart',
                          pair[0], pair[1], self.restart_pipe_after)
             return True
-        elif (i >= self.min_pipes_per_pair
-              and self.max_idle_secs != 0
-              and time.time() - pipe.lastUsage > self.max_idle_secs):
+        elif (i >= self.min_pipes_per_pair and
+                self.max_idle_secs != 0 and
+                time.time() - pipe.lastUsage > self.max_idle_secs):
             logging.info("A pipe for pair %s-%s hasn't been used in %d secs, scheduling shutdown",
                          pair[0], pair[1], self.max_idle_secs)
             return True
@@ -340,7 +356,7 @@ class TranslateHandler(BaseHandler):
         if self.scaleMtLogs:
             tInfo = TranslationInfo(self)
             key = getKey(tInfo.key)
-            scaleMtLog(self.get_status(), after-before, tInfo, key, length)
+            scaleMtLog(self.get_status(), after - before, tInfo, key, length)
 
         if self.get_status() == 200:
             oldest = self.stats['timing'][0][0] if self.stats['timing'] else datetime.now()
@@ -392,13 +408,14 @@ class TranslateHandler(BaseHandler):
 
 
 class TranslatePageHandler(TranslateHandler):
+
     def htmlToText(self, html, url):
         if chardet:
             encoding = chardet.detect(html).get("encoding", "utf-8")
         else:
             encoding = "utf-8"
         text = html.decode(encoding)
-        text = text.replace('href="/',  'href="{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(url)))
+        text = text.replace('href="/', 'href="{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(url)))
         text = re.sub(r'a([^>]+)href=[\'"]?([^\'" >]+)', 'a \\1 href="#" onclick=\'window.parent.translateLink("\\2");\'', text)
         return text
 
@@ -412,9 +429,9 @@ class TranslatePageHandler(TranslateHandler):
             http_client = httpclient.AsyncHTTPClient()
             url = self.get_argument('url')
             request = httpclient.HTTPRequest(url=url,
-                                            # TODO: tweak
-                                            connect_timeout=20.0,
-                                            request_timeout=20.0)
+                                             # TODO: tweak
+                                             connect_timeout=20.0,
+                                             request_timeout=20.0)
             response = yield http_client.fetch(request)
             toTranslate = self.htmlToText(response.body, url)
             yield self.translateAndRespond(pair,
@@ -503,9 +520,9 @@ class TranslateDocHandler(TranslateHandler):
                         self.request.headers['Content-Disposition'] = 'attachment'
 
                         if markUnknown:
-                          self.write(translation.translateDoc(tempFile, allowedMimeTypes[mtype], self.pairs['%s-%s' % (l1, l2)],True))
+                            self.write(translation.translateDoc(tempFile, allowedMimeTypes[mtype], self.pairs['%s-%s' % (l1, l2)], True))
                         else:
-                          self.write(translation.translateDoc(tempFile, allowedMimeTypes[mtype], self.pairs['%s-%s' % (l1, l2)],False))
+                            self.write(translation.translateDoc(tempFile, allowedMimeTypes[mtype], self.pairs['%s-%s' % (l1, l2)], False))
                         self.finish()
                     else:
                         self.send_error(400, explanation='Invalid file type %s' % mtype)
@@ -514,8 +531,9 @@ class TranslateDocHandler(TranslateHandler):
 
 
 class AnalyzeHandler(BaseHandler):
+
     def postproc_text(self, in_text, result):
-        lexical_units = util.removeDotFromDeformat(in_text, re.findall(r'\^([^\$]*)\$([^\^]*)', result))
+        lexical_units = removeDotFromDeformat(in_text, re.findall(r'\^([^\$]*)\$([^\^]*)', result))
         return [(lu[0], lu[0].split('/')[0] + lu[1])
                 for lu
                 in lexical_units]
@@ -536,6 +554,7 @@ class AnalyzeHandler(BaseHandler):
 
 
 class GenerateHandler(BaseHandler):
+
     def preproc_text(self, in_text):
         lexical_units = re.findall(r'(\^[^\$]*\$[^\^]*)', in_text)
         if len(lexical_units) == 0:
@@ -564,6 +583,7 @@ class GenerateHandler(BaseHandler):
 
 
 class ListLanguageNamesHandler(BaseHandler):
+
     @tornado.web.asynchronous
     def get(self):
         localeArg = self.get_argument('locale')
@@ -590,6 +610,7 @@ class ListLanguageNamesHandler(BaseHandler):
 
 
 class PerWordHandler(BaseHandler):
+
     @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
@@ -660,6 +681,7 @@ class PerWordHandler(BaseHandler):
 
 
 class CoverageHandler(BaseHandler):
+
     @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
@@ -695,6 +717,7 @@ class CoverageHandler(BaseHandler):
 
 
 class IdentifyLangHandler(BaseHandler):
+
     @tornado.web.asynchronous
     def get(self):
         text = self.get_argument('q')
@@ -716,7 +739,8 @@ class IdentifyLangHandler(BaseHandler):
             result = pool.apply_async(getCoverages, [text, self.analyzers], {'penalize': True}, callback=handleCoverages)
             pool.close()
             try:
-                coverages = result.get(timeout=self.timeout)
+                result.get(timeout=self.timeout)
+                # coverages = result.get(timeout=self.timeout)
                 # TODO: Coverages are not actually sent!!
             except TimeoutError:
                 self.send_error(408, explanation='Request timed out')
@@ -724,6 +748,7 @@ class IdentifyLangHandler(BaseHandler):
 
 
 class GetLocaleHandler(BaseHandler):
+
     @tornado.web.asynchronous
     def get(self):
         if 'Accept-Language' in self.request.headers:
@@ -766,7 +791,11 @@ class PipeDebugHandler(BaseHandler):
         })
 
 
-def setupHandler(port, pairs_path, nonpairs_path, langNames, missingFreqsPath, timeout, max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs, restart_pipe_after, verbosity=0, scaleMtLogs=False, memory=1000):
+def setupHandler(
+    port, pairs_path, nonpairs_path, langNames, missingFreqsPath, timeout,
+    max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs, restart_pipe_after,
+    verbosity=0, scaleMtLogs=False, memory=1000
+):
 
     global missingFreqsDb
     if missingFreqsPath:
@@ -815,25 +844,36 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Apertium APY -- API server for machine translation and language analysis')
     parser.add_argument('pairs_path', help='path to Apertium installed pairs (all modes files in this path are included)')
     parser.add_argument('-s', '--nonpairs-path', help='path to Apertium SVN (only non-translator debug modes are included from this path)')
-    parser.add_argument('-l', '--lang-names', help='path to localised language names sqlite database (default = langNames.db)', default='langNames.db')
+    parser.add_argument('-l', '--lang-names',
+                        help='path to localised language names sqlite database (default = langNames.db)', default='langNames.db')
     parser.add_argument('-f', '--missing-freqs', help='path to missing frequency sqlite database (default = None)', default=None)
     parser.add_argument('-p', '--port', help='port to run server on (default = 2737)', type=int, default=2737)
     parser.add_argument('-c', '--ssl-cert', help='path to SSL Certificate', default=None)
     parser.add_argument('-k', '--ssl-key', help='path to SSL Key File', default=None)
     parser.add_argument('-t', '--timeout', help='timeout for requests (default = 10)', type=int, default=10)
-    parser.add_argument('-j', '--num-processes', help='number of processes to run (default = 1; use 0 to run one http server per core, where each http server runs all available language pairs)', nargs='?', type=int, default=1)
-    parser.add_argument('-d', '--daemon', help='daemon mode: redirects stdout and stderr to files apertium-apy.log and apertium-apy.err ; use with --log-path', action='store_true')
+    parser.add_argument('-j', '--num-processes',
+                        help='number of processes to run (default = 1; use 0 to run one http server per core, where each http server runs all available language pairs)',
+                        nargs='?', type=int, default=1)
+    parser.add_argument(
+        '-d', '--daemon', help='daemon mode: redirects stdout and stderr to files apertium-apy.log and apertium-apy.err ; use with --log-path', action='store_true')
     parser.add_argument('-P', '--log-path', help='path to log output files to in daemon mode; defaults to local directory', default='./')
-    parser.add_argument('-i', '--max-pipes-per-pair', help='how many pipelines we can spin up per language pair (default = 1)', type=int, default=1)
-    parser.add_argument('-n', '--min-pipes-per-pair', help='when shutting down pipelines, keep at least this many open per language pair (default = 0)', type=int, default=0)
-    parser.add_argument('-u', '--max-users-per-pipe', help='how many concurrent requests per pipeline before we consider spinning up a new one (default = 5)', type=int, default=5)
-    parser.add_argument('-m', '--max-idle-secs', help='if specified, shut down pipelines that have not been used in this many seconds', type=int, default=0)
-    parser.add_argument('-r', '--restart-pipe-after', help='restart a pipeline if it has had this many requests (default = 1000)', type=int, default=1000)
+    parser.add_argument('-i', '--max-pipes-per-pair',
+                        help='how many pipelines we can spin up per language pair (default = 1)', type=int, default=1)
+    parser.add_argument('-n', '--min-pipes-per-pair',
+                        help='when shutting down pipelines, keep at least this many open per language pair (default = 0)', type=int, default=0)
+    parser.add_argument('-u', '--max-users-per-pipe',
+                        help='how many concurrent requests per pipeline before we consider spinning up a new one (default = 5)', type=int, default=5)
+    parser.add_argument('-m', '--max-idle-secs',
+                        help='if specified, shut down pipelines that have not been used in this many seconds', type=int, default=0)
+    parser.add_argument('-r', '--restart-pipe-after',
+                        help='restart a pipeline if it has had this many requests (default = 1000)', type=int, default=1000)
     parser.add_argument('-v', '--verbosity', help='logging verbosity', type=int, default=0)
     parser.add_argument('-V', '--version', help='show APY version', action='version', version="%(prog)s version " + __version__)
     parser.add_argument('-S', '--scalemt-logs', help='generates ScaleMT-like logs; use with --log-path; disables', action='store_true')
-    parser.add_argument('-M', '--unknown-memory-limit', help="keeps unknown words in memory until a limit is reached (default = 1000)", type=int, default=1000)
-    parser.add_argument('-T', '--stat-period-max-age', help="How many seconds back to keep track request timing stats (default = 3600)", type=int, default=3600)
+    parser.add_argument('-M', '--unknown-memory-limit',
+                        help="keeps unknown words in memory until a limit is reached (default = 1000)", type=int, default=1000)
+    parser.add_argument('-T', '--stat-period-max-age',
+                        help="How many seconds back to keep track request timing stats (default = 3600)", type=int, default=3600)
     args = parser.parse_args()
 
     if args.daemon:
@@ -866,7 +906,8 @@ if __name__ == '__main__':
     if not chardet:
         logging.warning("Unable to import chardet, assuming utf-8 encoding for all websites")
 
-    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout, args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs, args.restart_pipe_after, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
+    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout, args.max_pipes_per_pair,
+                 args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs, args.restart_pipe_after, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
 
     application = tornado.web.Application([
         (r'/', RootHandler),
@@ -907,6 +948,6 @@ if __name__ == '__main__':
     wd = systemd.setup_watchdog()
     if wd is not None:
         wd.systemd_ready()
-        logging.info("Initialised systemd watchdog, pinging every {}s".format(1000*wd.period))
-        tornado.ioloop.PeriodicCallback(wd.watchdog_ping, 1000*wd.period, loop).start()
+        logging.info("Initialised systemd watchdog, pinging every {}s".format(1000 * wd.period))
+        tornado.ioloop.PeriodicCallback(wd.watchdog_ping, 1000 * wd.period, loop).start()
     loop.start()

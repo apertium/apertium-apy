@@ -1,5 +1,8 @@
-import re, os, logging
+import re
+import os
+import logging
 from util import toAlpha3Code
+
 
 def is_loop(dirpath, rootpath, real_root=None):
     if os.path.islink(dirpath):
@@ -40,16 +43,16 @@ def searchPath(rootpath, include_pairs=True, verbosity=1):
 
     for dirpath, dirnames, files in os.walk(rootpath, followlinks=True):
         if is_loop(dirpath, rootpath, real_root):
-            dirnames[:]=[]
+            dirnames[:] = []
             continue
         for filename in [f for f in files if f.endswith('.mode')]:
             for mtype, regex in type_re.items():
                 m = regex.match(filename)
                 if m:
                     if mtype != 'pair':
-                        modename = m.group(1) # e.g. en-es-anmorph
+                        modename = m.group(1)  # e.g. en-es-anmorph
                         langlist = [toAlpha3Code(l) for l in m.group(2).split('-')]
-                        lang_pair = '-'.join(langlist) # e.g. en-es
+                        lang_pair = '-'.join(langlist)  # e.g. en-es
                         dir_of_modes = os.path.dirname(dirpath)
                         mode = (dir_of_modes,
                                 modename,
@@ -67,6 +70,7 @@ def searchPath(rootpath, include_pairs=True, verbosity=1):
         _log_modes(modes)
 
     return modes
+
 
 def _log_modes(modes):
     """Print given modes to log."""
