@@ -776,8 +776,7 @@ class SuggestionHandler(BaseHandler):
 
         if recap == bypassToken:
             logging.info('Adding data to wiki with bypass token')
-        else:        
-
+        else:
             # for nginx or when behind a proxy
             x_real_ip = self.request.headers.get("X-Real-IP")
             user_ip = x_real_ip or self.request.remote_ip
@@ -996,14 +995,12 @@ if __name__ == '__main__':
     if all([args.wiki_username, args.wiki_password]):
         logging.info('Logging into Apertium Wiki with username %s' % args.wiki_username)
 
-        requestsImported = False
         try:
             import requests
-            requestsImported = True
         except ImportError:
             logging.error('requests module is required for SuggestionHandler')
 
-        if requestsImported:
+        if requests:
             from wiki_util import wikiLogin, wikiGetToken
             SuggestionHandler.SUGGEST_URL = 'User:' + args.wiki_username
             SuggestionHandler.recaptcha_secret = args.recaptcha_secret
