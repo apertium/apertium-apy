@@ -19,7 +19,8 @@ before_script:
     - sudo apt-get -f install apertium-sme-nob apertium-es-en
     - svn co https://svn.code.sf.net/p/apertium/svn/languages/apertium-nno /tmp/languages/apertium-nno
     - ( cd /tmp/languages/apertium-nno && ./autogen.sh && make -j2 )
-    - flake8 . --max-line-length 180 --exclude=toro.py
+    - if [[ $TRAVIS_PYTHON_VERSION = 3.2 ]]; then flake8 . --max-line-length 180 --exclude=toro.py,translation.py; fi
+    - if [[ $TRAVIS_PYTHON_VERSION != 3.2 ]]; then flake8 . --max-line-length 180 --exclude=toro.py,translation_py32.py; fi
 
 script:
     - NONPAIRS=/tmp/languages t/run-tests
