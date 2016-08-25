@@ -9,7 +9,8 @@ python:
     - "nightly"
 
 install:
-    - pip3 install tornado
+    - if [[ $TRAVIS_PYTHON_VERSION = 3.2 ]]; then pip3 install tornado==4.3; fi
+    - if [[ $TRAVIS_PYTHON_VERSION != 3.2 ]]; then pip3 install tornado; fi
     - pip3 install flake8
 
 before_script:
