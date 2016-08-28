@@ -8,7 +8,9 @@ python:
     - "3.5-dev"
     - "nightly"
 
-install: pip3 install tornado
+install:
+    - if [[ $TRAVIS_PYTHON_VERSION = 3.2 ]]; then pip3 install tornado==4.3; fi
+    - if [[ $TRAVIS_PYTHON_VERSION != 3.2 ]]; then pip3 install tornado; fi
 
 before_script:
     - wget http://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
