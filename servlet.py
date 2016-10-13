@@ -276,7 +276,7 @@ class TranslateHandler(BaseHandler):
     def notePairUsage(self, pair):
         self.stats['useCount'][pair] = 1 + self.stats['useCount'].get(pair, 0)
 
-    unknownMarkRE = re.compile(r'\*([^.,;:\t\* ]+)')
+    unknownMarkRE = re.compile(r'[#*]([^.,;:\t\* ]+)')
 
     def maybeStripMarks(self, markUnknown, pair, translated):
         self.noteUnknownTokens("%s-%s" % pair, translated)
