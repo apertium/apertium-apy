@@ -86,6 +86,7 @@ def apertium(input, modeDir, mode, formatting='txt'):
     output = p2.communicate()[0].decode('utf-8')
     return output
 
+
 def bilingualTranslate(toTranslate, modeDir, mode):
     p1 = Popen(['echo', toTranslate], stdout=PIPE)
     p2 = Popen(['lt-proc', '-b', mode], stdin=p1.stdout, stdout=PIPE, cwd=modeDir)
