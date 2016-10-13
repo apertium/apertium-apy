@@ -70,20 +70,20 @@ def getLocalizedLanguages(locale, dbPath, languages=[]):
     return output
 
 
-def apertium(input, dir, mode, formatting=None):
+def apertium(input, modeDir, mode, formatting='txt'):
     p1 = Popen(['echo', input], stdout=PIPE)
-    print(input, dir, mode, formatting)
-    if formatting:
-        p2 = Popen(['apertium', '-d . -f %s' % formatting, mode], stdin=p1.stdout, stdout=PIPE, cwd=dir)
-    else:
-        p2 = Popen(['apertium', '-d {}'.format(dir), mode], stdin=p1.stdout, stdout=PIPE)
+    logging.getLogger().info("util.apertium({}, {}, {}, {})"
+                             .format(repr(input), repr(modeDir),
+                                     repr(mode), repr(formatting)))
+    cmd = ['apertium', '-d', modeDir, '-f', formatting, mode]
+    p2 = Popen(cmd, stdin=p1.stdout, stdout=PIPE)
     p1.stdout.close()
     output = p2.communicate()[0].decode('utf-8')
     return output
 
-def bilingualTranslate(toTranslate, dir, mode):
+def bilingualTranslate(toTranslate, modeDir, mode):
     p1 = Popen(['echo', toTranslate], stdout=PIPE)
-    p2 = Popen(['lt-proc', '-b', mode], stdin=p1.stdout, stdout=PIPE, cwd=dir)
+    p2 = Popen(['lt-proc', '-b', mode], stdin=p1.stdout, stdout=PIPE, cwd=modeDir)
     p1.stdout.close()
     output = p2.communicate()[0].decode('utf-8')
     return output
