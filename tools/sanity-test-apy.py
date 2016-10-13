@@ -9,7 +9,7 @@ import sys
 import html.parser
 unescape = html.parser.HTMLParser().unescape
 
-TIMEOUT=15
+TIMEOUT = 15
 tests = {
     "hbs-eng": ("jeziku", "language"),
     "hin-urd": ("लेख हैं", "تحریر ہیں"),
@@ -103,60 +103,65 @@ tests = {
     "tat-kaz": ("ул", "ол"),
 }
 
+
 def test_pair(pair, host):
-    intext=urllib.parse.quote_plus( tests[pair][0].strip() )
+    intext = urllib.parse.quote_plus(tests[pair][0].strip())
     if not intext:
-        print ("no input text for %s" %(pair,))
+        print("no input text for %s" % (pair,))
         return False
-    expected=tests[pair][1].strip()
-    langpair=pair.replace('-', '|')
+    expected = tests[pair][1].strip()
+    langpair = pair.replace('-', '|')
     try:
-        response = urllib.request.urlopen('%s/translate?langpair=%s&q=%s' % (host, langpair, intext), timeout=TIMEOUT).read().decode('utf-8')
+        response = urllib.request.urlopen('%s/translate?langpair=%s&q=%s' %
+                                          (host, langpair, intext), timeout=TIMEOUT).read().decode('utf-8')
     except urllib.error.HTTPError as e:
-        print("%s failed with error code %s and reason: %s" %(pair,e.code,e.reason))
+        print("%s failed with error code %s and reason: %s" % (pair, e.code, e.reason))
         return False
     except socket.timeout as e:
-        print("%s failed: %s" %(pair, e,))
+        print("%s failed: %s" % (pair, e,))
         return False
     js = json.loads(response)
     translation_raw = js['responseData']['translatedText']
     translation = unescape(urllib.parse.unquote_plus(translation_raw)).strip()
     if translation != expected:
-        print ("%s: expected '%s', got '%s' (for input: %s)" %(pair, expected, translation, intext))
+        print("%s: expected '%s', got '%s' (for input: %s)" % (pair, expected, translation, intext))
         return False
     else:
         return True
+
 
 def missing_tests(host):
     try:
         response = urllib.request.urlopen('%s/listPairs' % (host,), timeout=TIMEOUT).read().decode('utf-8')
     except urllib.error.HTTPError as e:
-        print("listPairs failed with error code %s and reason: %s" %(e.code,e.reason))
+        print("listPairs failed with error code %s and reason: %s" % (e.code, e.reason))
         return False
     except socket.timeout as e:
-        print("listPairs failed: %s" %(e,))
+        print("listPairs failed: %s" % (e,))
         return False
     js = json.loads(response)
-    allgood=True
+    allgood = True
     for pair in js['responseData']:
-        pairstr = "%s-%s" % (pair['sourceLanguage'],pair['targetLanguage'])
+        pairstr = "%s-%s" % (pair['sourceLanguage'], pair['targetLanguage'])
         if pairstr not in tests:
             print("Missing a test for %s" % (pairstr,))
             allgood = False
     return allgood
 
+
 def dot():
     sys.stdout.write('.')
     sys.stdout.flush()
 
+
 def test_all(host):
     missing_tests(host)
     dot()
-    total=len(tests)
-    good=0
+    total = len(tests)
+    good = 0
     for pair in tests:
         if test_pair(pair, host):
-            good+=1
+            good += 1
         dot()
     print("\n%d of %d tests passed" % (good, total))
     print("\nNow run the script again to see which pipelines got clogged.\n")
