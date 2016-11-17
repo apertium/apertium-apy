@@ -13,6 +13,7 @@ import tempfile
 import zipfile
 import string
 import random
+import base64
 from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
 from functools import wraps
@@ -540,8 +541,42 @@ class TranslateDocHandler(TranslateHandler):
             self.send_error(400, explanation='That pair is not installed')
 
 
+def basic_auth(after_login_func=lambda *args, **kwargs: None, realm='Restricted'):
+    def basic_auth_decorator(handler_class):
+        def wrap_execute(handler_execute):
+            def require_basic_auth(handler, kwargs):
+                def create_auth_header():
+                    handler.set_status(401)
+                    handler.set_header('WWW-Authenticate', 'Basic realm=%s' % realm)
+                    handler._transforms = []
+                    handler.finish()
+                auth_header = handler.request.headers.get('Authorization')
+                if auth_header is None or not auth_header.startswith('Basic '):
+                    create_auth_header()
+                else:
+                    auth_decoded = base64.decodestring(auth_header[6:].encode('utf-8')).decode('utf-8')
+                    user, pwd = auth_decoded.split(':', 2)
+                    if handler.check_credentials(user, pwd):
+                        after_login_func(handler, kwargs, user, pwd)
+                    else:
+                        create_auth_header()
+
+            def _execute(self, transforms, *args, **kwargs):
+                require_basic_auth(self, kwargs)
+                return handler_execute(self, transforms, *args, **kwargs)
+            return _execute
+        handler_class._execute = wrap_execute(handler_class._execute)
+        return handler_class
+    return basic_auth_decorator
+
+
+@basic_auth()
 class TranslateRawHandler(TranslateHandler):
     """Assumes the pipeline itself outputs as JSON"""
+
+    def check_credentials(self, user, pwd):
+        return user+":"+pwd in self.userdb
+
     def sendResponse(self, data):
         translatedText = data.get('responseData', {}).get('translatedText', {})
         if translatedText == {}:
@@ -926,7 +961,7 @@ class PipeDebugHandler(BaseHandler):
 def setupHandler(
     port, pairs_path, nonpairs_path, langNames, missingFreqsPath, timeout,
     max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs, restart_pipe_after,
-    verbosity=0, scaleMtLogs=False, memory=1000
+    verbosity=0, scaleMtLogs=False, memory=1000, userdb=None
 ):
 
     global missingFreqsDb
@@ -943,6 +978,9 @@ def setupHandler(
     Handler.restart_pipe_after = restart_pipe_after
     Handler.scaleMtLogs = scaleMtLogs
     Handler.verbosity = verbosity
+    Handler.userdb = set()
+    if userdb is not None:
+        Handler.userdb = set(up.strip() for up in open(userdb).readlines())
 
     modes = searchPath(pairs_path, verbosity=verbosity)
     if nonpairs_path:
@@ -1011,6 +1049,7 @@ if __name__ == '__main__':
     parser.add_argument('-wu', '--wiki-username', help="Apertium Wiki account username for SuggestionHandler", default=None)
     parser.add_argument('-b', '--bypass-token', help="ReCAPTCHA bypass token", action='store_true')
     parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA secret for suggestion validation", default=None)
+    parser.add_argument('-ud', '--userdb', help="Basicauth user/password file", default=None)
     args = parser.parse_args()
 
     if args.daemon:
@@ -1044,7 +1083,8 @@ if __name__ == '__main__':
         logging.warning("Unable to import chardet, assuming utf-8 encoding for all websites")
 
     setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout, args.max_pipes_per_pair,
-                 args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs, args.restart_pipe_after, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
+                 args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs, args.restart_pipe_after, args.verbosity, args.scalemt_logs, args.unknown_memory_limit,
+                 args.userdb)
 
     application = tornado.web.Application([
         (r'/', RootHandler),
