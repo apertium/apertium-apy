@@ -181,7 +181,7 @@ class BaseHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
         self.set_header('Access-Control-Allow-Origin', '*')
         self.set_header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-        self.set_header('Access-Control-Allow-Headers', 'accept, cache-control, origin, x-requested-with, x-file-name, content-type')
+        self.set_header('Access-Control-Allow-Headers', 'authorization, accept, cache-control, origin, x-requested-with, x-file-name, content-type')
 
     @tornado.web.asynchronous
     def post(self):
@@ -546,12 +546,18 @@ def basic_auth(after_login_func=lambda *args, **kwargs: None, realm='Restricted'
         def wrap_execute(handler_execute):
             def require_basic_auth(handler, kwargs):
                 def create_auth_header():
+                    handler.set_default_headers()
                     handler.set_status(401)
                     handler.set_header('WWW-Authenticate', 'Basic realm=%s' % realm)
                     handler._transforms = []
                     handler.finish()
                 auth_header = handler.request.headers.get('Authorization')
-                if auth_header is None or not auth_header.startswith('Basic '):
+                if handler.request.method == 'OPTIONS':
+                    handler.set_default_headers()
+                    handler.set_status(200)
+                    handler._transforms = []
+                    handler.finish()
+                elif auth_header is None or not auth_header.startswith('Basic '):
                     create_auth_header()
                 else:
                     auth_decoded = base64.decodestring(auth_header[6:].encode('utf-8')).decode('utf-8')
