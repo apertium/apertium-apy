@@ -115,9 +115,11 @@ def startPipeline(commands):
                                                 stdout=out_from))
     return procs[0], procs[-1]
 
+
 def cmdNeedsZ(cmd):
-    exceptions=r'^\s*(vislcg3|cg-mwesplit|hfst-tokeni[sz]e|divvun-suggest)'
+    exceptions = r'^\s*(vislcg3|cg-mwesplit|hfst-tokeni[sz]e|divvun-suggest)'
     return re.match(exceptions, cmd) is None
+
 
 def parseModeFile(mode_path):
     mode_str = open(mode_path, 'r').read().strip()
@@ -223,6 +225,7 @@ def splitForTranslation(toTranslate, n_users):
         last = next
     return allSplit
 
+
 def validateFormatters(deformat, reformat):
     def valid1(elt, lst):
         if elt in lst:
@@ -230,8 +233,8 @@ def validateFormatters(deformat, reformat):
         else:
             return lst[0]
     # First is fallback:
-    deformatters=["apertium-deshtml", "apertium-destxt", False]
-    reformatters=["apertium-rehtml-noent", "apertium-rehtml", "apertium-retxt", False]
+    deformatters = ["apertium-deshtml", "apertium-destxt", False]
+    reformatters = ["apertium-rehtml-noent", "apertium-rehtml", "apertium-retxt", False]
     return valid1(deformat, deformatters), valid1(reformat, reformatters)
 
 

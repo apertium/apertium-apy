@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- indent-tabs-mode: nil -*-
 # coding=utf-8
-# -*- encoding: utf-8 -*-
 
 import sys
 import os
@@ -544,12 +543,12 @@ class TranslateDocHandler(TranslateHandler):
 class TranslateRawHandler(TranslateHandler):
     """Assumes the pipeline itself outputs as JSON"""
     def sendResponse(self, data):
-        translatedText = data.get('responseData',{}).get('translatedText',{})
+        translatedText = data.get('responseData', {}).get('translatedText', {})
         if translatedText == {}:
             super().sendResponse(data)
         else:
             self.log_vmsize()
-            translatedText = data.get('responseData',{}).get('translatedText',{})
+            translatedText = data.get('responseData', {}).get('translatedText', {})
             self.set_header('Content-Type', 'application/json; charset=UTF-8')
             self._write_buffer.append(utf8(translatedText))
             self.finish()
@@ -567,6 +566,7 @@ class TranslateRawHandler(TranslateHandler):
                                            nosplit=False,
                                            deformat=self.get_argument('deformat', default=True),
                                            reformat=False)
+
 
 class AnalyzeHandler(BaseHandler):
 
