@@ -263,7 +263,7 @@ def translateNULFlush(toTranslate, pipeline, unsafe_deformat, unsafe_reformat):
             proc_reformat.stdin.write(output)
             result = proc_reformat.communicate()[0]
         else:
-            result = re.sub(r'\0$', '', output)
+            result = re.sub(rb'\0$', b'', output)
         raise StopIteration(result.decode('utf-8'))
 
 
