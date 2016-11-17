@@ -261,9 +261,10 @@ def translateNULFlush(toTranslate, pipeline, unsafe_deformat, unsafe_reformat):
         if reformat:
             proc_reformat = Popen(reformat, stdin=PIPE, stdout=PIPE)
             proc_reformat.stdin.write(output)
-            return proc_reformat.communicate()[0].decode('utf-8')
+            result = proc_reformat.communicate()[0]
         else:
-            return re.sub(r'\0$', '', output.decode('utf-8'))
+            result = re.sub(r'\0$', '', output)
+        return result.decode('utf-8')
 
 
 @gen.coroutine
