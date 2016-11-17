@@ -385,11 +385,11 @@ class TranslateHandler(BaseHandler):
             return (l1, l2)
 
     @gen.coroutine
-    def translateAndRespond(self, pair, pipeline, toTranslate, markUnknown, nosplit=False):
+    def translateAndRespond(self, pair, pipeline, toTranslate, markUnknown, nosplit=False, deformat=True, reformat=True):
         markUnknown = markUnknown in ['yes', 'true', '1']
         self.notePairUsage(pair)
         before = self.logBeforeTranslation()
-        translated = yield pipeline.translate(toTranslate, nosplit)
+        translated = yield pipeline.translate(toTranslate, nosplit, deformat, reformat)
         self.logAfterTranslation(before, len(toTranslate))
         self.sendResponse({
             'responseData': {
@@ -409,7 +409,10 @@ class TranslateHandler(BaseHandler):
             yield self.translateAndRespond(pair,
                                            pipeline,
                                            self.get_argument('q'),
-                                           self.get_argument('markUnknown', default='yes'))
+                                           self.get_argument('markUnknown', default='yes'),
+                                           nosplit=False,
+                                           deformat=self.get_argument('deformat', default=True),
+                                           reformat=self.get_argument('reformat', default=True))
 
 
 class TranslatePageHandler(TranslateHandler):
@@ -439,11 +442,14 @@ class TranslatePageHandler(TranslateHandler):
                                              request_timeout=20.0)
             response = yield http_client.fetch(request)
             toTranslate = self.htmlToText(response.body, url)
+
             yield self.translateAndRespond(pair,
                                            pipeline,
                                            toTranslate,
                                            self.get_argument('markUnknown', default='yes'),
-                                           nosplit=True)
+                                           nosplit=True,
+                                           deformat=self.get_argument('deformat', default=True),
+                                           reformat=self.get_argument('reformat', default=True))
 
 
 class TranslateDocHandler(TranslateHandler):
@@ -534,6 +540,33 @@ class TranslateDocHandler(TranslateHandler):
         else:
             self.send_error(400, explanation='That pair is not installed')
 
+
+class TranslateRawHandler(TranslateHandler):
+    """Assumes the pipeline itself outputs as JSON"""
+    def sendResponse(self, data):
+        translatedText = data.get('responseData',{}).get('translatedText',{})
+        if translatedText == {}:
+            super().sendResponse(data)
+        else:
+            self.log_vmsize()
+            translatedText = data.get('responseData',{}).get('translatedText',{})
+            self.set_header('Content-Type', 'application/json; charset=UTF-8')
+            self._write_buffer.append(utf8(translatedText))
+            self.finish()
+
+    @gen.coroutine
+    def get(self):
+        pair = self.getPairOrError(self.get_argument('langpair'),
+                                   len(self.get_argument('q')))
+        if pair is not None:
+            pipeline = self.getPipeline(pair)
+            yield self.translateAndRespond(pair,
+                                           pipeline,
+                                           self.get_argument('q'),
+                                           self.get_argument('markUnknown', default='yes'),
+                                           nosplit=False,
+                                           deformat=self.get_argument('deformat', default=True),
+                                           reformat=False)
 
 class AnalyzeHandler(BaseHandler):
 
@@ -1020,6 +1053,7 @@ if __name__ == '__main__':
         (r'/translate', TranslateHandler),
         (r'/translateDoc', TranslateDocHandler),
         (r'/translatePage', TranslatePageHandler),
+        (r'/translateRaw', TranslateRawHandler),
         (r'/analy[sz]e', AnalyzeHandler),
         (r'/generate', GenerateHandler),
         (r'/listLanguageNames', ListLanguageNamesHandler),
