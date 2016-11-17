@@ -63,14 +63,15 @@ class FlushingPipeline(Pipeline):
         # server – why?
 
     @gen.coroutine
-    def translate(self, toTranslate, nosplit=False):
+    def translate(self, toTranslate, nosplit=False, deformat=True, reformat=True):
         with self.use():
             if nosplit:
-                res = yield translateNULFlush(toTranslate, self)
+                res = yield translateNULFlush(toTranslate, self, deformat, reformat)
                 return res
             else:
                 all_split = splitForTranslation(toTranslate, n_users=self.users)
-                parts = yield [translateNULFlush(part, self) for part in all_split]
+                parts = yield [translateNULFlush(part, self, deformat, reformat)
+                               for part in all_split]
                 return "".join(parts)
 
 
@@ -115,6 +116,11 @@ def startPipeline(commands):
     return procs[0], procs[-1]
 
 
+def cmdNeedsZ(cmd):
+    exceptions = r'^\s*(vislcg3|cg-mwesplit|hfst-tokeni[sz]e|divvun-suggest)'
+    return re.match(exceptions, cmd) is None
+
+
 def parseModeFile(mode_path):
     mode_str = open(mode_path, 'r').read().strip()
     if mode_str:
@@ -137,7 +143,8 @@ def parseModeFile(mode_path):
                 # modes.xml instead; this is brittle (what if a path
                 # has | or " in it?)
                 cmd = cmd.replace('$2', '').replace('$1', '-g')
-                cmd = re.sub(r'^\s*(\S*)', r'\g<1> -z', cmd)
+                if(cmdNeedsZ(cmd)):
+                    cmd = re.sub(r'^\s*(\S*)', r'\g<1> -z', cmd)
                 commands.append([c.strip("'")
                                  for c in cmd.split()])
         return ParsedModes(do_flush, commands)
@@ -219,14 +226,30 @@ def splitForTranslation(toTranslate, n_users):
     return allSplit
 
 
+def validateFormatters(deformat, reformat):
+    def valid1(elt, lst):
+        if elt in lst:
+            return elt
+        else:
+            return lst[0]
+    # First is fallback:
+    deformatters = ["apertium-deshtml", "apertium-destxt", False]
+    reformatters = ["apertium-rehtml-noent", "apertium-rehtml", "apertium-retxt", False]
+    return valid1(deformat, deformatters), valid1(reformat, reformatters)
+
+
 @gen.coroutine
-def translateNULFlush(toTranslate, pipeline):
+def translateNULFlush(toTranslate, pipeline, unsafe_deformat, unsafe_reformat):
     with (yield pipeline.lock.acquire()):
         proc_in, proc_out = pipeline.inpipe, pipeline.outpipe
+        deformat, reformat = validateFormatters(unsafe_deformat, unsafe_reformat)
 
-        proc_deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
-        proc_deformat.stdin.write(bytes(toTranslate, 'utf-8'))
-        deformatted = proc_deformat.communicate()[0]
+        if deformat:
+            proc_deformat = Popen(deformat, stdin=PIPE, stdout=PIPE)
+            proc_deformat.stdin.write(bytes(toTranslate, 'utf-8'))
+            deformatted = proc_deformat.communicate()[0]
+        else:
+            deformatted = bytes(toTranslate, 'utf-8')
 
         proc_in.stdin.write(deformatted)
         proc_in.stdin.write(bytes('\0', "utf-8"))
@@ -235,29 +258,13 @@ def translateNULFlush(toTranslate, pipeline):
 
         output = yield gen.Task(proc_out.stdout.read_until, bytes('\0', 'utf-8'))
 
-        proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
-        proc_reformat.stdin.write(output)
-        return proc_reformat.communicate()[0].decode('utf-8')
-
-
-def translateWithoutFlush(toTranslate, proc_in, proc_out):
-    proc_deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
-    proc_deformat.stdin.write(bytes(toTranslate, 'utf-8'))
-    deformatted = proc_deformat.communicate()[0]
-
-    proc_in.stdin.write(deformatted)
-    proc_in.stdin.write(bytes('\0', "utf-8"))
-    proc_in.stdin.flush()
-
-    d = proc_out.stdout.read(1)
-    output = []
-    while d and d != b'\x00':
-        output.append(d)
-        d = proc_out.stdout.read(1)
-
-    proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
-    proc_reformat.stdin.write(b"".join(output))
-    return proc_reformat.communicate()[0].decode('utf-8')
+        if reformat:
+            proc_reformat = Popen(reformat, stdin=PIPE, stdout=PIPE)
+            proc_reformat.stdin.write(output)
+            result = proc_reformat.communicate()[0]
+        else:
+            result = re.sub(r'\0$', '', output)
+        return result.decode('utf-8')
 
 
 @gen.coroutine
