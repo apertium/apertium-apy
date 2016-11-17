@@ -60,6 +60,7 @@ def populateDatabase(args):
     conn.commit()
     c.close()
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Scrape Unicode.org for language names in different locales.')
     parser.add_argument('languages', nargs='*', help='list of languages to add to DB')
