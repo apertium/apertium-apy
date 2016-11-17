@@ -464,6 +464,7 @@ def determineServerCapabilities(serverlist):
                         capabilities[mode][lang_pair] = (response[lang_pair], [server])
     return capabilities
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Start Apertium APY Gateway")
     parser.add_argument('serverlist', help="path to file with list of servers and ports available")

@@ -971,6 +971,7 @@ def sanity_check():
               file=sys.stderr)
         sys.exit(1)
 
+
 if __name__ == '__main__':
     sanity_check()
     parser = argparse.ArgumentParser(description='Apertium APY -- API server for machine translation and language analysis')
