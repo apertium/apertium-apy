@@ -597,12 +597,12 @@ class TranslateRawHandler(TranslateHandler):
     @gen.coroutine
     def get(self):
         pair = self.getPairOrError(self.get_argument('langpair'),
-                                   len(self.get_argument('q')))
+                                   len(self.get_argument('q', strip=False)))
         if pair is not None:
             pipeline = self.getPipeline(pair)
             yield self.translateAndRespond(pair,
                                            pipeline,
-                                           self.get_argument('q'),
+                                           self.get_argument('q', strip=False),
                                            self.get_argument('markUnknown', default='yes'),
                                            nosplit=False,
                                            deformat=self.get_argument('deformat', default=True),
