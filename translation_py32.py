@@ -238,6 +238,15 @@ def validateFormatters(deformat, reformat):
     return valid1(deformat, deformatters), valid1(reformat, reformatters)
 
 
+class ProcessFailure(Exception):
+    pass
+
+
+def checkRetCode(name, proc):
+    if proc.returncode != 0:
+        raise ProcessFailure("%s failed, exit code %s", name, proc.returncode)
+
+
 @gen.coroutine
 def translateNULFlush(toTranslate, pipeline, unsafe_deformat, unsafe_reformat):
     with (yield pipeline.lock.acquire()):
@@ -248,6 +257,7 @@ def translateNULFlush(toTranslate, pipeline, unsafe_deformat, unsafe_reformat):
             proc_deformat = Popen(deformat, stdin=PIPE, stdout=PIPE)
             proc_deformat.stdin.write(bytes(toTranslate, 'utf-8'))
             deformatted = proc_deformat.communicate()[0]
+            checkRetCode("Deformatter", proc_deformat)
         else:
             deformatted = bytes(toTranslate, 'utf-8')
 
@@ -256,12 +266,17 @@ def translateNULFlush(toTranslate, pipeline, unsafe_deformat, unsafe_reformat):
         # TODO: PipeIOStream has no flush, but seems to work anyway?
         # proc_in.stdin.flush()
 
+        # TODO: If the output has no \0, this hangs, locking the
+        # pipeline. If there's no way to put a timeout right here, we
+        # might need a timeout using Pipeline.use(), like servlet.py's
+        # cleanable but called *before* trying to translate anew
         output = yield gen.Task(proc_out.stdout.read_until, bytes('\0', 'utf-8'))
 
         if reformat:
             proc_reformat = Popen(reformat, stdin=PIPE, stdout=PIPE)
             proc_reformat.stdin.write(output)
             result = proc_reformat.communicate()[0]
+            checkRetCode("Reformatter", proc_reformat)
         else:
             result = re.sub(re.compile(b'\0$'), b'', output)
         raise StopIteration(result.decode('utf-8'))
@@ -273,6 +288,7 @@ def translatePipeline(toTranslate, commands):
     proc_deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
     proc_deformat.stdin.write(bytes(toTranslate, 'utf-8'))
     deformatted = proc_deformat.communicate()[0]
+    checkRetCode("Deformatter", proc_deformat)
 
     towrite = deformatted
 
@@ -287,6 +303,7 @@ def translatePipeline(toTranslate, commands):
         proc = Popen(cmd, stdin=PIPE, stdout=PIPE)
         proc.stdin.write(towrite)
         towrite = proc.communicate()[0]
+        checkRetCode(" ".join(cmd), proc)
 
         output.append(towrite.decode('utf-8'))
         all_cmds.append(cmd)
@@ -294,6 +311,7 @@ def translatePipeline(toTranslate, commands):
     proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
     proc_reformat.stdin.write(towrite)
     towrite = proc_reformat.communicate()[0].decode('utf-8')
+    checkRetCode("Reformatter", proc_reformat)
 
     output.append(towrite)
     all_cmds.append("apertium-rehtml-noent")
@@ -316,8 +334,10 @@ def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
     modesdir = os.path.dirname(os.path.dirname(modeFile))
     mode = os.path.splitext(os.path.basename(modeFile))[0]
     if unknownMarks:
-        return Popen(['apertium', '-f', fmt, '-d', modesdir, mode],
-                     stdin=fileToTranslate, stdout=PIPE).communicate()[0]
+        cmd = ['apertium', '-f', fmt,       '-d', modesdir, mode]
     else:
-        return Popen(['apertium', '-f', fmt, '-u', '-d', modesdir, mode],
-                     stdin=fileToTranslate, stdout=PIPE).communicate()[0]
+        cmd = ['apertium', '-f', fmt, '-u', '-d', modesdir, mode],
+    proc = Popen(cmd, stdin=fileToTranslate, stdout=PIPE)
+    output = proc.communicate()[0]
+    checkRetCode(" ".join(cmd), proc)
+    return output
