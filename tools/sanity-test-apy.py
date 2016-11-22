@@ -52,6 +52,7 @@ tests = {
     "isl-eng": ("Grein", "Article"),
     "isl-swe": ("af", "av"),
     "ita-cat": ("dire", "dir"),
+    "ita-srd": ("cane", "cane"),
     "kaz-tat": ("ол", "ул"),
     "mkd-bul": ("јас", "аз"),
     "mkd-eng": ("триесет", "thirty"),
