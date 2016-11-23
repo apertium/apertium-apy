@@ -19,7 +19,7 @@ from multiprocessing import Pool, TimeoutError
 from functools import wraps
 from threading import Thread
 from datetime import datetime, timedelta
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunsplit
 import heapq
 
 import tornado
@@ -417,14 +417,23 @@ class TranslateHandler(BaseHandler):
 
 class TranslatePageHandler(TranslateHandler):
 
+    def urlRepl(base, quote, aurl):
+        a = urlparse(aurl)
+        newurl = urlunsplit((base.scheme,
+                             base.netloc,
+                             a.path,
+                             a.query,
+                             a.fragment))
+        return ' href={q}{u}{q}'.format(u=newurl, q=quote)
+
     def htmlToText(self, html, url):
         if chardet:
             encoding = chardet.detect(html).get("encoding", "utf-8")
         else:
             encoding = "utf-8"
         text = html.decode(encoding)
-        text = text.replace('href="/', 'href="{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(url)))
-        text = re.sub(r'a([^>]+)href=[\'"]?([^\'" >]+)', 'a \\1 href="#" onclick=\'window.parent.translateLink("\\2");\'', text)
+        base = urlparse(url)
+        text = re.sub(r'href=([\'"])(..*?)\1', lambda m: self.urlRepl(base, m.group(1), m.group(2)))
         return text
 
     @gen.coroutine
