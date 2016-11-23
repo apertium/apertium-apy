@@ -416,8 +416,7 @@ class TranslateHandler(BaseHandler):
 
 
 class TranslatePageHandler(TranslateHandler):
-
-    def urlRepl(base, quote, aurl):
+    def urlRepl(self, base, quote, aurl):
         a = urlparse(aurl)
         newurl = urlunsplit((base.scheme,
                              base.netloc,
