@@ -431,10 +431,11 @@ class TranslatePageHandler(TranslateHandler):
             encoding = chardet.detect(html).get("encoding", "utf-8")
         else:
             encoding = "utf-8"
-        text = html.decode(encoding)
         base = urlparse(url)
-        text = re.sub(r'href=([\'"])(..*?)\1', lambda m: self.urlRepl(base, m.group(1), m.group(2)))
-        return text
+        text = html.decode(encoding)
+        return re.sub(r'href=([\'"])(..*?)\1',
+                      lambda m: self.urlRepl(base, m.group(1), m.group(2)),
+                      text)
 
     @gen.coroutine
     def get(self):
