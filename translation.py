@@ -336,7 +336,7 @@ def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
     if unknownMarks:
         cmd = ['apertium', '-f', fmt,       '-d', modesdir, mode]
     else:
-        cmd = ['apertium', '-f', fmt, '-u', '-d', modesdir, mode],
+        cmd = ['apertium', '-f', fmt, '-u', '-d', modesdir, mode]
     proc = Popen(cmd, stdin=fileToTranslate, stdout=PIPE)
     output = proc.communicate()[0]
     checkRetCode(" ".join(cmd), proc)
