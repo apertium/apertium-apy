@@ -9133,6 +9133,7 @@ INSERT INTO "fixes" VALUES(NULL,'bak','crh','Ҡырымтатарса');
 INSERT INTO "fixes" VALUES(NULL,'chv','crh','крымтутарла');
 INSERT INTO "fixes" VALUES(NULL,'crh','crh','qırımtatarca');
 INSERT INTO "fixes" VALUES(NULL,'kaa','crh','qırımtatarsha');
+INSERT INTO "fixes" VALUES(NULL,'ru','crh','крымско-татарский');
 INSERT INTO "fixes" VALUES(NULL,'tt','crh','кырымтатарча');
 INSERT INTO "fixes" VALUES(NULL,'ky','crh','кырымтатарча');
 INSERT INTO "fixes" VALUES(NULL,'kk','crh','қырымтатарша');
