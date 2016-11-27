@@ -44,7 +44,7 @@ class Pipeline(object):
         return self.users < other.users
 
     @gen.coroutine
-    def translate(self, toTranslate, nosplit):
+    def translate(self, toTranslate, nosplit, deformat, reformat):
         raise Exception("Not implemented, subclass me!")
 
 
@@ -82,7 +82,7 @@ class SimplePipeline(Pipeline):
         super().__init__(*args, **kwargs)
 
     @gen.coroutine
-    def translate(self, toTranslate, nosplit="ignored"):
+    def translate(self, toTranslate, nosplit="ignored", deformat="ignored", reformat="ignored"):
         with self.use():
             with (yield self.lock.acquire()):
                 res = yield translateSimple(toTranslate, self.commands)
