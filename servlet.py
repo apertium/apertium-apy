@@ -528,11 +528,10 @@ class TranslateDocHandler(TranslateHandler):
                     if mtype in allowedMimeTypes:
                         self.request.headers['Content-Type'] = 'application/octet-stream'
                         self.request.headers['Content-Disposition'] = 'attachment'
-
-                        if markUnknown:
-                            self.write(translation.translateDoc(tempFile, allowedMimeTypes[mtype], self.pairs['%s-%s' % (l1, l2)], True))
-                        else:
-                            self.write(translation.translateDoc(tempFile, allowedMimeTypes[mtype], self.pairs['%s-%s' % (l1, l2)], False))
+                        self.write(translation.translateDoc(tempFile,
+                                                            allowedMimeTypes[mtype],
+                                                            self.pairs['%s-%s' % (l1, l2)],
+                                                            markUnknown))
                         self.finish()
                     else:
                         self.send_error(400, explanation='Invalid file type %s' % mtype)
