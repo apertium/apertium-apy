@@ -160,11 +160,18 @@ class BaseHandler(tornado.web.RequestHandler):
             500: 'Internal Error'
         }
 
+        http_explanations = {
+            400: 'Request not properly formatted or contains languages that Apertium APy does not support',
+            404: 'Resource requested does not exist. URL may have been mistyped',
+            408: 'Server did not receive a complete request within the time it was prepared to wait. Try again',
+            500: 'Unexpected condition on server. Request could not be fulfilled.'
+        }
+
         result = {
             'status': 'error',
             'code': status_code,
             'message': http_messages.get(status_code, ''),
-            'explanation': kwargs.get('explanation', '')
+            'explanation': kwargs.get('explanation', http_explanations.get(status_code, ''))
         }
 
         data = escape.json_encode(result)
