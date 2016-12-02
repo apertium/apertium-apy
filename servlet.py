@@ -164,7 +164,7 @@ class BaseHandler(tornado.web.RequestHandler):
             'status': 'error',
             'code': status_code,
             'message': http_messages.get(status_code, ''),
-            'explanation': kwargs.get('explanation', '')
+            'explanation': kwargs.get('explanation', 'Invalid. Expected argument in form lang1|lang2, e.g. eng|spa')
         }
 
         data = escape.json_encode(result)
