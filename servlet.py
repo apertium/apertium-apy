@@ -24,6 +24,7 @@ import heapq
 import tornado
 import tornado.web
 import tornado.httpserver
+import tornado.httputil
 import tornado.process
 import tornado.iostream
 from tornado import httpclient
@@ -152,26 +153,25 @@ class BaseHandler(tornado.web.RequestHandler):
         self.finish()
 
     def write_error(self, status_code, **kwargs):
-        # TODO: Is there a tornado fn to get the full list?
-        http_messages = {
-            400: 'Bad Request',
-            404: 'Not Found',
-            408: 'Request Timeout',
-            500: 'Internal Error'
-        }
-
         http_explanations = {
             400: 'Request not properly formatted or contains languages that Apertium APy does not support',
             404: 'Resource requested does not exist. URL may have been mistyped',
             408: 'Server did not receive a complete request within the time it was prepared to wait. Try again',
             500: 'Unexpected condition on server. Request could not be fulfilled.'
         }
+        explanation = kwargs.get('explanation', http_explanations.get(status_code, ''))
+        if 'exc_info' in kwargs and len(kwargs['exc_info']) > 1:
+            exception = kwargs['exc_info'][1]
+            if exception.log_message:
+                explanation = exception.log_message % exception.args
+            else:
+                explanation = exception.reason or tornado.httputil.responses.get(status_code, 'Unknown')
 
         result = {
             'status': 'error',
             'code': status_code,
-            'message': http_messages.get(status_code, ''),
-            'explanation': kwargs.get('explanation', http_explanations.get(status_code, ''))
+            'message': tornado.httputil.responses.get(status_code, 'Unknown'),
+            'explanation': explanation
         }
 
         data = escape.json_encode(result)
