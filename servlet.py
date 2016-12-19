@@ -412,13 +412,25 @@ class TranslateHandler(BaseHandler):
                                    len(self.get_argument('q')))
         if pair is not None:
             pipeline = self.getPipeline(pair)
+            dereformat = self.get_argument('format', default=None)
+            deformat = ''
+            reformat = ''
+            if dereformat:
+                deformat = 'apertium-des' + dereformat
+                reformat = 'apertium-re' + dereformat
+            else:
+                deformat = self.get_argument('deformat', default='html')
+                if 'apertium-des' not in deformat:
+                    deformat = 'apertium-des' + deformat
+                reformat = self.get_argument('reformat', default='html-noent')
+                if 'apertium-re' not in reformat:
+                    reformat = 'apertium-re' + reformat
             yield self.translateAndRespond(pair,
                                            pipeline,
                                            self.get_argument('q'),
                                            self.get_argument('markUnknown', default='yes'),
                                            nosplit=False,
-                                           deformat=self.get_argument('deformat', default=True),
-                                           reformat=self.get_argument('reformat', default=True))
+                                           deformat=deformat, reformat=reformat)
 
 
 class TranslatePageHandler(TranslateHandler):
@@ -454,8 +466,8 @@ class TranslatePageHandler(TranslateHandler):
                                            toTranslate,
                                            self.get_argument('markUnknown', default='yes'),
                                            nosplit=True,
-                                           deformat=self.get_argument('deformat', default=True),
-                                           reformat=self.get_argument('reformat', default=True))
+                                           deformat='apertium-deshtml',
+                                           reformat='apertium-rehtml')
 
 
 class TranslateDocHandler(TranslateHandler):

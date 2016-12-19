@@ -233,8 +233,9 @@ def validateFormatters(deformat, reformat):
         else:
             return lst[0]
     # First is fallback:
-    deformatters = ["apertium-deshtml", "apertium-destxt", False]
-    reformatters = ["apertium-rehtml-noent", "apertium-rehtml", "apertium-retxt", False]
+    deformatters = ["apertium-deshtml", "apertium-destxt", "apertium-desrtf", False]
+    reformatters = ["apertium-rehtml-noent", "apertium-rehtml", "apertium-retxt",
+            "apertium-rertf", False]
     return valid1(deformat, deformatters), valid1(reformat, reformatters)
 
 
