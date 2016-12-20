@@ -390,6 +390,23 @@ class TranslateHandler(BaseHandler):
         else:
             return (l1, l2)
 
+    def getFormat(self):
+        dereformat = self.get_argument('format', default=None)
+        deformat = ''
+        reformat = ''
+        if dereformat:
+            deformat = 'apertium-des' + dereformat
+            reformat = 'apertium-re' + dereformat
+        else:
+            deformat = self.get_argument('deformat', default='html')
+            if 'apertium-des' not in deformat:
+                deformat = 'apertium-des' + deformat
+            reformat = self.get_argument('reformat', default='html-noent')
+            if 'apertium-re' not in reformat:
+                reformat = 'apertium-re' + reformat
+
+        return deformat, reformat
+
     @gen.coroutine
     def translateAndRespond(self, pair, pipeline, toTranslate, markUnknown, nosplit=False, deformat=True, reformat=True):
         markUnknown = markUnknown in ['yes', 'true', '1']
@@ -412,19 +429,7 @@ class TranslateHandler(BaseHandler):
                                    len(self.get_argument('q')))
         if pair is not None:
             pipeline = self.getPipeline(pair)
-            dereformat = self.get_argument('format', default=None)
-            deformat = ''
-            reformat = ''
-            if dereformat:
-                deformat = 'apertium-des' + dereformat
-                reformat = 'apertium-re' + dereformat
-            else:
-                deformat = self.get_argument('deformat', default='html')
-                if 'apertium-des' not in deformat:
-                    deformat = 'apertium-des' + deformat
-                reformat = self.get_argument('reformat', default='html-noent')
-                if 'apertium-re' not in reformat:
-                    reformat = 'apertium-re' + reformat
+            deformat, reformat = self.getFormat()
             yield self.translateAndRespond(pair,
                                            pipeline,
                                            self.get_argument('q'),
