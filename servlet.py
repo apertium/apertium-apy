@@ -438,6 +438,109 @@ class TranslateHandler(BaseHandler):
                                            deformat=deformat, reformat=reformat)
 
 
+class TranslateChainHandler(TranslateHandler):
+
+    pairs_graph = {}
+    path_cache = {}
+
+    def initPairsGraph(self):
+        for pair in self.pairs:
+            l1, l2 = pair.split('-')
+            if l1 in self.pairs_graph:
+                self.pairs_graph[l1].append(l2)
+            else:
+                self.pairs_graph[l1] = [l2]
+
+    def shortestPath(self, start, end):
+        if (start, end) in self.path_cache:
+            return self.path_cache[(start, end)]
+        queue = [[start]]
+        visited = set()
+        while queue:
+            path = queue.pop(0)
+            node = path[-1]
+            if node == end:
+                self.path_cache[(start, end)] = path
+                return path
+            if node not in visited:
+                if node != start:
+                    self.path_cache[(start, node)] = path
+                for adjacent in self.pairs_graph.get(node, []):
+                    new_path = list(path)
+                    new_path.append(adjacent)
+                    queue.append(new_path)
+                visited.add(node)
+
+    def pairList(self, lgs):
+        return [(lgs[i], lgs[i+1]) for i in range(0, len(lgs)-1)]
+
+    def getPairsOrError(self, langpairs, text_length):
+        lgs = [toAlpha3Code(lg) for lg in langpairs.split('|')]
+        if len(lgs) < 2:
+            self.send_error(400, explanation='Need at least two languages, use e.g. eng|spa')
+            self.logAfterTranslation(self.logBeforeTranslation(), text_length)
+            return None
+        if len(lgs) == 2:
+            return self.shortestPath(lgs[0], lgs[1])
+        for l1, l2 in self.pairList(lgs):
+            if '{:s}-{:s}'.format(l1, l2) not in self.pairs:
+                self.send_error(400, explanation='Pair {:s}-{:s} is not installed'.format(l1, l2))
+                self.logAfterTranslation(self.logBeforeTranslation(), text_length)
+                return None
+        return lgs
+
+    @gen.coroutine
+    def coreduce(self, init, funcs, *args):
+        result = yield funcs[0](init, *args)
+        for func in funcs[1:]:
+            result = yield func(result, *args)
+        return result
+
+    @gen.coroutine
+    def translateAndRespond(self, pairs, pipelines, toTranslate, markUnknown, nosplit=False, deformat=True, reformat=True):
+        markUnknown = markUnknown in ['yes', 'true', '1']
+        chain, pairs = pairs, self.pairList(pairs)
+        for pair in pairs:
+            self.notePairUsage(pair)
+        before = self.logBeforeTranslation()
+        translated = yield self.coreduce(toTranslate, [p.translate for p in pipelines], nosplit, deformat, reformat)
+        self.logAfterTranslation(before, len(toTranslate))
+        self.sendResponse({
+            'responseData': {
+                'translatedText': self.maybeStripMarks(markUnknown, (pairs[0][0], pairs[-1][1]), translated),
+                'translationChain': chain
+            },
+            'responseDetails': None,
+            'responseStatus': 200
+        })
+        self.cleanPairs()
+
+    def prepare(self):
+        if not self.pairs_graph:
+            self.initPairsGraph()
+
+    @gen.coroutine
+    def get(self):
+        q = self.get_argument('q', default=None)
+        if not q:
+            self.sendResponse({
+                'responseData': {
+                    'translationChain': self.getPairsOrError(self.get_argument('langpairs'), 0)
+                },
+                'responseDetails': None,
+                'responseStatus': 200
+            })
+            return
+        pairs = self.getPairsOrError(self.get_argument('langpairs'),
+                                     len(self.get_argument('q')))
+        if pairs:
+            pipelines = [self.getPipeline(pair) for pair in self.pairList(pairs)]
+            deformat, reformat = self.getFormat()
+            yield self.translateAndRespond(pairs, pipelines, q,
+                                           self.get_argument('markUnknown', default='yes'),
+                                           nosplit=False, deformat=deformat, reformat=reformat)
+
+
 class TranslatePageHandler(TranslateHandler):
 
     def htmlToText(self, html, url):
@@ -1075,6 +1178,7 @@ if __name__ == '__main__':
         (r'/listPairs', ListHandler),
         (r'/stats', StatsHandler),
         (r'/translate', TranslateHandler),
+        (r'/translateChain', TranslateChainHandler),
         (r'/translateDoc', TranslateDocHandler),
         (r'/translatePage', TranslatePageHandler),
         (r'/translateRaw', TranslateRawHandler),
