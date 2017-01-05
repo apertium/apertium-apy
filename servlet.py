@@ -445,11 +445,11 @@ class TranslateChainHandler(TranslateHandler):
 
     def initPairsGraph(self):
         for pair in self.pairs:
-            l1, l2 = pair.split('-')
-            if l1 in self.pairs_graph:
-                self.pairs_graph[l1].append(l2)
+            lang1, lang2 = pair.split('-')
+            if lang1 in self.pairs_graph:
+                self.pairs_graph[lang1].append(lang2)
             else:
-                self.pairs_graph[l1] = [l2]
+                self.pairs_graph[lang1] = [lang2]
 
     def shortestPath(self, start, end):
         if (start, end) in self.path_cache:
@@ -471,26 +471,32 @@ class TranslateChainHandler(TranslateHandler):
                     queue.append(new_path)
                 visited.add(node)
 
-    def pairList(self, lgs):
-        return [(lgs[i], lgs[i+1]) for i in range(0, len(lgs)-1)]
+    def pairList(self, langs):
+        return [(langs[i], langs[i+1]) for i in range(0, len(langs)-1)]
 
     def getPairsOrError(self, langpairs, text_length):
-        lgs = [toAlpha3Code(lg) for lg in langpairs.split('|')]
-        if len(lgs) < 2:
+        langs = [toAlpha3Code(lang) for lang in langpairs.split('|')]
+        if len(langs) < 2:
             self.send_error(400, explanation='Need at least two languages, use e.g. eng|spa')
             self.logAfterTranslation(self.logBeforeTranslation(), text_length)
             return None
-        if len(lgs) == 2:
-            return self.shortestPath(lgs[0], lgs[1])
-        for l1, l2 in self.pairList(lgs):
-            if '{:s}-{:s}'.format(l1, l2) not in self.pairs:
-                self.send_error(400, explanation='Pair {:s}-{:s} is not installed'.format(l1, l2))
+        if len(langs) == 2:
+            return self.shortestPath(langs[0], langs[1])
+        for lang1, lang2 in self.pairList(langs):
+            if '{:s}-{:s}'.format(lang1, lang2) not in self.pairs:
+                self.send_error(400, explanation='Pair {:s}-{:s} is not installed'.format(lang1, lang2))
                 self.logAfterTranslation(self.logBeforeTranslation(), text_length)
                 return None
-        return lgs
+        return langs
 
     @gen.coroutine
     def coreduce(self, init, funcs, *args):
+        '''
+        Like the reduce() function in functools, this function applies the
+        next function in the list to the output of the previous function
+        (starting with init), supplying the additional args; this is just a
+        coroutine version for use with the asynchronous translation pipelines.
+        '''
         result = yield funcs[0](init, *args)
         for func in funcs[1:]:
             result = yield func(result, *args)
