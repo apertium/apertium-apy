@@ -104,6 +104,9 @@ class BaseHandler(tornado.web.RequestHandler):
     scaleMtLogs = False
     verbosity = 0
 
+    pairs_graph = {}
+    paths = {}
+
     stats = {
         'startdate': datetime.now(),
         'useCount': {},
@@ -120,6 +123,49 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def initialize(self):
         self.callback = self.get_argument('callback', default=None)
+
+    @classmethod
+    def initPairsGraph(cls):
+        for pair in cls.pairs:
+            lang1, lang2 = pair.split('-')
+            if lang1 in cls.pairs_graph:
+                cls.pairs_graph[lang1].append(lang2)
+            else:
+                cls.pairs_graph[lang1] = [lang2]
+
+    @classmethod
+    def calculatePaths(cls, start):
+        nodes = set()
+        for pair in map(lambda x: x.split('-'), cls.pairs):
+            nodes.add(pair[0])
+            nodes.add(pair[1])
+        dists = {}
+        prevs = {}
+        dists[start] = 0
+
+        while nodes:
+            u = min(nodes, key=lambda u: dists.get(u, float('inf')))
+            nodes.remove(u)
+            for v in cls.pairs_graph.get(u, []):
+                if v in nodes:
+                    other = dists.get(u, float('inf')) + 1        # TODO: weight(u, v)
+                    if other < dists.get(v, float('inf')):
+                        dists[v] = other
+                        prevs[v] = u
+
+        cls.paths[start] = {}
+        for u in prevs:
+            prev = prevs[u]
+            path = [u]
+            while prev:
+                path.append(prev)
+                prev = prevs.get(prev)
+            cls.paths[start][u] = list(reversed(path))
+
+    @classmethod
+    def initPaths(cls):
+        for lang in cls.pairs_graph:
+            cls.calculatePaths(lang)
 
     def log_vmsize(self):
         if self.verbosity < 1:
@@ -212,6 +258,16 @@ class ListHandler(BaseHandler):
                 if self.get_arguments('include_deprecated_codes'):
                     responseData.append({'sourceLanguage': toAlpha2Code(l1), 'targetLanguage': toAlpha2Code(l2)})
             self.sendResponse({'responseData': responseData, 'responseDetails': None, 'responseStatus': 200})
+        elif query == 'chains':
+            src = self.get_argument('src', default=None)
+            if not src:
+                self.send_error(400, explanation='Missing argument src')
+            else:
+                self.sendResponse({
+                    'responseData': list(self.paths[src].keys()),
+                    'responseDetails': None,
+                    'responseStatus': 200
+                })
         elif query == 'analyzers' or query == 'analysers':
             self.sendResponse({pair: modename for (pair, (path, modename)) in self.analyzers.items()})
         elif query == 'generators':
@@ -219,7 +275,8 @@ class ListHandler(BaseHandler):
         elif query == 'taggers' or query == 'disambiguators':
             self.sendResponse({pair: modename for (pair, (path, modename)) in self.taggers.items()})
         else:
-            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, disambiguators or pairs')
+            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, '
+                            'disambiguators, pairs, or chains')
 
 
 class StatsHandler(BaseHandler):
@@ -440,37 +497,6 @@ class TranslateHandler(BaseHandler):
 
 class TranslateChainHandler(TranslateHandler):
 
-    pairs_graph = {}
-    path_cache = {}
-
-    def initPairsGraph(self):
-        for pair in self.pairs:
-            lang1, lang2 = pair.split('-')
-            if lang1 in self.pairs_graph:
-                self.pairs_graph[lang1].append(lang2)
-            else:
-                self.pairs_graph[lang1] = [lang2]
-
-    def shortestPath(self, start, end):
-        if (start, end) in self.path_cache:
-            return self.path_cache[(start, end)]
-        queue = [[start]]
-        visited = set()
-        while queue:
-            path = queue.pop(0)
-            node = path[-1]
-            if node == end:
-                self.path_cache[(start, end)] = path
-                return path
-            if node not in visited:
-                if node != start:
-                    self.path_cache[(start, node)] = path
-                for adjacent in self.pairs_graph.get(node, []):
-                    new_path = list(path)
-                    new_path.append(adjacent)
-                    queue.append(new_path)
-                visited.add(node)
-
     def pairList(self, langs):
         return [(langs[i], langs[i+1]) for i in range(0, len(langs)-1)]
 
@@ -481,7 +507,11 @@ class TranslateChainHandler(TranslateHandler):
             self.logAfterTranslation(self.logBeforeTranslation(), text_length)
             return None
         if len(langs) == 2:
-            return self.shortestPath(langs[0], langs[1])
+            if langs[0] == langs[1]:
+                self.send_error(400, explanation='Need at least two languages, use e.g. eng|spa')
+                self.logAfterTranslation(self.logBeforeTranslation(), text_length)
+                return None
+            return self.paths.get(langs[0], {}).get(langs[1])
         for lang1, lang2 in self.pairList(langs):
             if '{:s}-{:s}'.format(lang1, lang2) not in self.pairs:
                 self.send_error(400, explanation='Pair {:s}-{:s} is not installed'.format(lang1, lang2))
@@ -490,26 +520,13 @@ class TranslateChainHandler(TranslateHandler):
         return langs
 
     @gen.coroutine
-    def coreduce(self, init, funcs, *args):
-        '''
-        Like the reduce() function in functools, this function applies the
-        next function in the list to the output of the previous function
-        (starting with init), supplying the additional args; this is just a
-        coroutine version for use with the asynchronous translation pipelines.
-        '''
-        result = yield funcs[0](init, *args)
-        for func in funcs[1:]:
-            result = yield func(result, *args)
-        return result
-
-    @gen.coroutine
     def translateAndRespond(self, pairs, pipelines, toTranslate, markUnknown, nosplit=False, deformat=True, reformat=True):
         markUnknown = markUnknown in ['yes', 'true', '1']
         chain, pairs = pairs, self.pairList(pairs)
         for pair in pairs:
             self.notePairUsage(pair)
         before = self.logBeforeTranslation()
-        translated = yield self.coreduce(toTranslate, [p.translate for p in pipelines], nosplit, deformat, reformat)
+        translated = yield translation.coreduce(toTranslate, [p.translate for p in pipelines], nosplit, deformat, reformat)
         self.logAfterTranslation(before, len(toTranslate))
         self.sendResponse({
             'responseData': {
@@ -528,23 +545,26 @@ class TranslateChainHandler(TranslateHandler):
     @gen.coroutine
     def get(self):
         q = self.get_argument('q', default=None)
-        if not q:
-            self.sendResponse({
-                'responseData': {
-                    'translationChain': self.getPairsOrError(self.get_argument('langpairs'), 0)
-                },
-                'responseDetails': None,
-                'responseStatus': 200
-            })
-            return
-        pairs = self.getPairsOrError(self.get_argument('langpairs'),
-                                     len(self.get_argument('q')))
+        langpairs = self.get_argument('langpairs')
+        pairs = self.getPairsOrError(langpairs, len(q or []))
         if pairs:
-            pipelines = [self.getPipeline(pair) for pair in self.pairList(pairs)]
-            deformat, reformat = self.getFormat()
-            yield self.translateAndRespond(pairs, pipelines, q,
-                                           self.get_argument('markUnknown', default='yes'),
-                                           nosplit=False, deformat=deformat, reformat=reformat)
+            if not q:
+                self.sendResponse({
+                    'responseData': {
+                        'translationChain': self.getPairsOrError(self.get_argument('langpairs'), 0)
+                    },
+                    'responseDetails': None,
+                    'responseStatus': 200
+                })
+            else:
+                pipelines = [self.getPipeline(pair) for pair in self.pairList(pairs)]
+                deformat, reformat = self.getFormat()
+                yield self.translateAndRespond(pairs, pipelines, q,
+                                               self.get_argument('markUnknown', default='yes'),
+                                               nosplit=False, deformat=deformat, reformat=reformat)
+        else:
+            self.send_error(400, explanation='No path found for {:s}-{:s}'.format(*langpairs.split('|')))
+            self.logAfterTranslation(self.logBeforeTranslation(), 0)
 
 
 class TranslatePageHandler(TranslateHandler):
@@ -1092,6 +1112,9 @@ def setupHandler(
         Handler.generators[lang_pair] = (dirpath, modename)
     for dirpath, modename, lang_pair in modes['tagger']:
         Handler.taggers[lang_pair] = (dirpath, modename)
+
+    Handler.initPairsGraph()
+    Handler.initPaths()
 
 
 def sanity_check():

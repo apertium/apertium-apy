@@ -248,6 +248,11 @@ def checkRetCode(name, proc):
 
 
 @gen.coroutine
+def coreduce(init, funcs, *args):
+    raise Exception('Not available in Python 3.2!')
+
+
+@gen.coroutine
 def translateNULFlush(toTranslate, pipeline, unsafe_deformat, unsafe_reformat):
     with (yield pipeline.lock.acquire()):
         proc_in, proc_out = pipeline.inpipe, pipeline.outpipe
