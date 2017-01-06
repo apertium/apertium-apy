@@ -104,7 +104,12 @@ class BaseHandler(tornado.web.RequestHandler):
     scaleMtLogs = False
     verbosity = 0
 
+    # dict representing a graph of translation pairs; keys are source languages
+    # e.g. pairs_graph['eng'] = ['fra', 'spa']
     pairs_graph = {}
+    # 2-D dict storing the shortest path for a chained translation pair
+    # keys are source and target languages
+    # e.g. paths['eng']['fra'] = ['eng', 'spa', 'fra']
     paths = {}
 
     stats = {
@@ -148,7 +153,7 @@ class BaseHandler(tornado.web.RequestHandler):
             nodes.remove(u)
             for v in cls.pairs_graph.get(u, []):
                 if v in nodes:
-                    other = dists.get(u, float('inf')) + 1        # TODO: weight(u, v)
+                    other = dists.get(u, float('inf')) + 1   # TODO: weight(u, v) -- lower weight = better translation
                     if other < dists.get(v, float('inf')):
                         dists[v] = other
                         prevs[v] = u
@@ -251,17 +256,15 @@ class ListHandler(BaseHandler):
         query = self.get_argument('q', default='pairs')
 
         if query == 'pairs':
-            responseData = []
-            for pair in self.pairs:
-                (l1, l2) = pair.split('-')
-                responseData.append({'sourceLanguage': l1, 'targetLanguage': l2})
-                if self.get_arguments('include_deprecated_codes'):
-                    responseData.append({'sourceLanguage': toAlpha2Code(l1), 'targetLanguage': toAlpha2Code(l2)})
-            self.sendResponse({'responseData': responseData, 'responseDetails': None, 'responseStatus': 200})
-        elif query == 'chains':
-            src = self.get_argument('src', default=None)
+            src = self.get_argument('chainSource', default=None)
             if not src:
-                self.send_error(400, explanation='Missing argument src')
+                responseData = []
+                for pair in self.pairs:
+                    (l1, l2) = pair.split('-')
+                    responseData.append({'sourceLanguage': l1, 'targetLanguage': l2})
+                    if self.get_arguments('include_deprecated_codes'):
+                        responseData.append({'sourceLanguage': toAlpha2Code(l1), 'targetLanguage': toAlpha2Code(l2)})
+                self.sendResponse({'responseData': responseData, 'responseDetails': None, 'responseStatus': 200})
             else:
                 self.sendResponse({
                     'responseData': list(self.paths[src].keys()),
@@ -275,8 +278,7 @@ class ListHandler(BaseHandler):
         elif query == 'taggers' or query == 'disambiguators':
             self.sendResponse({pair: modename for (pair, (path, modename)) in self.taggers.items()})
         else:
-            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, '
-                            'disambiguators, pairs, or chains')
+            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, disambiguators, or pairs')
 
 
 class StatsHandler(BaseHandler):
