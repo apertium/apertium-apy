@@ -260,9 +260,11 @@ class ListHandler(BaseHandler):
             responseData = []
             if not src:
                 pairs_list = self.pairs
+
                 def langs(pair): return pair.split('-')
             else:
                 pairs_list = self.paths[src]
+
                 def langs(trgt): return src, trgt
             for pair in pairs_list:
                 l1, l2 = langs(pair)
