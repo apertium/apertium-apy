@@ -20,6 +20,7 @@ from threading import Thread
 from datetime import datetime, timedelta
 from urllib.parse import urlparse
 import heapq
+import threading
 
 import tornado
 import tornado.web
@@ -63,6 +64,9 @@ except:
 
 __version__ = "0.9.1"
 
+max_connections = 10
+
+semaphore = threading.BoundedSemaphore(max_connections)
 
 def run_async_thread(func):
     @wraps(func)
@@ -602,6 +606,7 @@ class AnalyzeHandler(BaseHandler):
     @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
+        semaphore.acquire()
         in_text = self.get_argument('q')
         in_mode = toAlpha3Code(self.get_argument('lang'))
         if in_mode in self.analyzers:
@@ -612,7 +617,7 @@ class AnalyzeHandler(BaseHandler):
             self.sendResponse(self.postproc_text(in_text, result))
         else:
             self.send_error(400, explanation='That mode is not installed')
-
+            semaphore.release()
 
 class GenerateHandler(BaseHandler):
 
@@ -630,6 +635,7 @@ class GenerateHandler(BaseHandler):
     @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
+        semaphore.acquire()
         in_text = self.get_argument('q')
         in_mode = toAlpha3Code(self.get_argument('lang'))
         if in_mode in self.generators:
@@ -641,6 +647,7 @@ class GenerateHandler(BaseHandler):
             self.sendResponse(self.postproc_text(lexical_units, result))
         else:
             self.send_error(400, explanation='That mode is not installed')
+            semaphore.release()
 
 
 class ListLanguageNamesHandler(BaseHandler):
@@ -1034,6 +1041,7 @@ if __name__ == '__main__':
     parser.add_argument('-wu', '--wiki-username', help="Apertium Wiki account username for SuggestionHandler", default=None)
     parser.add_argument('-b', '--bypass-token', help="ReCAPTCHA bypass token", action='store_true')
     parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA secret for suggestion validation", default=None)
+    parser.add_argument('-mp', '--max-processes', help="Max no. of processes to be yielded", default=None)
     args = parser.parse_args()
 
     if args.daemon:
@@ -1067,7 +1075,7 @@ if __name__ == '__main__':
         logging.warning("Unable to import chardet, assuming utf-8 encoding for all websites")
 
     setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout, args.max_pipes_per_pair,
-                 args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs, args.restart_pipe_after, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
+                 args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs, args.restart_pipe_after, args.verbosity, args.scalemt_logs, args.unknown_memory_limit, args.max_processes)
 
     application = tornado.web.Application([
         (r'/', RootHandler),
@@ -1111,6 +1119,9 @@ if __name__ == '__main__':
                 args.wiki_password)
             SuggestionHandler.wiki_edit_token = wikiGetToken(
                 SuggestionHandler.wiki_session, 'edit', 'info|revisions')
+    if args.bypass_token:
+        logging.info('Max No. of processes to yield:%s' % args.max_processes)
+        semaphore = threading.BoundedSemaphore(args.max_processes)
 
     global http_server
     if args.ssl_cert and args.ssl_key:
