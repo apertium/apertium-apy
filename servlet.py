@@ -20,7 +20,7 @@ from threading import Thread
 from datetime import datetime, timedelta
 from urllib.parse import urlparse
 import heapq
-import threading
+from tornado.locks import Semaphore
 
 import tornado
 import tornado.web
@@ -122,9 +122,8 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def initialize(self):
         self.callback = self.get_argument('callback', default=None)
-        self.sema_pair = dict(self.pairs)
-        for key, value in self.sema_pairs.items():
-            self.sema_pairs[value] = max_processes
+        sem = Semaphore(max_processes)
+
     def log_vmsize(self):
         if self.verbosity < 1:
             return
@@ -606,20 +605,18 @@ class AnalyzeHandler(BaseHandler):
     @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
-        semaphore.acquire()
         in_text = self.get_argument('q')
         in_mode = toAlpha3Code(self.get_argument('lang'))
         if in_mode in self.analyzers:
             [path, mode] = self.analyzers[in_mode]
             formatting = 'txt'
             commands = [['apertium', '-d', path, '-f', formatting, mode]]
-            semaphore = threading.BoundedSemaphore(self.sema_pair[mode])
-            semaphore.acquire()
+            yield sem.acquire()
             result = yield translation.translateSimple(in_text, commands)
             self.sendResponse(self.postproc_text(in_text, result))
         else:
             self.send_error(400, explanation='That mode is not installed')
-            semaphore.release()
+            yield sem.release()
 
 class GenerateHandler(BaseHandler):
 
@@ -644,13 +641,12 @@ class GenerateHandler(BaseHandler):
             formatting = 'none'
             commands = [['apertium', '-d', path, '-f', formatting, mode]]
             lexical_units, to_generate = self.preproc_text(in_text)
-            semaphore = threading.BoundedSemaphore(self.sema_pair[mode])
-            semaphore.acquire()
+            yield sem.acquire()
             result = yield translation.translateSimple(to_generate, commands)
             self.sendResponse(self.postproc_text(lexical_units, result))
         else:
             self.send_error(400, explanation='That mode is not installed')
-            semaphore.release()
+            yield sem.release()
 
 
 class ListLanguageNamesHandler(BaseHandler):
