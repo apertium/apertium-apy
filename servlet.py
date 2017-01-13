@@ -64,9 +64,6 @@ except:
 
 __version__ = "0.9.1"
 
-max_connections = 10
-
-semaphore = threading.BoundedSemaphore(max_connections)
 
 def run_async_thread(func):
     @wraps(func)
@@ -121,10 +118,13 @@ class BaseHandler(tornado.web.RequestHandler):
     max_users_per_pipe = 5
     max_idle_secs = 0
     restart_pipe_after = 1000
+    max_processes = 10
 
     def initialize(self):
         self.callback = self.get_argument('callback', default=None)
-
+        self.sema_pair = dict(self.pairs)
+        for key, value in self.sema_pairs.items():
+            self.sema_pairs[value] = max_processes
     def log_vmsize(self):
         if self.verbosity < 1:
             return
@@ -613,6 +613,8 @@ class AnalyzeHandler(BaseHandler):
             [path, mode] = self.analyzers[in_mode]
             formatting = 'txt'
             commands = [['apertium', '-d', path, '-f', formatting, mode]]
+            semaphore = threading.BoundedSemaphore(self.sema_pair[mode])
+            semaphore.acquire()
             result = yield translation.translateSimple(in_text, commands)
             self.sendResponse(self.postproc_text(in_text, result))
         else:
@@ -635,7 +637,6 @@ class GenerateHandler(BaseHandler):
     @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
-        semaphore.acquire()
         in_text = self.get_argument('q')
         in_mode = toAlpha3Code(self.get_argument('lang'))
         if in_mode in self.generators:
@@ -643,6 +644,8 @@ class GenerateHandler(BaseHandler):
             formatting = 'none'
             commands = [['apertium', '-d', path, '-f', formatting, mode]]
             lexical_units, to_generate = self.preproc_text(in_text)
+            semaphore = threading.BoundedSemaphore(self.sema_pair[mode])
+            semaphore.acquire()
             result = yield translation.translateSimple(to_generate, commands)
             self.sendResponse(self.postproc_text(lexical_units, result))
         else:
@@ -955,8 +958,8 @@ class PipeDebugHandler(BaseHandler):
 
 def setupHandler(
     port, pairs_path, nonpairs_path, langNames, missingFreqsPath, timeout,
-    max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs, restart_pipe_after,
-    verbosity=0, scaleMtLogs=False, memory=1000
+    max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs, restart_pipe_after,max_processes,
+    verbosity=0, scaleMtLogs=False, memory=1000,
 ):
 
     global missingFreqsDb
@@ -1121,7 +1124,6 @@ if __name__ == '__main__':
                 SuggestionHandler.wiki_session, 'edit', 'info|revisions')
     if args.bypass_token:
         logging.info('Max No. of processes to yield:%s' % args.max_processes)
-        semaphore = threading.BoundedSemaphore(args.max_processes)
 
     global http_server
     if args.ssl_cert and args.ssl_key:
