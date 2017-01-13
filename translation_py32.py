@@ -329,7 +329,7 @@ def translateSimple(toTranslate, commands):
     proc_in.stdout.close()
     raise StopIteration(translated.decode('utf-8'))
 
-
+@gen.coroutine
 def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
     modesdir = os.path.dirname(os.path.dirname(modeFile))
     mode = os.path.splitext(os.path.basename(modeFile))[0]
@@ -337,7 +337,11 @@ def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
         cmd = ['apertium', '-f', fmt,       '-d', modesdir, mode]
     else:
         cmd = ['apertium', '-f', fmt, '-u', '-d', modesdir, mode]
-    proc = Popen(cmd, stdin=fileToTranslate, stdout=PIPE)
+    proc_in = yield gen.Task(proc.stdin.write, fileToTranslate)
+    proc.stdin.close()
+    proc_out = yield gen.Task(proc.stdout.read_until_close)
+    proc_out.stdout.close()
+    proc = yield gen.Task(Popen, [cmd, proc_in, proc_out])
     output = proc.communicate()[0]
     checkRetCode(" ".join(cmd), proc)
     return output
