@@ -521,6 +521,7 @@ class TranslateDocHandler(TranslateHandler):
     # translation.
     @tornado.web.asynchronous
     def get(self):
+        sem.acquire()
         try:
             l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
         except ValueError:
@@ -564,6 +565,7 @@ class TranslateDocHandler(TranslateHandler):
                         self.send_error(400, explanation='Invalid file type %s' % mtype)
         else:
             self.send_error(400, explanation='That pair is not installed')
+            sem.release()
 
 
 class TranslateRawHandler(TranslateHandler):
@@ -611,12 +613,10 @@ class AnalyzeHandler(BaseHandler):
             [path, mode] = self.analyzers[in_mode]
             formatting = 'txt'
             commands = [['apertium', '-d', path, '-f', formatting, mode]]
-            yield sem.acquire()
             result = yield translation.translateSimple(in_text, commands)
             self.sendResponse(self.postproc_text(in_text, result))
         else:
             self.send_error(400, explanation='That mode is not installed')
-            yield sem.release()
 
 class GenerateHandler(BaseHandler):
 
@@ -641,13 +641,10 @@ class GenerateHandler(BaseHandler):
             formatting = 'none'
             commands = [['apertium', '-d', path, '-f', formatting, mode]]
             lexical_units, to_generate = self.preproc_text(in_text)
-            yield sem.acquire()
             result = yield translation.translateSimple(to_generate, commands)
-            self.sendResponse(self.postproc_text(lexical_units, result))
         else:
             self.send_error(400, explanation='That mode is not installed')
-            yield sem.release()
-
+            self.sendResponse(self.postproc_text(lexical_units, result))
 
 class ListLanguageNamesHandler(BaseHandler):
 
