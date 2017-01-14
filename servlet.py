@@ -25,6 +25,7 @@ import heapq
 import tornado
 import tornado.web
 import tornado.httpserver
+import tornado.httputil
 import tornado.process
 import tornado.iostream
 from tornado import httpclient
@@ -153,19 +154,25 @@ class BaseHandler(tornado.web.RequestHandler):
         self.finish()
 
     def write_error(self, status_code, **kwargs):
-        # TODO: Is there a tornado fn to get the full list?
-        http_messages = {
-            400: 'Bad Request',
-            404: 'Not Found',
-            408: 'Request Timeout',
-            500: 'Internal Error'
+        http_explanations = {
+            400: 'Request not properly formatted or contains languages that Apertium APy does not support',
+            404: 'Resource requested does not exist. URL may have been mistyped',
+            408: 'Server did not receive a complete request within the time it was prepared to wait. Try again',
+            500: 'Unexpected condition on server. Request could not be fulfilled.'
         }
+        explanation = kwargs.get('explanation', http_explanations.get(status_code, ''))
+        if 'exc_info' in kwargs and len(kwargs['exc_info']) > 1:
+            exception = kwargs['exc_info'][1]
+            if exception.log_message:
+                explanation = exception.log_message % exception.args
+            else:
+                explanation = exception.reason or tornado.httputil.responses.get(status_code, 'Unknown')
 
         result = {
             'status': 'error',
             'code': status_code,
-            'message': http_messages.get(status_code, ''),
-            'explanation': kwargs.get('explanation', '')
+            'message': tornado.httputil.responses.get(status_code, 'Unknown'),
+            'explanation': explanation
         }
 
         data = escape.json_encode(result)
@@ -384,6 +391,23 @@ class TranslateHandler(BaseHandler):
         else:
             return (l1, l2)
 
+    def getFormat(self):
+        dereformat = self.get_argument('format', default=None)
+        deformat = ''
+        reformat = ''
+        if dereformat:
+            deformat = 'apertium-des' + dereformat
+            reformat = 'apertium-re' + dereformat
+        else:
+            deformat = self.get_argument('deformat', default='html')
+            if 'apertium-des' not in deformat:
+                deformat = 'apertium-des' + deformat
+            reformat = self.get_argument('reformat', default='html-noent')
+            if 'apertium-re' not in reformat:
+                reformat = 'apertium-re' + reformat
+
+        return deformat, reformat
+
     @gen.coroutine
     def translateAndRespond(self, pair, pipeline, toTranslate, markUnknown, nosplit=False, deformat=True, reformat=True):
         markUnknown = markUnknown in ['yes', 'true', '1']
@@ -406,13 +430,13 @@ class TranslateHandler(BaseHandler):
                                    len(self.get_argument('q')))
         if pair is not None:
             pipeline = self.getPipeline(pair)
+            deformat, reformat = self.getFormat()
             yield self.translateAndRespond(pair,
                                            pipeline,
                                            self.get_argument('q'),
                                            self.get_argument('markUnknown', default='yes'),
                                            nosplit=False,
-                                           deformat=self.get_argument('deformat', default=True),
-                                           reformat=self.get_argument('reformat', default=True))
+                                           deformat=deformat, reformat=reformat)
 
 
 class TranslatePageHandler(TranslateHandler):
@@ -460,8 +484,8 @@ class TranslatePageHandler(TranslateHandler):
                                            toTranslate,
                                            self.get_argument('markUnknown', default='yes'),
                                            nosplit=True,
-                                           deformat=self.get_argument('deformat', default=True),
-                                           reformat=self.get_argument('reformat', default=True))
+                                           deformat='apertium-deshtml',
+                                           reformat='apertium-rehtml')
 
 
 class TranslateDocHandler(TranslateHandler):
@@ -1034,7 +1058,7 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--nonpairs-path', help='path to Apertium SVN (only non-translator debug modes are included from this path)')
     parser.add_argument('-l', '--lang-names',
                         help='path to localised language names sqlite database (default = langNames.db)', default='langNames.db')
-    parser.add_argument('-f', '--missing-freqs', help='path to missing frequency sqlite database (default = None)', default=None)
+    parser.add_argument('-f', '--missing-freqs', help='path to missing word frequency sqlite database (default = None)', default=None)
     parser.add_argument('-p', '--port', help='port to run server on (default = 2737)', type=int, default=2737)
     parser.add_argument('-c', '--ssl-cert', help='path to SSL Certificate', default=None)
     parser.add_argument('-k', '--ssl-key', help='path to SSL Key File', default=None)
@@ -1059,7 +1083,7 @@ if __name__ == '__main__':
     parser.add_argument('-V', '--version', help='show APY version', action='version', version="%(prog)s version " + __version__)
     parser.add_argument('-S', '--scalemt-logs', help='generates ScaleMT-like logs; use with --log-path; disables', action='store_true')
     parser.add_argument('-M', '--unknown-memory-limit',
-                        help="keeps unknown words in memory until a limit is reached (default = 1000)", type=int, default=1000)
+                        help="keeps unknown words in memory until a limit is reached; use with --missing-freqs (default = 1000)", type=int, default=1000)
     parser.add_argument('-T', '--stat-period-max-age',
                         help="How many seconds back to keep track request timing stats (default = 3600)", type=int, default=3600)
     parser.add_argument('-wp', '--wiki-password', help="Apertium Wiki account password for SuggestionHandler", default=None)
