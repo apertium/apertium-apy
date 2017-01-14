@@ -118,11 +118,11 @@ class BaseHandler(tornado.web.RequestHandler):
     max_users_per_pipe = 5
     max_idle_secs = 0
     restart_pipe_after = 1000
-    max_processes = 10
+    max_doc_pipes = 10
 
     def initialize(self):
         self.callback = self.get_argument('callback', default=None)
-        sem = Semaphore(max_processes)
+        self.doc_pipe_sem = Semaphore(max_doc_pipes)
 
     def log_vmsize(self):
         if self.verbosity < 1:
@@ -521,7 +521,6 @@ class TranslateDocHandler(TranslateHandler):
     # translation.
     @tornado.web.asynchronous
     def get(self):
-        sem.acquire()
         try:
             l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
         except ValueError:
@@ -553,6 +552,7 @@ class TranslateDocHandler(TranslateHandler):
                     tempFile.seek(0)
 
                     mtype = self.getMimeType(tempFile.name)
+                    yield self.doc_pipe_sem.acquire()
                     if mtype in allowedMimeTypes:
                         self.request.headers['Content-Type'] = 'application/octet-stream'
                         self.request.headers['Content-Disposition'] = 'attachment'
@@ -565,7 +565,7 @@ class TranslateDocHandler(TranslateHandler):
                         self.send_error(400, explanation='Invalid file type %s' % mtype)
         else:
             self.send_error(400, explanation='That pair is not installed')
-            sem.release()
+            yield doc_pipe_sem.release()
 
 
 class TranslateRawHandler(TranslateHandler):
@@ -642,9 +642,9 @@ class GenerateHandler(BaseHandler):
             commands = [['apertium', '-d', path, '-f', formatting, mode]]
             lexical_units, to_generate = self.preproc_text(in_text)
             result = yield translation.translateSimple(to_generate, commands)
+            self.sendResponse(self.postproc_text(lexical_units, result))
         else:
             self.send_error(400, explanation='That mode is not installed')
-            self.sendResponse(self.postproc_text(lexical_units, result))
 
 class ListLanguageNamesHandler(BaseHandler):
 
@@ -951,7 +951,7 @@ class PipeDebugHandler(BaseHandler):
 
 def setupHandler(
     port, pairs_path, nonpairs_path, langNames, missingFreqsPath, timeout,
-    max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs, restart_pipe_after,max_processes,
+    max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs, restart_pipe_after,doc_pipes,
     verbosity=0, scaleMtLogs=False, memory=1000,
 ):
 
@@ -1037,7 +1037,7 @@ if __name__ == '__main__':
     parser.add_argument('-wu', '--wiki-username', help="Apertium Wiki account username for SuggestionHandler", default=None)
     parser.add_argument('-b', '--bypass-token', help="ReCAPTCHA bypass token", action='store_true')
     parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA secret for suggestion validation", default=None)
-    parser.add_argument('-mp', '--max-processes', help="Max no. of processes to be yielded", default=None)
+    parser.add_argument('-md', '--max-doc-pipes', help="Max no. of processes to be yielded", default=None)
     args = parser.parse_args()
 
     if args.daemon:
@@ -1071,7 +1071,7 @@ if __name__ == '__main__':
         logging.warning("Unable to import chardet, assuming utf-8 encoding for all websites")
 
     setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout, args.max_pipes_per_pair,
-                 args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs, args.restart_pipe_after, args.verbosity, args.scalemt_logs, args.unknown_memory_limit, args.max_processes)
+                 args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs, args.restart_pipe_after, args.verbosity, args.scalemt_logs, args.unknown_memory_limit, args.max_doc_pipes)
 
     application = tornado.web.Application([
         (r'/', RootHandler),
@@ -1115,8 +1115,6 @@ if __name__ == '__main__':
                 args.wiki_password)
             SuggestionHandler.wiki_edit_token = wikiGetToken(
                 SuggestionHandler.wiki_session, 'edit', 'info|revisions')
-    if args.bypass_token:
-        logging.info('Max No. of processes to yield:%s' % args.max_processes)
 
     global http_server
     if args.ssl_cert and args.ssl_key:
