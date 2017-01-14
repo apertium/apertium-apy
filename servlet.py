@@ -441,11 +441,14 @@ class TranslateHandler(BaseHandler):
 class TranslatePageHandler(TranslateHandler):
     def urlRepl(self, base, quote, aurl):
         a = urlparse(aurl)
-        newurl = urlunsplit((base.scheme,
-                             base.netloc,
-                             a.path,
-                             a.query,
-                             a.fragment))
+        if a.netloc == '':
+            newurl = urlunsplit((base.scheme,
+                                 base.netloc,
+                                 a.path,
+                                 a.query,
+                                 a.fragment))
+        else:
+            newurl = aurl
         return ' href={q}{u}{q}'.format(u=newurl, q=quote)
 
     def htmlToText(self, html, url):
