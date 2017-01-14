@@ -1002,7 +1002,7 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--nonpairs-path', help='path to Apertium SVN (only non-translator debug modes are included from this path)')
     parser.add_argument('-l', '--lang-names',
                         help='path to localised language names sqlite database (default = langNames.db)', default='langNames.db')
-    parser.add_argument('-f', '--missing-freqs', help='path to missing frequency sqlite database (default = None)', default=None)
+    parser.add_argument('-f', '--missing-freqs', help='path to missing word frequency sqlite database (default = None)', default=None)
     parser.add_argument('-p', '--port', help='port to run server on (default = 2737)', type=int, default=2737)
     parser.add_argument('-c', '--ssl-cert', help='path to SSL Certificate', default=None)
     parser.add_argument('-k', '--ssl-key', help='path to SSL Key File', default=None)
@@ -1027,7 +1027,7 @@ if __name__ == '__main__':
     parser.add_argument('-V', '--version', help='show APY version', action='version', version="%(prog)s version " + __version__)
     parser.add_argument('-S', '--scalemt-logs', help='generates ScaleMT-like logs; use with --log-path; disables', action='store_true')
     parser.add_argument('-M', '--unknown-memory-limit',
-                        help="keeps unknown words in memory until a limit is reached (default = 1000)", type=int, default=1000)
+                        help="keeps unknown words in memory until a limit is reached; use with --missing-freqs (default = 1000)", type=int, default=1000)
     parser.add_argument('-T', '--stat-period-max-age',
                         help="How many seconds back to keep track request timing stats (default = 3600)", type=int, default=3600)
     parser.add_argument('-wp', '--wiki-password', help="Apertium Wiki account password for SuggestionHandler", default=None)
