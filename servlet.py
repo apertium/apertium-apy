@@ -439,7 +439,7 @@ class TranslateHandler(BaseHandler):
 
 
 class TranslatePageHandler(TranslateHandler):
-    def urlRepl(self, base, quote, aurl):
+    def urlRepl(self, base, attr, quote, aurl):
         a = urlparse(aurl)
         if a.netloc == '':
             newurl = urlunsplit((base.scheme,
@@ -449,7 +449,7 @@ class TranslatePageHandler(TranslateHandler):
                                  a.fragment))
         else:
             newurl = aurl
-        return ' href={q}{u}{q}'.format(u=newurl, q=quote)
+        return ' {a}={q}{u}{q}'.format(a=attr, u=newurl, q=quote)
 
     def htmlToText(self, html, url):
         if chardet:
@@ -458,8 +458,8 @@ class TranslatePageHandler(TranslateHandler):
             encoding = "utf-8"
         base = urlparse(url)
         text = html.decode(encoding)
-        return re.sub(r'href=([\'"])(..*?)\1',
-                      lambda m: self.urlRepl(base, m.group(1), m.group(2)),
+        return re.sub(r' (href|src)=([\'"])(..*?)\2',
+                      lambda m: self.urlRepl(base, m.group(1), m.group(2), m.group(3)),
                       text)
 
     @gen.coroutine
