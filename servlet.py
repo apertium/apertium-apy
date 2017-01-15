@@ -618,6 +618,7 @@ class AnalyzeHandler(BaseHandler):
         else:
             self.send_error(400, explanation='That mode is not installed')
 
+
 class GenerateHandler(BaseHandler):
 
     def preproc_text(self, in_text):
@@ -645,6 +646,7 @@ class GenerateHandler(BaseHandler):
             self.sendResponse(self.postproc_text(lexical_units, result))
         else:
             self.send_error(400, explanation='That mode is not installed')
+
 
 class ListLanguageNamesHandler(BaseHandler):
 
@@ -951,8 +953,8 @@ class PipeDebugHandler(BaseHandler):
 
 def setupHandler(
     port, pairs_path, nonpairs_path, langNames, missingFreqsPath, timeout,
-    max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs, restart_pipe_after,doc_pipes,
-    verbosity=0, scaleMtLogs=False, memory=1000,
+    max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs,
+    restart_pipe_after, doc_pipes, verbosity=0, scaleMtLogs=False, memory=1000
 ):
 
     global missingFreqsDb
@@ -1037,7 +1039,7 @@ if __name__ == '__main__':
     parser.add_argument('-wu', '--wiki-username', help="Apertium Wiki account username for SuggestionHandler", default=None)
     parser.add_argument('-b', '--bypass-token', help="ReCAPTCHA bypass token", action='store_true')
     parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA secret for suggestion validation", default=None)
-    parser.add_argument('-md', '--max-doc-pipes', help="Max no. of processes to be yielded", default=None)
+    parser.add_argument('-md', '--max-doc-pipes', help="Maximum no. of Document Pipes at a time", default=None)
     args = parser.parse_args()
 
     if args.daemon:
