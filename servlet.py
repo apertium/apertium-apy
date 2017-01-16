@@ -118,7 +118,6 @@ class BaseHandler(tornado.web.RequestHandler):
     max_users_per_pipe = 5
     max_idle_secs = 0
     restart_pipe_after = 1000
-    max_doc_pipes = 10
 
     def initialize(self):
         self.callback = self.get_argument('callback', default=None)
@@ -552,19 +551,20 @@ class TranslateDocHandler(TranslateHandler):
                     tempFile.seek(0)
 
                     mtype = self.getMimeType(tempFile.name)
-                    with (yield self.doc_pipe_sem.acquire()):
-                        if mtype in allowedMimeTypes:
-                            self.request.headers['Content-Type'] = 'application/octet-stream'
-                            self.request.headers['Content-Disposition'] = 'attachment'
-                            self.write(translation.translateDoc(tempFile,
+                    if mtype in allowedMimeTypes:
+                        self.request.headers['Content-Type'] = 'application/octet-stream'
+                        self.request.headers['Content-Disposition'] = 'attachment'
+                        with (yield self.doc_pipe_sem.acquire()):
+                            translateDoc_result = translation.translateDoc(tempFile,
                                                                 allowedMimeTypes[mtype],
                                                                 self.pairs['%s-%s' % (l1, l2)],
-                                                                markUnknown))
-                            self.finish()
-                        else:
+                                                                markUnknown)
+                        self.write(translateDoc_result)
+                        self.finish()
+                    else:
                             self.send_error(400, explanation='Invalid file type %s' % mtype)
         else:
-                self.send_error(400, explanation='That pair is not installed')
+            self.send_error(400, explanation='That pair is not installed')
 
 
 class TranslateRawHandler(TranslateHandler):
@@ -953,7 +953,7 @@ class PipeDebugHandler(BaseHandler):
 def setupHandler(
     port, pairs_path, nonpairs_path, langNames, missingFreqsPath, timeout,
     max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs,
-    restart_pipe_after, doc_pipes, verbosity=0, scaleMtLogs=False, memory=1000
+    restart_pipe_after, max_doc_pipes, verbosity=0, scaleMtLogs=False, memory=1000
 ):
 
     global missingFreqsDb
@@ -970,6 +970,7 @@ def setupHandler(
     Handler.restart_pipe_after = restart_pipe_after
     Handler.scaleMtLogs = scaleMtLogs
     Handler.verbosity = verbosity
+    Handler.max_doc_pipes = max_doc_pipes
 
     modes = searchPath(pairs_path, verbosity=verbosity)
     if nonpairs_path:
