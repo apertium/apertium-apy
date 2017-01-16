@@ -519,6 +519,7 @@ class TranslateDocHandler(TranslateHandler):
     # /usr/bin/apertium), we still want some limits on concurrent doc
     # translation.
     @tornado.web.asynchronous
+    @gen.coroutine
     def get(self):
         try:
             l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
