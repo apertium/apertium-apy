@@ -162,10 +162,12 @@ class BaseHandler(tornado.web.RequestHandler):
         explanation = kwargs.get('explanation', http_explanations.get(status_code, ''))
         if 'exc_info' in kwargs and len(kwargs['exc_info']) > 1:
             exception = kwargs['exc_info'][1]
-            if exception.log_message:
+            if hasattr(exception, 'log_message') and exception.log_message:
                 explanation = exception.log_message % exception.args
-            else:
+            elif hasattr(exception, 'reason'):
                 explanation = exception.reason or tornado.httputil.responses.get(status_code, 'Unknown')
+            else:
+                explanation = tornado.httputil.responses.get(status_code, 'Unknown')
 
         result = {
             'status': 'error',
