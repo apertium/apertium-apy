@@ -500,6 +500,8 @@ class TranslateHandler(BaseHandler):
 
 class TranslateChainHandler(TranslateHandler):
 
+    accumulatedUnknownMarkRE = re.compile(r'[*]+([^.,;:\t\* ]+)')
+
     def pairList(self, langs):
         return [(langs[i], langs[i+1]) for i in range(0, len(langs)-1)]
 
@@ -530,6 +532,7 @@ class TranslateChainHandler(TranslateHandler):
             self.notePairUsage(pair)
         before = self.logBeforeTranslation()
         translated = yield translation.coreduce(toTranslate, [p.translate for p in pipelines], nosplit, deformat, reformat)
+        translated = re.sub(self.accumulatedUnknownMarkRE, r'*\1', translated)
         self.logAfterTranslation(before, len(toTranslate))
         self.sendResponse({
             'responseData': {
