@@ -20,6 +20,7 @@ from threading import Thread
 from datetime import datetime, timedelta
 from urllib.parse import urlparse, urlunsplit
 import heapq
+from tornado.locks import Semaphore
 
 import tornado
 import tornado.web
@@ -117,6 +118,7 @@ class BaseHandler(tornado.web.RequestHandler):
     max_users_per_pipe = 5
     max_idle_secs = 0
     restart_pipe_after = 1000
+    doc_pipe_sem = Semaphore(3)
 
     def initialize(self):
         self.callback = self.get_argument('callback', default=None)
@@ -530,7 +532,7 @@ class TranslateDocHandler(TranslateHandler):
     # pairs here (would have to reimplement lots of
     # /usr/bin/apertium), we still want some limits on concurrent doc
     # translation.
-    @tornado.web.asynchronous
+    @gen.coroutine
     def get(self):
         try:
             l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
@@ -566,10 +568,12 @@ class TranslateDocHandler(TranslateHandler):
                     if mtype in allowedMimeTypes:
                         self.request.headers['Content-Type'] = 'application/octet-stream'
                         self.request.headers['Content-Disposition'] = 'attachment'
-                        self.write(translation.translateDoc(tempFile,
-                                                            allowedMimeTypes[mtype],
-                                                            self.pairs['%s-%s' % (l1, l2)],
-                                                            markUnknown))
+                        with (yield self.doc_pipe_sem.acquire()):
+                            t = yield translation.translateDoc(tempFile,
+                                                               allowedMimeTypes[mtype],
+                                                               self.pairs['%s-%s' % (l1, l2)],
+                                                               markUnknown)
+                        self.write(t)
                         self.finish()
                     else:
                         self.send_error(400, explanation='Invalid file type %s' % mtype)
@@ -962,8 +966,8 @@ class PipeDebugHandler(BaseHandler):
 
 def setupHandler(
     port, pairs_path, nonpairs_path, langNames, missingFreqsPath, timeout,
-    max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs, restart_pipe_after,
-    verbosity=0, scaleMtLogs=False, memory=1000
+    max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs,
+    restart_pipe_after, max_doc_pipes, verbosity=0, scaleMtLogs=False, memory=1000
 ):
 
     global missingFreqsDb
@@ -980,6 +984,7 @@ def setupHandler(
     Handler.restart_pipe_after = restart_pipe_after
     Handler.scaleMtLogs = scaleMtLogs
     Handler.verbosity = verbosity
+    Handler.doc_pipe_sem = Semaphore(max_doc_pipes)
 
     modes = searchPath(pairs_path, verbosity=verbosity)
     if nonpairs_path:
@@ -1043,11 +1048,13 @@ if __name__ == '__main__':
     parser.add_argument('-M', '--unknown-memory-limit',
                         help="keeps unknown words in memory until a limit is reached; use with --missing-freqs (default = 1000)", type=int, default=1000)
     parser.add_argument('-T', '--stat-period-max-age',
-                        help="How many seconds back to keep track request timing stats (default = 3600)", type=int, default=3600)
+                        help='How many seconds back to keep track request timing stats (default = 3600)', type=int, default=3600)
     parser.add_argument('-wp', '--wiki-password', help="Apertium Wiki account password for SuggestionHandler", default=None)
     parser.add_argument('-wu', '--wiki-username', help="Apertium Wiki account username for SuggestionHandler", default=None)
     parser.add_argument('-b', '--bypass-token', help="ReCAPTCHA bypass token", action='store_true')
     parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA secret for suggestion validation", default=None)
+    parser.add_argument('-md', '--max-doc-pipes',
+                        help='how many concurrent document translation pipelines we allow (default = 3)', type=int, default=3)
     args = parser.parse_args()
 
     if args.daemon:
@@ -1080,8 +1087,9 @@ if __name__ == '__main__':
     if not chardet:
         logging.warning("Unable to import chardet, assuming utf-8 encoding for all websites")
 
-    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout, args.max_pipes_per_pair,
-                 args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs, args.restart_pipe_after, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
+    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
+                 args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs,
+                 args.restart_pipe_after, args.max_doc_pipes, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
 
     application = tornado.web.Application([
         (r'/', RootHandler),
