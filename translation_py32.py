@@ -338,7 +338,7 @@ def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
     else:
         cmd = ['apertium', '-f', fmt, '-u', '-d', modesdir, mode]
 
-    proc_in = yield gen.Task(proc.stdin.write, fileToTranslate)
+    proc_in = yield gen.Task(proc.stdin.write, bytes(fileToTranslate, 'utf-8'))
     proc.stdin.close()
     proc_out = yield gen.Task(proc.stdout.read_until_close)
     proc_out.stdout.close()
