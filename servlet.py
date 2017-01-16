@@ -122,7 +122,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def initialize(self):
         self.callback = self.get_argument('callback', default=None)
-        self.doc_pipe_sem = Semaphore(max_doc_pipes)
+        self.doc_pipe_sem = Semaphore(self.max_doc_pipes)
 
     def log_vmsize(self):
         if self.verbosity < 1:
@@ -552,20 +552,19 @@ class TranslateDocHandler(TranslateHandler):
                     tempFile.seek(0)
 
                     mtype = self.getMimeType(tempFile.name)
-                    yield self.doc_pipe_sem.acquire()
-                    if mtype in allowedMimeTypes:
-                        self.request.headers['Content-Type'] = 'application/octet-stream'
-                        self.request.headers['Content-Disposition'] = 'attachment'
-                        self.write(translation.translateDoc(tempFile,
-                                                            allowedMimeTypes[mtype],
-                                                            self.pairs['%s-%s' % (l1, l2)],
-                                                            markUnknown))
-                        self.finish()
-                    else:
-                        self.send_error(400, explanation='Invalid file type %s' % mtype)
+                    with (yield self.doc_pipe_sem.acquire()):
+                        if mtype in allowedMimeTypes:
+                            self.request.headers['Content-Type'] = 'application/octet-stream'
+                            self.request.headers['Content-Disposition'] = 'attachment'
+                            self.write(translation.translateDoc(tempFile,
+                                                                allowedMimeTypes[mtype],
+                                                                self.pairs['%s-%s' % (l1, l2)],
+                                                                markUnknown))
+                            self.finish()
+                        else:
+                            self.send_error(400, explanation='Invalid file type %s' % mtype)
         else:
-            self.send_error(400, explanation='That pair is not installed')
-            yield doc_pipe_sem.release()
+                self.send_error(400, explanation='That pair is not installed')
 
 
 class TranslateRawHandler(TranslateHandler):
