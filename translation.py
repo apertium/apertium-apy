@@ -339,9 +339,8 @@ def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
     else:
         cmd = ['apertium', '-f', fmt, '-u', '-d', modesdir, mode]
     proc = tornado.process.Subprocess(cmd,
-                                         stdin=fileToTranslate,
-                                         stdout=tornado.process.Subprocess.STREAM)
-    proc = proc
+                                      stdin=fileToTranslate,
+                                      stdout=tornado.process.Subprocess.STREAM)
     translated = yield gen.Task(proc.stdout.read_until_close)
     proc.stdout.close()
     # TODO: raises but not caught:
