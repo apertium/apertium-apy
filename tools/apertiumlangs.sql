@@ -2736,12 +2736,12 @@ INSERT INTO "languageNames" VALUES(2749,'en','sa','Sanskrit');
 INSERT INTO "languageNames" VALUES(2750,'en','sah','Sakha');
 INSERT INTO "languageNames" VALUES(2751,'en','sc','Sardinian');
 INSERT INTO "languageNames" VALUES(2752,'en','sco','Scots');
-INSERT INTO "languageNames" VALUES(2753,'en','se','Northern Saami');
+INSERT INTO "languageNames" VALUES(2753,'en','se','North Saami');
 INSERT INTO "languageNames" VALUES(2754,'en','sh','Serbo-Croatian');
 INSERT INTO "languageNames" VALUES(2755,'en','si','Sinhala');
 INSERT INTO "languageNames" VALUES(2756,'en','sk','Slovak');
 INSERT INTO "languageNames" VALUES(2757,'en','sl','Slovenian');
-INSERT INTO "languageNames" VALUES(2758,'en','sma','Southern Saami');
+INSERT INTO "languageNames" VALUES(2758,'en','sma','South Saami');
 INSERT INTO "languageNames" VALUES(2759,'en','smj','Lule Saami');
 INSERT INTO "languageNames" VALUES(2760,'en','sq','Albanian');
 INSERT INTO "languageNames" VALUES(2761,'en','sr','Serbian');
@@ -9159,10 +9159,40 @@ INSERT INTO "fixes" VALUES(NULL,'scn','scn', 'sicilianu');
 INSERT INTO "fixes" VALUES(NULL,'es','scn', 'siciliano');
 INSERT INTO "fixes" VALUES(NULL,'ca','scn', 'sicilià');
 INSERT INTO "fixes" VALUES(NULL,'en','scn', 'Sicilian');
+
+INSERT INTO "fixes" VALUES(NULL,'en','smn', 'Inari Saami');
+INSERT INTO "fixes" VALUES(NULL,'fi','smn', 'inarinsaame');
 INSERT INTO "fixes" VALUES(NULL,'nn','smn', 'enaresamisk');
 INSERT INTO "fixes" VALUES(NULL,'nb','smn', 'enaresamisk');
-INSERT INTO "fixes" VALUES(NULL,'en','smn', 'Inari Saami');
+INSERT INTO "fixes" VALUES(NULL,'sma','smn', 'enaresaemien');
 INSERT INTO "fixes" VALUES(NULL,'se','smn', 'anársámegiella');
+INSERT INTO "fixes" VALUES(NULL,'smj','smn', 'anársámegiella');
+INSERT INTO "fixes" VALUES(NULL,'smn','smn', 'anarâškielâ');
+
+INSERT INTO "fixes" VALUES(NULL,'en','smj', 'Lule Saami');
+INSERT INTO "fixes" VALUES(NULL,'fi','smj', 'luulajansaame');
+INSERT INTO "fixes" VALUES(NULL,'nn','smj', 'lulesamisk');
+INSERT INTO "fixes" VALUES(NULL,'nb','smj', 'lulesamisk');
+INSERT INTO "fixes" VALUES(NULL,'sma','smj', 'julevsaemiengïele');
+INSERT INTO "fixes" VALUES(NULL,'se','smj', 'julevsámegiella');
+INSERT INTO "fixes" VALUES(NULL,'smj','smj', 'julevsámegiella');
+INSERT INTO "fixes" VALUES(NULL,'smn','smj', 'juulevsämikielâ');
+
+INSERT INTO "fixes" VALUES(NULL,'sma','se', 'noerhtesaemiengïele');
+INSERT INTO "fixes" VALUES(NULL,'smj','se', 'nuorttasámegiella');
+INSERT INTO "fixes" VALUES(NULL,'smn','se', 'pajekielâ');
+
+INSERT INTO "fixes" VALUES(NULL,'sma','sma','åarjelsaemiengïele');
+INSERT INTO "fixes" VALUES(NULL,'smj','sma','oarjjelsámegiella');
+INSERT INTO "fixes" VALUES(NULL,'smn','sma','maadâsämikielâ');
+
+INSERT INTO "fixes" VALUES(NULL,'sma','no','daaroegïele');
+INSERT INTO "fixes" VALUES(NULL,'smj','no','dárogiella');
+INSERT INTO "fixes" VALUES(NULL,'smn','no','tárukielâ');
+
+INSERT INTO "fixes" VALUES(NULL,'sma','fi','såevmiengïele');
+INSERT INTO "fixes" VALUES(NULL,'smj','fi','suomagiella');
+INSERT INTO "fixes" VALUES(NULL,'smn','fi','suomâkielâ');
 
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
 COMMIT;
