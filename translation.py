@@ -330,6 +330,7 @@ def translateSimple(toTranslate, commands):
     return translated.decode('utf-8')
 
 
+@gen.coroutine
 def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
     modesdir = os.path.dirname(os.path.dirname(modeFile))
     mode = os.path.splitext(os.path.basename(modeFile))[0]
@@ -337,7 +338,11 @@ def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
         cmd = ['apertium', '-f', fmt,       '-d', modesdir, mode]
     else:
         cmd = ['apertium', '-f', fmt, '-u', '-d', modesdir, mode]
-    proc = Popen(cmd, stdin=fileToTranslate, stdout=PIPE)
-    output = proc.communicate()[0]
-    checkRetCode(" ".join(cmd), proc)
-    return output
+    proc = tornado.process.Subprocess(cmd,
+                                      stdin=fileToTranslate,
+                                      stdout=tornado.process.Subprocess.STREAM)
+    translated = yield gen.Task(proc.stdout.read_until_close)
+    proc.stdout.close()
+    # TODO: raises but not caught:
+    # checkRetCode(" ".join(cmd), proc)
+    return translated
