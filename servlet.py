@@ -105,6 +105,14 @@ class BaseHandler(tornado.web.RequestHandler):
     scaleMtLogs = False
     verbosity = 0
 
+    # dict representing a graph of translation pairs; keys are source languages
+    # e.g. pairs_graph['eng'] = ['fra', 'spa']
+    pairs_graph = {}
+    # 2-D dict storing the shortest path for a chained translation pair
+    # keys are source and target languages
+    # e.g. paths['eng']['fra'] = ['eng', 'spa', 'fra']
+    paths = {}
+
     stats = {
         'startdate': datetime.now(),
         'useCount': {},
@@ -122,6 +130,49 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def initialize(self):
         self.callback = self.get_argument('callback', default=None)
+
+    @classmethod
+    def initPairsGraph(cls):
+        for pair in cls.pairs:
+            lang1, lang2 = pair.split('-')
+            if lang1 in cls.pairs_graph:
+                cls.pairs_graph[lang1].append(lang2)
+            else:
+                cls.pairs_graph[lang1] = [lang2]
+
+    @classmethod
+    def calculatePaths(cls, start):
+        nodes = set()
+        for pair in map(lambda x: x.split('-'), cls.pairs):
+            nodes.add(pair[0])
+            nodes.add(pair[1])
+        dists = {}
+        prevs = {}
+        dists[start] = 0
+
+        while nodes:
+            u = min(nodes, key=lambda u: dists.get(u, float('inf')))
+            nodes.remove(u)
+            for v in cls.pairs_graph.get(u, []):
+                if v in nodes:
+                    other = dists.get(u, float('inf')) + 1   # TODO: weight(u, v) -- lower weight = better translation
+                    if other < dists.get(v, float('inf')):
+                        dists[v] = other
+                        prevs[v] = u
+
+        cls.paths[start] = {}
+        for u in prevs:
+            prev = prevs[u]
+            path = [u]
+            while prev:
+                path.append(prev)
+                prev = prevs.get(prev)
+            cls.paths[start][u] = list(reversed(path))
+
+    @classmethod
+    def initPaths(cls):
+        for lang in cls.pairs_graph:
+            cls.calculatePaths(lang)
 
     def log_vmsize(self):
         if self.verbosity < 1:
@@ -209,9 +260,18 @@ class ListHandler(BaseHandler):
         query = self.get_argument('q', default='pairs')
 
         if query == 'pairs':
+            src = self.get_argument('src', default=None)
             responseData = []
-            for pair in self.pairs:
-                (l1, l2) = pair.split('-')
+            if not src:
+                pairs_list = self.pairs
+
+                def langs(pair): return pair.split('-')
+            else:
+                pairs_list = self.paths[src]
+
+                def langs(trgt): return src, trgt
+            for pair in pairs_list:
+                l1, l2 = langs(pair)
                 responseData.append({'sourceLanguage': l1, 'targetLanguage': l2})
                 if self.get_arguments('include_deprecated_codes'):
                     responseData.append({'sourceLanguage': toAlpha2Code(l1), 'targetLanguage': toAlpha2Code(l2)})
@@ -223,7 +283,7 @@ class ListHandler(BaseHandler):
         elif query == 'taggers' or query == 'disambiguators':
             self.sendResponse({pair: modename for (pair, (path, modename)) in self.taggers.items()})
         else:
-            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, disambiguators or pairs')
+            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, disambiguators, or pairs')
 
 
 class StatsHandler(BaseHandler):
@@ -440,6 +500,78 @@ class TranslateHandler(BaseHandler):
                                            self.get_argument('markUnknown', default='yes'),
                                            nosplit=False,
                                            deformat=deformat, reformat=reformat)
+
+
+class TranslateChainHandler(TranslateHandler):
+
+    def pairList(self, langs):
+        return [(langs[i], langs[i+1]) for i in range(0, len(langs)-1)]
+
+    def getPairsOrError(self, langpairs, text_length):
+        langs = [toAlpha3Code(lang) for lang in langpairs.split('|')]
+        if len(langs) < 2:
+            self.send_error(400, explanation='Need at least two languages, use e.g. eng|spa')
+            self.logAfterTranslation(self.logBeforeTranslation(), text_length)
+            return None
+        if len(langs) == 2:
+            if langs[0] == langs[1]:
+                self.send_error(400, explanation='Need at least two languages, use e.g. eng|spa')
+                self.logAfterTranslation(self.logBeforeTranslation(), text_length)
+                return None
+            return self.paths.get(langs[0], {}).get(langs[1])
+        for lang1, lang2 in self.pairList(langs):
+            if '{:s}-{:s}'.format(lang1, lang2) not in self.pairs:
+                self.send_error(400, explanation='Pair {:s}-{:s} is not installed'.format(lang1, lang2))
+                self.logAfterTranslation(self.logBeforeTranslation(), text_length)
+                return None
+        return langs
+
+    @gen.coroutine
+    def translateAndRespond(self, pairs, pipelines, toTranslate, markUnknown, nosplit=False, deformat=True, reformat=True):
+        markUnknown = markUnknown in ['yes', 'true', '1']
+        chain, pairs = pairs, self.pairList(pairs)
+        for pair in pairs:
+            self.notePairUsage(pair)
+        before = self.logBeforeTranslation()
+        translated = yield translation.coreduce(toTranslate, [p.translate for p in pipelines], nosplit, deformat, reformat)
+        self.logAfterTranslation(before, len(toTranslate))
+        self.sendResponse({
+            'responseData': {
+                'translatedText': self.maybeStripMarks(markUnknown, (pairs[0][0], pairs[-1][1]), translated),
+                'translationChain': chain
+            },
+            'responseDetails': None,
+            'responseStatus': 200
+        })
+        self.cleanPairs()
+
+    def prepare(self):
+        if not self.pairs_graph:
+            self.initPairsGraph()
+
+    @gen.coroutine
+    def get(self):
+        q = self.get_argument('q', default=None)
+        langpairs = self.get_argument('langpairs')
+        pairs = self.getPairsOrError(langpairs, len(q or []))
+        if pairs:
+            if not q:
+                self.sendResponse({
+                    'responseData': {
+                        'translationChain': self.getPairsOrError(self.get_argument('langpairs'), 0)
+                    },
+                    'responseDetails': None,
+                    'responseStatus': 200
+                })
+            else:
+                pipelines = [self.getPipeline(pair) for pair in self.pairList(pairs)]
+                deformat, reformat = self.getFormat()
+                yield self.translateAndRespond(pairs, pipelines, q,
+                                               self.get_argument('markUnknown', default='yes'),
+                                               nosplit=False, deformat=deformat, reformat=reformat)
+        else:
+            self.send_error(400, explanation='No path found for {:s}-{:s}'.format(*langpairs.split('|')))
+            self.logAfterTranslation(self.logBeforeTranslation(), 0)
 
 
 class TranslatePageHandler(TranslateHandler):
@@ -1003,6 +1135,9 @@ def setupHandler(
     for dirpath, modename, lang_pair in modes['tagger']:
         Handler.taggers[lang_pair] = (dirpath, modename)
 
+    Handler.initPairsGraph()
+    Handler.initPaths()
+
 
 def sanity_check():
     locale_vars = ["LANG", "LC_ALL"]
@@ -1097,6 +1232,7 @@ if __name__ == '__main__':
         (r'/listPairs', ListHandler),
         (r'/stats', StatsHandler),
         (r'/translate', TranslateHandler),
+        (r'/translateChain', TranslateChainHandler),
         (r'/translateDoc', TranslateDocHandler),
         (r'/translatePage', TranslatePageHandler),
         (r'/translateRaw', TranslateRawHandler),
