@@ -456,13 +456,16 @@ class TranslatePageHandler(TranslateHandler):
             newurl = aurl
         return ' {a}={q}{u}{q}'.format(a=attr, u=newurl, q=quote)
 
+    def cleanHtml(self, html):
+        return html.replace('&shy;', '')
+
     def htmlToText(self, html, url):
         if chardet:
             encoding = chardet.detect(html).get("encoding", "utf-8")
         else:
             encoding = "utf-8"
         base = urlparse(url)
-        text = html.decode(encoding)
+        text = self.cleanHtml(html.decode(encoding))
         return re.sub(r' (href|src)=([\'"])(..*?)\2',
                       lambda m: self.urlRepl(base, m.group(1), m.group(2), m.group(3)),
                       text)
