@@ -430,7 +430,6 @@ class TranslateHandler(BaseHandler):
             'responseStatus': 200
         })
         self.cleanPairs()
-        return translated
 
     @gen.coroutine
     def get(self):
@@ -502,12 +501,8 @@ class TranslatePageHandler(TranslateHandler):
             yield self.translateAndRespond(pair,
                                            translation.CatPipeline(),
                                            cached,
-                                           self.get_argument('markUnknown', default='yes'),
-                                           nosplit=True,
-                                           deformat='apertium-deshtml',
-                                           reformat='apertium-rehtml')
+                                           self.get_argument('markUnknown', default='yes'))
         else:
-            pipeline = self.getPipeline(pair)
             http_client = httpclient.AsyncHTTPClient()
             request = httpclient.HTTPRequest(url=url,
                                              # TODO: tweak
@@ -515,13 +510,29 @@ class TranslatePageHandler(TranslateHandler):
                                              request_timeout=20.0)
             response = yield http_client.fetch(request)
             toTranslate = self.htmlToText(response.body, url)
-            translated = yield self.translateAndRespond(pair,
-                                                        pipeline,
-                                                        toTranslate,
-                                                        self.get_argument('markUnknown', default='yes'),
-                                                        nosplit=True,
-                                                        deformat='apertium-deshtml',
-                                                        reformat='apertium-rehtml')
+            # TODO: issue 53 – we want to use translateAndRespond and keep pipelines open
+            markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
+            self.notePairUsage(pair)
+            before = self.logBeforeTranslation()
+            translated = yield translation.translateSimpleMode(toTranslate,
+                                                               'html-noent',
+                                                               self.pairs['%s-%s' % pair])
+            self.logAfterTranslation(before, len(toTranslate))
+            self.sendResponse({
+                'responseData': {
+                    'translatedText': self.maybeStripMarks(markUnknown, pair, translated)
+                },
+                'responseDetails': None,
+                'responseStatus': 200
+            })
+            # pipeline = self.getPipeline(pair)
+            # translated = yield self.translateAndRespond(pair,
+            #                                             pipeline,
+            #                                             toTranslate,
+            #                                             self.get_argument('markUnknown', default='yes'),
+            #                                             nosplit=False,
+            #                                             deformat='apertium-deshtml',
+            #                                             reformat='apertium-rehtml')
             self.url_cache[pair][url] = translated
 
 
