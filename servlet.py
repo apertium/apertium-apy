@@ -120,6 +120,9 @@ class BaseHandler(tornado.web.RequestHandler):
     max_idle_secs = 0
     restart_pipe_after = 1000
     doc_pipe_sem = Semaphore(3)
+    url_cache_max_age = timedelta(0, 2*3600, 0)
+    url_cache_ts = datetime.now()
+    url_cache = {}
 
     def initialize(self):
         self.callback = self.get_argument('callback', default=None)
@@ -427,6 +430,7 @@ class TranslateHandler(BaseHandler):
             'responseStatus': 200
         })
         self.cleanPairs()
+        return translated
 
     @gen.coroutine
     def get(self):
@@ -470,29 +474,55 @@ class TranslatePageHandler(TranslateHandler):
                       lambda m: self.urlRepl(base, m.group(1), m.group(2), m.group(3)),
                       text)
 
+    def maybeEmptyCache(self):
+        if datetime.now() > self.url_cache_ts + self.url_cache_max_age:
+            logging.info("Emptying URL cache ...")
+            self.url_cache_ts = datetime.now()
+            self.url_cache = { p:{} for p in self.pairs }
+
+    def getCached(self, pair, url):
+        self.maybeEmptyCache()
+        if pair not in self.url_cache:
+            self.url_cache[pair] = {}
+        if url in self.url_cache[pair]:
+            return self.url_cache[pair][url]
+        else:
+            return None
+
     @gen.coroutine
     def get(self):
         pair = self.getPairOrError(self.get_argument('langpair'),
                                    # Don't yet know the size of the text, and don't want to fetch it unnecessarily:
                                    -1)
-        if pair is not None:
+        if pair is None:
+            return
+        url = self.get_argument('url')
+        cached = self.getCached(pair, url)
+        if cached is not None:
+            yield self.translateAndRespond(pair,
+                                           translation.CatPipeline(),
+                                           cached,
+                                           self.get_argument('markUnknown', default='yes'),
+                                           nosplit=True,
+                                           deformat='apertium-deshtml',
+                                           reformat='apertium-rehtml')
+        else:
             pipeline = self.getPipeline(pair)
             http_client = httpclient.AsyncHTTPClient()
-            url = self.get_argument('url')
             request = httpclient.HTTPRequest(url=url,
                                              # TODO: tweak
                                              connect_timeout=20.0,
                                              request_timeout=20.0)
             response = yield http_client.fetch(request)
             toTranslate = self.htmlToText(response.body, url)
-
-            yield self.translateAndRespond(pair,
-                                           pipeline,
-                                           toTranslate,
-                                           self.get_argument('markUnknown', default='yes'),
-                                           nosplit=True,
-                                           deformat='apertium-deshtml',
-                                           reformat='apertium-rehtml')
+            translated = yield self.translateAndRespond(pair,
+                                                        pipeline,
+                                                        toTranslate,
+                                                        self.get_argument('markUnknown', default='yes'),
+                                                        nosplit=True,
+                                                        deformat='apertium-deshtml',
+                                                        reformat='apertium-rehtml')
+            self.url_cache[pair][url] = translated
 
 
 class TranslateDocHandler(TranslateHandler):
