@@ -478,7 +478,7 @@ class TranslatePageHandler(TranslateHandler):
         if datetime.now() > self.url_cache_ts + self.url_cache_max_age:
             logging.info("Emptying URL cache ...")
             self.url_cache_ts = datetime.now()
-            self.url_cache = { p:{} for p in self.pairs }
+            self.url_cache = {p: {} for p in self.pairs}
 
     def getCached(self, pair, url):
         self.maybeEmptyCache()

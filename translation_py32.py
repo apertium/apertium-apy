@@ -89,6 +89,13 @@ class SimplePipeline(Pipeline):
                 raise StopIteration(res)
 
 
+class CatPipeline(Pipeline):
+
+    @gen.coroutine
+    def translate(self, output, nosplit="ignored", deformat="ignored", reformat="ignored"):
+        return output
+
+
 ParsedModes = namedtuple('ParsedModes', 'do_flush commands')
 
 
