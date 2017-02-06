@@ -29,7 +29,7 @@ def searchPath(rootpath, include_pairs=True, verbosity=1):
     type_re = {
         'pair': re.compile(r'({0})-({0})\.mode'.format(lang_code)),
         'analyzer': re.compile(r'(({0}(-{0})?)-(an)?mor(ph)?)\.mode'.format(lang_code)),
-        'generator': re.compile(r'(({0}(-{0})?)-(dgen|gener)[A-z]*)\.mode'.format(lang_code)),
+        'generator': re.compile(r'(({0}(-{0})?)-gener[A-z]*)\.mode'.format(lang_code)),
         'tagger': re.compile(r'(({0}(-{0})?)-tagger)\.mode'.format(lang_code))
     }
     modes = {
