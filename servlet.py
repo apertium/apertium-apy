@@ -460,7 +460,7 @@ class TranslatePageHandler(TranslateHandler):
         return ' {a}={q}{u}{q}'.format(a=attr, u=newurl, q=quote)
 
     def cleanHtml(self, html):
-        return html.replace('&shy;', '')
+        return html.replace('&shy;', '').replace('­', '') # literal and entity soft hyphen
 
     def htmlToText(self, html, url):
         if chardet:
