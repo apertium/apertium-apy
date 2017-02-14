@@ -514,9 +514,9 @@ class TranslatePageHandler(TranslateHandler):
             markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
             self.notePairUsage(pair)
             before = self.logBeforeTranslation()
-            translated = yield translation.translateSimpleMode(toTranslate,
-                                                               'html-noent',
-                                                               self.pairs['%s-%s' % pair])
+            translated = yield translation.translateHtmlMarkHeadings(
+                toTranslate,
+                self.pairs['%s-%s' % pair])
             self.logAfterTranslation(before, len(toTranslate))
             self.sendResponse({
                 'responseData': {

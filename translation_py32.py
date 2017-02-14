@@ -337,22 +337,49 @@ def translateSimple(toTranslate, commands):
     raise StopIteration(translated.decode('utf-8'))
 
 
-@gen.coroutine
-def translateSimpleMode(toTranslate, fmt, modeFile, unknownMarks=False):
+def startPipelineFromModeFile(modeFile, fmt, unknownMarks=False):
     modesdir = os.path.dirname(os.path.dirname(modeFile))
     mode = os.path.splitext(os.path.basename(modeFile))[0]
     if unknownMarks:
         cmd = ['apertium', '-f', fmt,       '-d', modesdir, mode]
     else:
         cmd = ['apertium', '-f', fmt, '-u', '-d', modesdir, mode]
-    proc_in, proc_out = startPipeline([cmd])
+    return startPipeline([cmd])
+
+
+@gen.coroutine
+def translateModefileBytes(toTranslateBytes, fmt, modeFile, unknownMarks=False):
+    proc_in, proc_out = startPipelineFromModeFile(modeFile, fmt, unknownMarks)
     assert proc_in == proc_out
-    yield gen.Task(proc_in.stdin.write, bytes(toTranslate, 'utf-8'))
+    yield gen.Task(proc_in.stdin.write, toTranslateBytes)
     proc_in.stdin.close()
-    translated = yield gen.Task(proc_out.stdout.read_until_close)
+    translatedBytes = yield gen.Task(proc_out.stdout.read_until_close)
     proc_in.stdout.close()
+    raise StopIteration(translatedBytes)
+
+
+@gen.coroutine
+def translateSimpleMode(toTranslate, fmt, modeFile, unknownMarks=False):
+    translated = yield translateModefileBytes(bytes(toTranslate, 'utf-8'),
+                                              fmt, modeFile, unknownMarks)
     raise StopIteration(translated.decode('utf-8'))
 
+
+@gen.coroutine
+def translateHtmlMarkHeadings(toTranslate, modeFile, unknownMarks=False):
+    # TODO: , '-o'
+    proc_deformat = Popen(['apertium-deshtml'], stdin=PIPE, stdout=PIPE)
+    proc_deformat.stdin.write(bytes(toTranslate, 'utf-8'))
+    deformatted = proc_deformat.communicate()[0]
+    checkRetCode("Deformatter", proc_deformat)
+
+    translated = yield translateModefileBytes(deformatted, 'none', modeFile, unknownMarks)
+
+    proc_reformat = Popen(['apertium-rehtml-noent'], stdin=PIPE, stdout=PIPE)
+    proc_reformat.stdin.write(translated)
+    reformatted = proc_reformat.communicate()[0]
+    checkRetCode("Reformatter", proc_reformat)
+    raise StopIteration(reformatted.decode('utf-8'))
 
 @gen.coroutine
 def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
