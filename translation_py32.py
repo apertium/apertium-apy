@@ -381,6 +381,7 @@ def translateHtmlMarkHeadings(toTranslate, modeFile, unknownMarks=False):
     checkRetCode("Reformatter", proc_reformat)
     raise StopIteration(reformatted.decode('utf-8'))
 
+
 @gen.coroutine
 def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
     modesdir = os.path.dirname(os.path.dirname(modeFile))

@@ -123,7 +123,6 @@ def startPipeline(commands):
     return procs[0], procs[-1]
 
 
-
 def cmdNeedsZ(cmd):
     exceptions = r'^\s*(vislcg3|cg-mwesplit|hfst-tokeni[sz]e|divvun-suggest)'
     return re.match(exceptions, cmd) is None
@@ -337,6 +336,7 @@ def translateSimple(toTranslate, commands):
     proc_in.stdout.close()
     return translated.decode('utf-8')
 
+
 def startPipelineFromModeFile(modeFile, fmt, unknownMarks=False):
     modesdir = os.path.dirname(os.path.dirname(modeFile))
     mode = os.path.splitext(os.path.basename(modeFile))[0]
@@ -345,6 +345,7 @@ def startPipelineFromModeFile(modeFile, fmt, unknownMarks=False):
     else:
         cmd = ['apertium', '-f', fmt, '-u', '-d', modesdir, mode]
     return startPipeline([cmd])
+
 
 @gen.coroutine
 def translateModefileBytes(toTranslateBytes, fmt, modeFile, unknownMarks=False):
@@ -356,11 +357,13 @@ def translateModefileBytes(toTranslateBytes, fmt, modeFile, unknownMarks=False):
     proc_in.stdout.close()
     return translatedBytes
 
+
 @gen.coroutine
 def translateSimpleMode(toTranslate, fmt, modeFile, unknownMarks=False):
     translated = yield translateModefileBytes(bytes(toTranslate, 'utf-8'),
                                               fmt, modeFile, unknownMarks)
     return translated.decode('utf-8')
+
 
 @gen.coroutine
 def translateHtmlMarkHeadings(toTranslate, modeFile, unknownMarks=False):
@@ -377,6 +380,7 @@ def translateHtmlMarkHeadings(toTranslate, modeFile, unknownMarks=False):
     reformatted = proc_reformat.communicate()[0]
     checkRetCode("Reformatter", proc_reformat)
     return reformatted.decode('utf-8')
+
 
 @gen.coroutine
 def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
