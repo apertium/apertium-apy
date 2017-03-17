@@ -367,7 +367,8 @@ def translateSimpleMode(toTranslate, fmt, modeFile, unknownMarks=False):
 
 @gen.coroutine
 def translateHtmlMarkHeadings(toTranslate, modeFile, unknownMarks=False):
-    proc_deformat = Popen(['apertium-deshtml', '-o'], stdin=PIPE, stdout=PIPE)
+    # TODO: , '-o'
+    proc_deformat = Popen(['apertium-deshtml'], stdin=PIPE, stdout=PIPE)
     proc_deformat.stdin.write(bytes(toTranslate, 'utf-8'))
     deformatted = proc_deformat.communicate()[0]
     checkRetCode("Deformatter", proc_deformat)
