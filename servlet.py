@@ -459,7 +459,11 @@ class TranslatePageHandler(TranslateHandler):
             newurl = aurl
         return ' {a}={q}{u}{q}'.format(a=attr, u=newurl, q=quote)
 
-    def cleanHtml(self, html):
+    def cleanHtml(self, html, urlbase):
+        if urlbase.netloc in ['www.avvir.no', 'avvir.no']:
+            html = re.sub(r'([a-zæøåášžđŋ])=([a-zæøåášžđŋ])',
+                          '\\1\\2',
+                          html)
         return html.replace('&shy;', '').replace('­', '')  # literal and entity soft hyphen
 
     def htmlToText(self, html, url):
@@ -468,7 +472,7 @@ class TranslatePageHandler(TranslateHandler):
         else:
             encoding = "utf-8"
         base = urlparse(url)
-        text = self.cleanHtml(html.decode(encoding))
+        text = self.cleanHtml(html.decode(encoding), base)
         return re.sub(r' (href|src)=([\'"])(..*?)\2',
                       lambda m: self.urlRepl(base, m.group(1), m.group(2), m.group(3)),
                       text)
