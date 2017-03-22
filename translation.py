@@ -256,18 +256,20 @@ def checkRetCode(name, proc):
 
 @gen.coroutine
 def translateNULFlush(toTranslate, pipeline, unsafe_deformat, unsafe_reformat):
+    """This function should only be used when toTranslate is smaller than the pipe buffer."""
     with (yield pipeline.lock.acquire()):
         proc_in, proc_out = pipeline.inpipe, pipeline.outpipe
         deformat, reformat = validateFormatters(unsafe_deformat, unsafe_reformat)
 
         if deformat:
             proc_deformat = Popen(deformat, stdin=PIPE, stdout=PIPE)
-            proc_deformat.stdin.write(bytes(toTranslate, 'utf-8'))
-            deformatted = proc_deformat.communicate()[0]
+            deformatted = proc_deformat.communicate(bytes(toTranslate, 'utf-8'))[0]
             checkRetCode("Deformatter", proc_deformat)
         else:
             deformatted = bytes(toTranslate, 'utf-8')
 
+        # Calls to .write will block if we exceed the pipe buffer
+        # (that's why we use .communicate elsewhere):
         proc_in.stdin.write(deformatted)
         proc_in.stdin.write(bytes('\0', "utf-8"))
         # TODO: PipeIOStream has no flush, but seems to work anyway?
@@ -281,8 +283,7 @@ def translateNULFlush(toTranslate, pipeline, unsafe_deformat, unsafe_reformat):
 
         if reformat:
             proc_reformat = Popen(reformat, stdin=PIPE, stdout=PIPE)
-            proc_reformat.stdin.write(output)
-            result = proc_reformat.communicate()[0]
+            result = proc_reformat.communicate(output)[0]
             checkRetCode("Reformatter", proc_reformat)
         else:
             result = re.sub(rb'\0$', b'', output)
@@ -293,8 +294,7 @@ def translateNULFlush(toTranslate, pipeline, unsafe_deformat, unsafe_reformat):
 def translatePipeline(toTranslate, commands):
 
     proc_deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
-    proc_deformat.stdin.write(bytes(toTranslate, 'utf-8'))
-    deformatted = proc_deformat.communicate()[0]
+    deformatted = proc_deformat.communicate(bytes(toTranslate, 'utf-8'))[0]
     checkRetCode("Deformatter", proc_deformat)
 
     towrite = deformatted
@@ -308,16 +308,14 @@ def translatePipeline(toTranslate, commands):
 
     for cmd in commands:
         proc = Popen(cmd, stdin=PIPE, stdout=PIPE)
-        proc.stdin.write(towrite)
-        towrite = proc.communicate()[0]
+        towrite = proc.communicate(towrite)[0]
         checkRetCode(" ".join(cmd), proc)
 
         output.append(towrite.decode('utf-8'))
         all_cmds.append(cmd)
 
     proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
-    proc_reformat.stdin.write(towrite)
-    towrite = proc_reformat.communicate()[0].decode('utf-8')
+    towrite = proc_reformat.communicate(towrite)[0].decode('utf-8')
     checkRetCode("Reformatter", proc_reformat)
 
     output.append(towrite)
@@ -368,15 +366,13 @@ def translateSimpleMode(toTranslate, fmt, modeFile, unknownMarks=False):
 @gen.coroutine
 def translateHtmlMarkHeadings(toTranslate, modeFile, unknownMarks=False):
     proc_deformat = Popen(['apertium-deshtml', '-o'], stdin=PIPE, stdout=PIPE)
-    proc_deformat.stdin.write(bytes(toTranslate, 'utf-8'))
-    deformatted = proc_deformat.communicate()[0]
+    deformatted = proc_deformat.communicate(bytes(toTranslate, 'utf-8'))[0]
     checkRetCode("Deformatter", proc_deformat)
 
     translated = yield translateModefileBytes(deformatted, 'none', modeFile, unknownMarks)
 
     proc_reformat = Popen(['apertium-rehtml-noent'], stdin=PIPE, stdout=PIPE)
-    proc_reformat.stdin.write(translated)
-    reformatted = proc_reformat.communicate()[0]
+    reformatted = proc_reformat.communicate(translated)[0]
     checkRetCode("Reformatter", proc_reformat)
     return reformatted.decode('utf-8')
 
