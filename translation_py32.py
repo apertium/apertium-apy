@@ -1,6 +1,7 @@
 import re
 import os
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, TimeoutExpired, CalledProcessError
+from datetime import timedelta
 from tornado import gen
 import tornado.process
 import tornado.iostream
@@ -49,6 +50,7 @@ class Pipeline(object):
 
 
 class FlushingPipeline(Pipeline):
+    pipebuf = None
 
     def __init__(self, commands, *args, **kwargs):
         self.inpipe, self.outpipe = startPipeline(commands)
@@ -178,7 +180,7 @@ def upToBytes(string, max_bytes):
     return 0
 
 
-def hardbreakFn(string, n_users):
+def hardbreakFn(string, n_users, pipebuf):
     """If others are queueing up to translate at the same time, we send
     short requests, otherwise we try to minimise the number of
     requests, but without letting buffers fill up.
@@ -189,7 +191,7 @@ def hardbreakFn(string, n_users):
     if n_users > 2:
         return 1000
     else:
-        return upToBytes(string, PIPE_BUF)
+        return upToBytes(string, pipebuf)
 
 
 def preferPunctBreak(string, last, hardbreak):
@@ -216,7 +218,7 @@ def preferPunctBreak(string, last, hardbreak):
             return hardnext
 
 
-def splitForTranslation(toTranslate, n_users):
+def splitForTranslation(toTranslate, n_users, pipebuf):
     """Splitting it up a bit ensures we don't fill up FIFO buffers (leads
     to processes hanging on read/write)."""
     allSplit = []              # [].append and join faster than str +=
@@ -224,7 +226,7 @@ def splitForTranslation(toTranslate, n_users):
     rounds = 0
     while last < len(toTranslate) and rounds < 10:
         rounds += 1
-        hardbreak = hardbreakFn(toTranslate[last:], n_users)
+        hardbreak = hardbreakFn(toTranslate[last:], n_users, pipebuf)
         next = preferPunctBreak(toTranslate, last, hardbreak)
         allSplit.append(toTranslate[last:next])
         # logging.getLogger().setLevel(logging.DEBUG)

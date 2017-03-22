@@ -1,0 +1,62 @@
+--- a/translation_py32.py
++++ b/translation_py32.py
+@@ -66,16 +68,27 @@ class FlushingPipeline(Pipeline):
+ 
+     @gen.coroutine
+     def translate(self, toTranslate, nosplit=False, deformat=True, reformat=True):
++        yield FlushingPipeline.setPipeBuf()
+         with self.use():
+             if nosplit:
+                 res = yield translateNULFlush(toTranslate, self, deformat, reformat)
+                 return res
+             else:
+-                all_split = splitForTranslation(toTranslate, n_users=self.users)
++                all_split = splitForTranslation(toTranslate,
++                                                n_users=self.users,
++                                                pipebuf=FlushingPipeline.pipebuf)
+                 parts = yield [translateNULFlush(part, self, deformat, reformat)
+                                for part in all_split]
+                 return "".join(parts)
+ 
++    @gen.coroutine
++    def setPipeBuf():
++        if FlushingPipeline.pipebuf is None:
++            FlushingPipeline.pipebuf = yield getPipeBufferGen()
++            # fallback in case the above failed:
++            if not isinstance(FlushingPipeline.pipebuf, int):
++                FlushingPipeline.pipebuf = PIPE_BUF
++
+ 
+ class SimplePipeline(Pipeline):
+ 
+@@ -395,3 +408,30 @@ def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
+     # TODO: raises but not caught:
+     # checkRetCode(" ".join(cmd), proc)
+     return translated
++
++
++@gen.coroutine
++def getPipeBufferGen():
++    p = tornado.process.Subprocess(["dd", "if=/dev/zero", "bs=1"],
++                                   stdin=tornado.process.Subprocess.STREAM,
++                                   stdout=tornado.process.Subprocess.STREAM)
++    fut = p.wait_for_exit()
++    try:
++        yield tornado.gen.with_timeout(timedelta(seconds=1),
++                                       fut,
++                                       quiet_exceptions=CalledProcessError)
++        raise Exception("dd ran out of zeroes -- this should never happen")
++    except tornado.gen.TimeoutError as e:
++        p.proc.kill()
++        output = yield gen.Task(p.stdout.read_until_close)
++        return(len(output))
++
++
++def getPipeBuffer():
++    p = Popen(["dd", "if=/dev/zero", "bs=1"], stdin=PIPE, stdout=PIPE)
++    try:
++        p.wait(timeout=1)
++        raise Exception("dd ran out of zeroes -- this should never happen")
++    except TimeoutExpired:
++        p.kill()
++        return len(p.stdout.read())
