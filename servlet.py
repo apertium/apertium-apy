@@ -492,6 +492,10 @@ class TranslatePageHandler(TranslateHandler):
         else:
             return None
 
+    def handleFetch(self, response):
+        if response.error is not None:
+            self.send_error(503, explanation="{} on fetching url: {}".format(response.code, response.error))
+
     @gen.coroutine
     def get(self):
         pair = self.getPairOrError(self.get_argument('langpair'),
@@ -512,7 +516,13 @@ class TranslatePageHandler(TranslateHandler):
                                              # TODO: tweak
                                              connect_timeout=20.0,
                                              request_timeout=20.0)
-            response = yield http_client.fetch(request)
+            try:
+                response = yield http_client.fetch(request, self.handleFetch)
+            except httpclient.HTTPError as e:
+                print(e)
+                return
+            if response.body is None:
+                return
             toTranslate = self.htmlToText(response.body, url)
             # TODO: issue 53 – we want to use translateAndRespond and keep pipelines open
             markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
