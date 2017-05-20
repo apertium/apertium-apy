@@ -22,6 +22,7 @@ from datetime import datetime, timedelta
 from urllib.parse import urlparse, urlunsplit
 import heapq
 from tornado.locks import Semaphore
+import html
 
 import tornado
 import tornado.web
@@ -459,12 +460,21 @@ class TranslatePageHandler(TranslateHandler):
             newurl = aurl
         return ' {a}={q}{u}{q}'.format(a=attr, u=newurl, q=quote)
 
-    def cleanHtml(self, html, urlbase):
+    def unescape(self, page):
+        # First workaround old bug that exists in a lot of
+        # Windows-based web pages, see
+        # http://stackoverflow.com/a/1398921/69663 :
+        page = page.replace('&#150;', '&#8211;')
+        # Unescape all other entities the regular way:
+        return html.unescape(page)
+
+    def cleanHtml(self, page, urlbase):
+        page = self.unescape(page)
         if urlbase.netloc in ['www.avvir.no', 'avvir.no']:
-            html = re.sub(r'([a-zæøåášžđŋ])=([a-zæøåášžđŋ])',
+            page = re.sub(r'([a-zæøåášžđŋ])=([a-zæøåášžđŋ])',
                           '\\1\\2',
                           html)
-        return html.replace('&shy;', '').replace('­', '')  # literal and entity soft hyphen
+        return page.replace('­', '')  # literal and entity soft hyphen
 
     def htmlToText(self, html, url):
         if chardet:
