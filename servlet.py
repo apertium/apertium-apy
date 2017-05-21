@@ -473,7 +473,7 @@ class TranslatePageHandler(TranslateHandler):
         if urlbase.netloc in ['www.avvir.no', 'avvir.no']:
             page = re.sub(r'([a-zæøåášžđŋ])=([a-zæøåášžđŋ])',
                           '\\1\\2',
-                          html)
+                          page)
         return page.replace('­', '')  # literal and entity soft hyphen
 
     def htmlToText(self, html, url):
