@@ -26,6 +26,11 @@ from tornado import gen
 from tornado.concurrent import Future
 
 
+def xrange(arg):
+    """Python 2 through 3-compatible wrapper"""
+    return iter(range(arg))
+
+
 version_tuple = (0, 8, '+')
 
 version = '.'.join(map(str, version_tuple))

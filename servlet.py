@@ -1105,7 +1105,8 @@ def setupHandler(
         for mtype in modes:
             modes[mtype] += src_modes[mtype]
 
-    [logging.info('%d %s modes found' % (len(modes[mtype]), mtype)) for mtype in modes]
+    for mtype in modes:
+        logging.info('%d %s modes found' % (len(modes[mtype]), mtype))
 
     for path, lang_src, lang_trg in modes['pair']:
         Handler.pairs['%s-%s' % (lang_src, lang_trg)] = path

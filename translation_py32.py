@@ -17,7 +17,7 @@ from time import time
 
 class Pipeline(object):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         # The lock is needed so we don't let two coroutines write
         # simultaneously to a pipeline; then the first call to read might
         # read translations of text put there by the second call …
