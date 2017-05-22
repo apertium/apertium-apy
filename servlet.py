@@ -151,12 +151,12 @@ class BaseHandler(tornado.web.RequestHandler):
         dists[start] = 0
 
         while nodes:
-            u = min(nodes, key=lambda u: dists.get(u, float('inf')))
+            u = min(nodes, key=lambda u: dists.get(u, sys.maxsize))
             nodes.remove(u)
             for v in cls.pairs_graph.get(u, []):
                 if v in nodes:
-                    other = dists.get(u, float('inf')) + 1   # TODO: weight(u, v) -- lower weight = better translation
-                    if other < dists.get(v, float('inf')):
+                    other = dists.get(u, sys.maxsize) + 1   # TODO: weight(u, v) -- lower weight = better translation
+                    if other < dists.get(v, sys.maxsize):
                         dists[v] = other
                         prevs[v] = u
 
@@ -1127,7 +1127,8 @@ def setupHandler(
         for mtype in modes:
             modes[mtype] += src_modes[mtype]
 
-    [logging.info('%d %s modes found' % (len(modes[mtype]), mtype)) for mtype in modes]
+    for mtype in modes:
+        logging.info('%d %s modes found' % (len(modes[mtype]), mtype))
 
     for path, lang_src, lang_trg in modes['pair']:
         Handler.pairs['%s-%s' % (lang_src, lang_trg)] = path
