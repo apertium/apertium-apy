@@ -255,6 +255,20 @@ def checkRetCode(name, proc):
 
 
 @gen.coroutine
+def coreduce(init, funcs, *args):
+    '''
+    Like the reduce() function in functools, this function applies the
+    next function in the list to the output of the previous function
+    (starting with init), supplying the additional args; this is just a
+    coroutine version for use with the asynchronous translation pipelines.
+    '''
+    result = yield funcs[0](init, *args)
+    for func in funcs[1:]:
+        result = yield func(result, *args)
+    return result
+
+
+@gen.coroutine
 def translateNULFlush(toTranslate, pipeline, unsafe_deformat, unsafe_reformat):
     """This function should only be used when toTranslate is smaller than the pipe buffer."""
     with (yield pipeline.lock.acquire()):
