@@ -52,6 +52,16 @@ else:
     import translation
 
 try:
+    from corpustools import pdfconverter
+    from distutils.spawn import find_executable
+    if find_executable("pdftohtml") is None:
+        logging.warning("WARNING: Found corpustools but not pdftohtml, disabling pdf translation")
+        pdfconverter = None
+except:
+    logging.warning("WARNING: Couldn't import corpustools, disabling pdf translation")
+    pdfconverter = None
+
+try:
     import cld2full as cld2
 except:
     cld2 = None
@@ -753,8 +763,11 @@ class TranslateDocHandler(TranslateHandler):
             # 'application/msword', 'application/vnd.ms-powerpoint', 'application/vnd.ms-excel'
             'application/vnd.oasis.opendocument.text': 'odt',
             'application/x-latex': 'latex',
-            'application/x-tex': 'latex'
+            'application/x-tex': 'latex',
         }
+        if pdfconverter is not None:
+            allowedMimeTypes['application/pdf'] = 'pdf'
+            allowedMimeTypes['application/x-pdf'] = 'pdf'
 
         if '%s-%s' % (l1, l2) not in self.pairs:
             self.send_error(400, explanation='That pair is not installed')
@@ -773,7 +786,15 @@ class TranslateDocHandler(TranslateHandler):
             if mtype not in allowedMimeTypes:
                 self.send_error(400, explanation='Invalid file type %s' % mtype)
                 return
-            self.request.headers['Content-Type'] = 'application/octet-stream'
+            if allowedMimeTypes[mtype] == 'pdf':
+                mtype = 'text/html'
+                converter = pdfconverter.PDF2XMLConverter(tempFile.name)
+                converter.metadata.set_variable('mainlang', toAlpha2Code(l1))
+                commands = [["pdftohtml", "-hidden", "-enc", "UTF-8", "-stdout", "-nodrm", "-i", "-xml", tempFile.name]]
+                pdfhtml = yield translation.translateSimple("", commands)
+                tempFile.write(converter.pdftohtml2html(pdfhtml.encode('utf-8')))
+                tempFile.seek(0)
+            self.request.headers['Content-Type'] = mtype
             self.request.headers['Content-Disposition'] = 'attachment'
             with (yield self.doc_pipe_sem.acquire()):
                 t = yield translation.translateDoc(tempFile,
