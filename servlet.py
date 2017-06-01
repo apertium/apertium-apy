@@ -690,30 +690,32 @@ class TranslateDocHandler(TranslateHandler):
             'application/x-tex': 'latex'
         }
 
-        if '%s-%s' % (l1, l2) in self.pairs:
-            body = self.request.files['file'][0]['body']
-            if len(body) > 32E6:
-                self.send_error(413, explanation='That file is too large')
-            else:
-                with tempfile.NamedTemporaryFile() as tempFile:
-                    tempFile.write(body)
-                    tempFile.seek(0)
-
-                    mtype = self.getMimeType(tempFile.name)
-                    if mtype in allowedMimeTypes:
-                        self.request.headers['Content-Type'] = 'application/octet-stream'
-                        self.request.headers['Content-Disposition'] = 'attachment'
-                        with (yield self.doc_pipe_sem.acquire()):
-                            t = yield translation.translateDoc(tempFile,
-                                                               allowedMimeTypes[mtype],
-                                                               self.pairs['%s-%s' % (l1, l2)],
-                                                               markUnknown)
-                        self.write(t)
-                        self.finish()
-                    else:
-                        self.send_error(400, explanation='Invalid file type %s' % mtype)
-        else:
+        if '%s-%s' % (l1, l2) not in self.pairs:
             self.send_error(400, explanation='That pair is not installed')
+            return
+
+        body = self.request.files['file'][0]['body']
+        if len(body) > 32E6:
+            self.send_error(413, explanation='That file is too large')
+            return
+
+        with tempfile.NamedTemporaryFile() as tempFile:
+            tempFile.write(body)
+            tempFile.seek(0)
+
+            mtype = self.getMimeType(tempFile.name)
+            if mtype not in allowedMimeTypes:
+                self.send_error(400, explanation='Invalid file type %s' % mtype)
+                return
+            self.request.headers['Content-Type'] = 'application/octet-stream'
+            self.request.headers['Content-Disposition'] = 'attachment'
+            with (yield self.doc_pipe_sem.acquire()):
+                t = yield translation.translateDoc(tempFile,
+                                                   allowedMimeTypes[mtype],
+                                                   self.pairs['%s-%s' % (l1, l2)],
+                                                   markUnknown)
+            self.write(t)
+            self.finish()
 
 
 class TranslateRawHandler(TranslateHandler):
