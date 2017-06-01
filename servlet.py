@@ -53,6 +53,7 @@ else:
 
 try:
     from corpustools import pdfconverter
+    assert(pdfconverter)        # silence flake8
     from distutils.spawn import find_executable
     if find_executable("pdftohtml") is None:
         logging.warning("WARNING: Found corpustools but not pdftohtml, disabling pdf translation")
