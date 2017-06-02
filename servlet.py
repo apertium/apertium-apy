@@ -619,12 +619,12 @@ class TranslatePageHandler(TranslateHandler):
                           page)
         return page.replace('­', '')  # literal and entity soft hyphen
 
-    def htmlToText(self, html, url):
+    def htmlToText(self, page, url):
         encoding = "utf-8"
         if chardet:
-            encoding = chardet.detect(html).get("encoding", "utf-8") or encoding
+            encoding = chardet.detect(page).get("encoding", "utf-8") or encoding
         base = urlparse(url)
-        text = self.cleanHtml(html.decode(encoding), base)
+        text = self.cleanHtml(page.decode(encoding), base)  # type: str
         return re.sub(r' (href|src)=([\'"])(..*?)\2',
                       lambda m: self.urlRepl(base, m.group(1), m.group(2), m.group(3)),
                       text)
@@ -647,6 +647,16 @@ class TranslatePageHandler(TranslateHandler):
     def handleFetch(self, response):
         if response.error is not None:
             self.send_error(503, explanation="{} on fetching url: {}".format(response.code, response.error))
+
+    @gen.coroutine
+    def translatePdf(self, page, l1):
+        with tempfile.NamedTemporaryFile() as tempFile:
+            tempFile.write(page)
+            converter = pdfconverter.PDF2XMLConverter(tempFile.name)
+            converter.metadata.set_variable('mainlang', toAlpha2Code(l1))
+            commands = [["pdftohtml", "-hidden", "-enc", "UTF-8", "-stdout", "-nodrm", "-i", "-xml", tempFile.name]]
+            pdfhtml = yield translation.translateSimple("", commands)
+            return converter.pdftohtml2html(pdfhtml.encode('utf-8'))
 
     @gen.coroutine
     def get(self):
@@ -676,13 +686,14 @@ class TranslatePageHandler(TranslateHandler):
             if response.body is None:
                 self.send_error(503, explanation="got an empty file on fetching url: {}".format(url))
                 return
-            if response.headers.get('content-type') in ["application/pdf", "application/x-pdf"]:
-                logging.info("PDF TODO")
+            page = response.body  # type: bytes
+            if pdfconverter is not None and response.headers.get('content-type') in ["application/pdf", "application/x-pdf"]:
+                page = yield self.translatePdf(page, pair[0])
             elif not re.match("^text/html(;.*)?$", response.headers.get('content-type')):
                 logging.warn(response.headers)
                 print("TODO odd headers")
             try:
-                toTranslate = self.htmlToText(response.body, url)
+                toTranslate = self.htmlToText(page, url)
             except UnicodeDecodeError as e:
                 logging.info("/translatePage '{}' gave UnicodeDecodeError {}".format(url, e))
                 self.send_error(503, explanation="Couldn't decode (or detect charset/encoding of) {}".format(url))
