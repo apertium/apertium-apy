@@ -407,3 +407,13 @@ def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
     # TODO: raises but not caught:
     # checkRetCode(" ".join(cmd), proc)
     return translated
+
+
+@gen.coroutine
+def pdf2html(pdfconverter, pdffile, sourceLang):
+    converter = pdfconverter.PDF2XMLConverter(pdffile.name)
+    converter.metadata.set_variable('mainlang', sourceLang)
+    commands = [["pdftohtml", "-hidden", "-enc", "UTF-8", "-stdout", "-nodrm", "-i", "-xml", pdffile.name]]
+    pdfhtml = yield translateSimple("", commands)
+    converted = converter.pdftohtml2html(pdfhtml.encode('utf-8'))
+    return converted

@@ -649,16 +649,6 @@ class TranslatePageHandler(TranslateHandler):
             self.send_error(503, explanation="{} on fetching url: {}".format(response.code, response.error))
 
     @gen.coroutine
-    def translatePdf(self, page, l1):
-        with tempfile.NamedTemporaryFile() as tempFile:
-            tempFile.write(page)
-            converter = pdfconverter.PDF2XMLConverter(tempFile.name)
-            converter.metadata.set_variable('mainlang', toAlpha2Code(l1))
-            commands = [["pdftohtml", "-hidden", "-enc", "UTF-8", "-stdout", "-nodrm", "-i", "-xml", tempFile.name]]
-            pdfhtml = yield translation.translateSimple("", commands)
-            return converter.pdftohtml2html(pdfhtml.encode('utf-8'))
-
-    @gen.coroutine
     def get(self):
         pair = self.getPairOrError(self.get_argument('langpair'),
                                    # Don't yet know the size of the text, and don't want to fetch it unnecessarily:
@@ -688,7 +678,9 @@ class TranslatePageHandler(TranslateHandler):
                 return
             page = response.body  # type: bytes
             if pdfconverter is not None and response.headers.get('content-type') in ["application/pdf", "application/x-pdf"]:
-                page = yield self.translatePdf(page, pair[0])
+                with tempfile.NamedTemporaryFile() as tempFile:
+                    tempFile.write(page)
+                    page = yield translation.pdf2html(pdfconverter, tempFile, toAlpha2Code(pair[0]))
             elif not re.match("^text/html(;.*)?$", response.headers.get('content-type')):
                 logging.warn(response.headers)
                 print("TODO odd headers")
@@ -810,11 +802,8 @@ class TranslateDocHandler(TranslateHandler):
                 return
             if allowedMimeTypes[mtype] == 'pdf':
                 mtype = 'text/html'
-                converter = pdfconverter.PDF2XMLConverter(tempFile.name)
-                converter.metadata.set_variable('mainlang', toAlpha2Code(l1))
-                commands = [["pdftohtml", "-hidden", "-enc", "UTF-8", "-stdout", "-nodrm", "-i", "-xml", tempFile.name]]
-                pdfhtml = yield translation.translateSimple("", commands)
-                tempFile.write(converter.pdftohtml2html(pdfhtml.encode('utf-8')))
+                page = yield translation.pdf2html(pdfconverter, tempFile, l1)
+                tempFile.write(page)
                 tempFile.seek(0)
             self.request.headers['Content-Type'] = mtype
             self.request.headers['Content-Disposition'] = 'attachment'
