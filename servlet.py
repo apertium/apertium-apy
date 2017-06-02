@@ -620,10 +620,9 @@ class TranslatePageHandler(TranslateHandler):
         return page.replace('­', '')  # literal and entity soft hyphen
 
     def htmlToText(self, html, url):
+        encoding = "utf-8"
         if chardet:
-            encoding = chardet.detect(html).get("encoding", "utf-8")
-        else:
-            encoding = "utf-8"
+            encoding = chardet.detect(html).get("encoding", "utf-8") or encoding
         base = urlparse(url)
         text = self.cleanHtml(html.decode(encoding), base)
         return re.sub(r' (href|src)=([\'"])(..*?)\2',
@@ -675,8 +674,19 @@ class TranslatePageHandler(TranslateHandler):
                 print(e)
                 return
             if response.body is None:
+                self.send_error(503, explanation="got an empty file on fetching url: {}".format(url))
                 return
-            toTranslate = self.htmlToText(response.body, url)
+            if response.headers.get('content-type') in ["application/pdf", "application/x-pdf"]:
+                logging.info("PDF TODO")
+            elif not re.match("^text/html(;.*)?$", response.headers.get('content-type')):
+                logging.warn(response.headers)
+                print("TODO odd headers")
+            try:
+                toTranslate = self.htmlToText(response.body, url)
+            except UnicodeDecodeError as e:
+                logging.info("/translatePage '{}' gave UnicodeDecodeError {}".format(url, e))
+                self.send_error(503, explanation="Couldn't decode (or detect charset/encoding of) {}".format(url))
+                return
             # TODO: issue 53 – we want to use translateAndRespond and keep pipelines open
             markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
             self.notePairUsage(pair)
