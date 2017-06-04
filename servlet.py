@@ -143,6 +143,7 @@ class BaseHandler(tornado.web.RequestHandler):
     url_cache_max_age = timedelta(0, 2*3600, 0)
     url_cache_ts = datetime.now()
     url_cache = {}
+    url_xsls = {}
 
     def initialize(self):
         self.callback = self.get_argument('callback', default=None)
@@ -677,10 +678,15 @@ class TranslatePageHandler(TranslateHandler):
                 self.send_error(503, explanation="got an empty file on fetching url: {}".format(url))
                 return
             page = response.body  # type: bytes
-            if pdfconverter is not None and response.headers.get('content-type') in ["application/pdf", "application/x-pdf"]:
-                with tempfile.NamedTemporaryFile() as tempFile:
-                    tempFile.write(page)
-                    page = yield translation.pdf2html(pdfconverter, tempFile, toAlpha2Code(pair[0]))
+            if pdfconverter is not None and response.headers.get('content-type') in ["application/pdf", "application/x-pdf", "application/octet-stream"]:
+                with tempfile.TemporaryDirectory() as tempDir:  # Since pdf2html might write a file to the same dir
+                    with open(os.path.join(tempDir, 'file.pdf'), 'wb') as tempFile:
+                        tempFile.write(page)
+                        mtype = TranslateDocHandler.getMimeType(tempFile.name)
+                        if mtype in ["application/pdf", "application/x-pdf"]:
+                            logging.info(url)
+                            page = yield translation.pdf2html(pdfconverter, tempFile, toAlpha2Code(pair[0]),
+                                                              self.url_xsls.get(pair[0], {}).get(url))
             elif not re.match("^text/html(;.*)?$", response.headers.get('content-type')):
                 logging.warn(response.headers)
                 print("TODO odd headers")
@@ -719,7 +725,8 @@ class TranslatePageHandler(TranslateHandler):
 class TranslateDocHandler(TranslateHandler):
     mimeTypeCommand = None
 
-    def getMimeType(self, f):
+    @staticmethod
+    def getMimeType(f):
         commands = {
             'mimetype': lambda x: Popen(['mimetype', '-b', x], stdout=PIPE).communicate()[0].strip(),
             'xdg-mime': lambda x: Popen(['xdg-mime', 'query', 'filetype', x], stdout=PIPE).communicate()[0].strip(),
@@ -732,13 +739,13 @@ class TranslateDocHandler(TranslateHandler):
             'xl/workbook.xml': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         }
 
-        if not self.mimeTypeCommand:
+        if not TranslateDocHandler.mimeTypeCommand:
             for command in ['mimetype', 'xdg-mime', 'file']:
                 if Popen(['which', command], stdout=PIPE).communicate()[0]:
                     TranslateDocHandler.mimeTypeCommand = command
                     break
 
-        mimeType = commands[self.mimeTypeCommand](f).decode('utf-8')
+        mimeType = commands[TranslateDocHandler.mimeTypeCommand](f).decode('utf-8')
         if mimeType == 'application/zip':
             with zipfile.ZipFile(f) as zf:
                 for typeFile in typeFiles:
@@ -1243,7 +1250,7 @@ def setupHandler(
     port, pairs_path, nonpairs_path, langNames, missingFreqsPath, timeout,
     max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs,
     restart_pipe_after, max_doc_pipes, verbosity=0, scaleMtLogs=False, memory=1000,
-    userdb=None
+    userdb=None, url_xsls={}
 ):
 
     global missingFreqsDb
@@ -1263,6 +1270,8 @@ def setupHandler(
     Handler.userdb = set()
     if userdb is not None:
         Handler.userdb = set(up.strip() for up in open(userdb).readlines())
+    if url_xsls is not None:
+        Handler.url_xsls = translation.walkGTCorpus(url_xsls)
     Handler.doc_pipe_sem = Semaphore(max_doc_pipes)
 
     modes = searchPath(pairs_path, verbosity=verbosity)
@@ -1337,6 +1346,7 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--bypass-token', help="ReCAPTCHA bypass token", action='store_true')
     parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA secret for suggestion validation", default=None)
     parser.add_argument('-ud', '--userdb', help="Basicauth user/password file", default=None)
+    parser.add_argument('-ux', '--url-xsls', help="Path to Giellatekno xsl's, parent dir of language code dirs (typically $GTHOME/freecorpus/orig)", default=None)
     parser.add_argument('-md', '--max-doc-pipes',
                         help='how many concurrent document translation pipelines we allow (default = 3)', type=int, default=3)
     args = parser.parse_args()
@@ -1374,7 +1384,7 @@ if __name__ == '__main__':
     setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
                  args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs,
                  args.restart_pipe_after, args.max_doc_pipes, args.verbosity, args.scalemt_logs, args.unknown_memory_limit,
-                 args.userdb)
+                 args.userdb, args.url_xsls)
 
     application = tornado.web.Application([
         (r'/', RootHandler),

@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# -*- indent-tabs-mode: nil -*-
+# coding=utf-8
+
 import re
 import os
 from subprocess import Popen, PIPE
@@ -12,7 +16,9 @@ import logging
 from select import PIPE_BUF
 from contextlib import contextmanager
 from collections import namedtuple
+from shutil import copyfile
 from time import time
+from urllib.parse import quote_plus
 
 
 class Pipeline(object):
@@ -107,7 +113,7 @@ def makePipeline(modes_parsed):
 
 
 def startPipeline(commands):
-    procs = []
+    procs = []  # type: List[tornado.process.Subprocess]
     for i, cmd in enumerate(commands):
         if i == 0:
             in_from = tornado.process.Subprocess.STREAM
@@ -410,10 +416,54 @@ def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
 
 
 @gen.coroutine
-def pdf2html(pdfconverter, pdffile, sourceLang):
-    converter = pdfconverter.PDF2XMLConverter(pdffile.name)
-    converter.metadata.set_variable('mainlang', sourceLang)
-    commands = [["pdftohtml", "-hidden", "-enc", "UTF-8", "-stdout", "-nodrm", "-i", "-xml", pdffile.name]]
-    pdfhtml = yield translateSimple("", commands)
-    converted = converter.pdftohtml2html(pdfhtml.encode('utf-8'))
+def pdf2html(pdfconverter, pdffile, sourceLang, xslfile=None):
+    """Convert pdffile into html, returning bytestring.
+    Optional xslfile is value from `walkGTCorpus`."""
+    if xslfile is not None:
+        logging.info("Using pdfconverter.py with xsl {}".format(xslfile))
+        copyfile(xslfile, pdffile.name + '.xsl')
+        commands = [["pdftohtml", "-hidden", "-enc", "UTF-8", "-stdout", "-nodrm", "-i", "-xml", pdffile.name]]
+        converter = pdfconverter.PDF2XMLConverter(pdffile.name)
+        converter.metadata.set_variable('mainlang', sourceLang)
+        pdfhtml = yield translateSimple("", commands)
+        converted = converter.pdftohtml2html(pdfhtml.encode('utf-8'))
+    else:
+        logging.info("Using plain pdftotext since no xsl")
+        commands = [["pdftotext",
+                     "-y", "50", "-x", "0", "-W", "99999", "-H", "99999",  # for SDÁ
+                     "-raw", "-enc", "UTF-8", "-htmlmeta", pdffile.name, "-"]]
+        pdfhtml = yield translateSimple("", commands)
+        converted = re.sub(r'<head>', '<head><meta charset="utf-8"/><style>pre{font-family:Times,serif;line-height:1.5em}</style>', pdfhtml, count=1).encode('utf-8')
     return converted
+
+
+def walkGTCorpus(corpuspath):
+    """Make a map from language to url to xsl path.
+
+    We assume the top-level path has folders with names corresponding
+    to ISO 639-3 three-letter language codes; from there on we find all
+    xsl files and map from url to xsl path.
+
+    The xsl path values may be used as arguments to `pdf2html`"""
+    corpuspath = os.path.abspath(corpuspath)  # allow relative paths
+    xsls = {}                   # type: Dict[str, Dict[str, str]]
+    for lang in os.listdir(corpuspath):
+        langdir = os.path.join(corpuspath, lang)
+        if not os.path.isdir(langdir):
+            continue
+        xsls[lang] = {}
+        for root, _subs, files in os.walk(langdir):
+            for xsl in (os.path.join(root, f)
+                        for f in files
+                        if re.search(r'[.]pdf[.]xsl$', f)):
+                with open(xsl, 'r') as f:
+                    # TODO: Is there a way to only read the file until the first match, like grep?
+                    m = re.search(r'filename.*select="([^"]*)"', f.read())
+                    if not m:
+                        continue
+                    url = m.group(1).strip("'")
+                    if not url:
+                        continue
+                    xsls[lang][url] = xsl
+                    xsls[lang][quote_plus(url)] = xsl
+    return xsls
