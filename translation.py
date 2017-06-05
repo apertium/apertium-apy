@@ -437,7 +437,7 @@ def pdf2html(pdfconverter, pdffile, sourceLang, xslfile=None):
     return converted
 
 
-def walkGTCorpus(corpuspath):
+def walkGTCorpus(corpuspath, xsls={}):
     """Make a map from language to url to xsl path.
 
     We assume the top-level path has folders with names corresponding
@@ -446,7 +446,6 @@ def walkGTCorpus(corpuspath):
 
     The xsl path values may be used as arguments to `pdf2html`"""
     corpuspath = os.path.abspath(corpuspath)  # allow relative paths
-    xsls = {}                   # type: Dict[str, Dict[str, str]]
     for lang in os.listdir(corpuspath):
         langdir = os.path.join(corpuspath, lang)
         if not os.path.isdir(langdir):

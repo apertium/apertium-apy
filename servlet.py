@@ -1250,9 +1250,8 @@ def setupHandler(
     port, pairs_path, nonpairs_path, langNames, missingFreqsPath, timeout,
     max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs,
     restart_pipe_after, max_doc_pipes, verbosity=0, scaleMtLogs=False, memory=1000,
-    userdb=None, url_xsls={}
+    userdb=None, url_xsls=[]
 ):
-
     global missingFreqsDb
     if missingFreqsPath:
         missingFreqsDb = missingdb.MissingDb(missingFreqsPath, memory)
@@ -1270,8 +1269,8 @@ def setupHandler(
     Handler.userdb = set()
     if userdb is not None:
         Handler.userdb = set(up.strip() for up in open(userdb).readlines())
-    if url_xsls is not None:
-        Handler.url_xsls = translation.walkGTCorpus(url_xsls)
+    for corpuspath in url_xsls:
+        Handler.url_xsls = translation.walkGTCorpus(corpuspath, Handler.url_xsls)
     Handler.doc_pipe_sem = Semaphore(max_doc_pipes)
 
     modes = searchPath(pairs_path, verbosity=verbosity)
@@ -1346,7 +1345,7 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--bypass-token', help="ReCAPTCHA bypass token", action='store_true')
     parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA secret for suggestion validation", default=None)
     parser.add_argument('-ud', '--userdb', help="Basicauth user/password file", default=None)
-    parser.add_argument('-ux', '--url-xsls', help="Path to Giellatekno xsl's, parent dir of language code dirs (typically $GTHOME/freecorpus/orig)", default=None)
+    parser.add_argument('-ux', '--url-xsls', help="Path to Giellatekno xsl's, parent dir of language code dirs (typically $GTHOME/freecorpus/orig). This argument may be supplied multiple times.", action='append')
     parser.add_argument('-md', '--max-doc-pipes',
                         help='how many concurrent document translation pipelines we allow (default = 3)', type=int, default=3)
     args = parser.parse_args()
