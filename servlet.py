@@ -685,8 +685,11 @@ class TranslatePageHandler(TranslateHandler):
                         mtype = TranslateDocHandler.getMimeType(tempFile.name)
                         if mtype in ["application/pdf", "application/x-pdf"]:
                             logging.info(url)
-                            page = yield translation.pdf2html(pdfconverter, tempFile, toAlpha2Code(pair[0]),
-                                                              self.url_xsls.get(pair[0], {}).get(url))
+                            xsl = self.url_xsls.get(pair[0], {}).get(url)
+                            if url.endswith("?plainxsl"):  # DEBUG
+                                xsl = "/home/apy/plain.xsl"
+                            page = yield translation.pdf2html(pdfconverter, tempFile, toAlpha2Code(pair[0]), xsl)
+
             elif not re.match("^text/html(;.*)?$", response.headers.get('content-type')):
                 logging.warn(response.headers)
                 print("TODO odd headers")
