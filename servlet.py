@@ -140,8 +140,6 @@ class BaseHandler(tornado.web.RequestHandler):
     max_idle_secs = 0
     restart_pipe_after = 1000
     doc_pipe_sem = Semaphore(3)
-    url_cache_max_age = timedelta(0, 2*3600, 0)
-    url_cache_ts = datetime.now()
     url_cache = {}
     url_xsls = {}
 
@@ -630,23 +628,17 @@ class TranslatePageHandler(TranslateHandler):
                       lambda m: self.urlRepl(base, m.group(1), m.group(2), m.group(3)),
                       text)
 
-    def maybeEmptyCache(self):
-        if datetime.now() > self.url_cache_ts + self.url_cache_max_age:
-            logging.info("Emptying URL cache ...")
-            self.url_cache_ts = datetime.now()
-            self.url_cache = {p: {} for p in self.pairs}
-
     def getCached(self, pair, url):
-        self.maybeEmptyCache()
         if pair not in self.url_cache:
             self.url_cache[pair] = {}
-        if url in self.url_cache[pair]:
-            return self.url_cache[pair][url]
-        else:
-            return None
+        return self.url_cache[pair].get(url)
 
-    def handleFetch(self, response):
-        if response.error is not None:
+    def handleFetch(self, cached, response):
+        if response.error is None:
+            return
+        elif response.code == 304 and cached is not None:
+            return
+        else:
             self.send_error(503, explanation="{} on fetching url: {}".format(response.code, response.error))
 
     @gen.coroutine
@@ -656,73 +648,76 @@ class TranslatePageHandler(TranslateHandler):
                                    -1)
         if pair is None:
             return
+        markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
         url = self.get_argument('url')
+        headers = {}
         cached = self.getCached(pair, url)
         if cached is not None:
-            yield self.translateAndRespond(pair,
-                                           translation.CatPipeline(),
-                                           cached,
-                                           self.get_argument('markUnknown', default='yes'))
-        else:
-            http_client = httpclient.AsyncHTTPClient()
-            request = httpclient.HTTPRequest(url=url,
-                                             # TODO: tweak
-                                             connect_timeout=20.0,
-                                             request_timeout=20.0)
-            try:
-                response = yield http_client.fetch(request, self.handleFetch)
-            except httpclient.HTTPError as e:
+            headers['If-Modified-Since'] = cached[1]
+        request = httpclient.HTTPRequest(url=url,
+                                         # TODO: tweak
+                                         headers=headers,
+                                         connect_timeout=20.0,
+                                         request_timeout=20.0)
+        try:
+            response = yield httpclient.AsyncHTTPClient().fetch(request,
+                                                                lambda r: self.handleFetch(cached, r))
+        except httpclient.HTTPError as e:
+            if e.code == 304:
+                logging.info("%s – using cache", e)
+                yield self.translateAndRespond(pair, translation.CatPipeline(), cached[0], markUnknown)
+                return
+            else:
                 print(e)
                 return
-            if response.body is None:
-                self.send_error(503, explanation="got an empty file on fetching url: {}".format(url))
-                return
-            page = response.body  # type: bytes
-            if pdfconverter is not None and response.headers.get('content-type') in ["application/pdf", "application/x-pdf", "application/octet-stream"]:
-                with tempfile.TemporaryDirectory() as tempDir:  # Since pdf2html might write a file to the same dir
-                    with open(os.path.join(tempDir, 'file.pdf'), 'wb') as tempFile:
-                        tempFile.write(page)
-                        mtype = TranslateDocHandler.getMimeType(tempFile.name)
-                        if mtype in ["application/pdf", "application/x-pdf"]:
-                            logging.info(url)
-                            xsl = self.url_xsls.get(pair[0], {}).get(url)
-                            if url.endswith("?plainxsl"):  # DEBUG
-                                xsl = "/home/apy/plain.xsl"
-                            page = yield translation.pdf2html(pdfconverter, tempFile, toAlpha2Code(pair[0]), xsl)
+        if response.body is None:
+            self.send_error(503, explanation="got an empty file on fetching url: {}".format(url))
+            return
+        page = response.body  # type: bytes
+        if pdfconverter is not None and response.headers.get('content-type') in ["application/pdf", "application/x-pdf", "application/octet-stream"]:
+            with tempfile.TemporaryDirectory() as tempDir:  # Since pdf2html might write a file to the same dir
+                with open(os.path.join(tempDir, 'file.pdf'), 'wb') as tempFile:
+                    tempFile.write(page)
+                    mtype = TranslateDocHandler.getMimeType(tempFile.name)
+                    if mtype in ["application/pdf", "application/x-pdf"]:
+                        xsl = self.url_xsls.get(pair[0], {}).get(url)
+                        if url.endswith("?plainxsl"):  # DEBUG
+                            xsl = "/home/apy/plain.xsl"
+                        page = yield translation.pdf2html(pdfconverter, tempFile, toAlpha2Code(pair[0]), xsl)
 
-            elif not re.match("^text/html(;.*)?$", response.headers.get('content-type')):
-                logging.warn(response.headers)
-                print("TODO odd headers")
-            try:
-                toTranslate = self.htmlToText(page, url)
-            except UnicodeDecodeError as e:
-                logging.info("/translatePage '{}' gave UnicodeDecodeError {}".format(url, e))
-                self.send_error(503, explanation="Couldn't decode (or detect charset/encoding of) {}".format(url))
-                return
-            # TODO: issue 53 – we want to use translateAndRespond and keep pipelines open
-            markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
-            self.notePairUsage(pair)
-            before = self.logBeforeTranslation()
-            translated = yield translation.translateHtmlMarkHeadings(
-                toTranslate,
-                self.pairs['%s-%s' % pair])
-            self.logAfterTranslation(before, len(toTranslate))
-            self.sendResponse({
-                'responseData': {
-                    'translatedText': self.maybeStripMarks(markUnknown, pair, translated)
-                },
-                'responseDetails': None,
-                'responseStatus': 200
-            })
-            # pipeline = self.getPipeline(pair)
-            # translated = yield self.translateAndRespond(pair,
-            #                                             pipeline,
-            #                                             toTranslate,
-            #                                             self.get_argument('markUnknown', default='yes'),
-            #                                             nosplit=False,
-            #                                             deformat='apertium-deshtml',
-            #                                             reformat='apertium-rehtml')
-            self.url_cache[pair][url] = translated
+        elif not re.match("^text/html(;.*)?$", response.headers.get('content-type')):
+            logging.warn(response.headers)
+            print("TODO odd headers")
+        try:
+            toTranslate = self.htmlToText(page, url)
+        except UnicodeDecodeError as e:
+            logging.info("/translatePage '{}' gave UnicodeDecodeError {}".format(url, e))
+            self.send_error(503, explanation="Couldn't decode (or detect charset/encoding of) {}".format(url))
+            return
+        # TODO: issue 53 – we want to use translateAndRespond and keep pipelines open
+        self.notePairUsage(pair)
+        before = self.logBeforeTranslation()
+        translated = yield translation.translateHtmlMarkHeadings(
+            toTranslate,
+            self.pairs['%s-%s' % pair])
+        self.logAfterTranslation(before, len(toTranslate))
+        self.sendResponse({
+            'responseData': {
+                'translatedText': self.maybeStripMarks(markUnknown, pair, translated)
+            },
+            'responseDetails': None,
+            'responseStatus': 200
+        })
+        # pipeline = self.getPipeline(pair)
+        # translated = yield self.translateAndRespond(pair,
+        #                                             pipeline,
+        #                                             toTranslate,
+        #                                             self.get_argument('markUnknown', default='yes'),
+        #                                             nosplit=False,
+        #                                             deformat='apertium-deshtml',
+        #                                             reformat='apertium-rehtml')
+        ts = time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(time.time()))
+        self.url_cache[pair][url] = (translated, ts)
 
 
 class TranslateDocHandler(TranslateHandler):
