@@ -1348,7 +1348,7 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--bypass-token', help="ReCAPTCHA bypass token", action='store_true')
     parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA secret for suggestion validation", default=None)
     parser.add_argument('-ud', '--userdb', help="Basicauth user/password file", default=None)
-    parser.add_argument('-ux', '--url-xsls', help="Path to Giellatekno xsl's, parent dir of language code dirs (typically $GTHOME/freecorpus/orig). This argument may be supplied multiple times.", action='append')
+    parser.add_argument('-ux', '--url-xsls', help="Path to Giellatekno xsl's, parent dir of language code dirs (typically $GTHOME/freecorpus/orig). This argument may be supplied multiple times.", action='append', default=[])
     parser.add_argument('-md', '--max-doc-pipes',
                         help='how many concurrent document translation pipelines we allow (default = 3)', type=int, default=3)
     args = parser.parse_args()
