@@ -425,6 +425,7 @@ def pdf2html(pdfconverter, pdffile, sourceLang, xslfile=None):
         commands = [["pdftohtml", "-hidden", "-enc", "UTF-8", "-stdout", "-nodrm", "-i", "-xml", pdffile.name]]
         converter = pdfconverter.PDF2XMLConverter(pdffile.name)
         converter.metadata.set_variable('mainlang', sourceLang)
+        converter.metadata.set_variable('skip_pages', '')
         pdfhtml = yield translateSimple("", commands)
         converted = converter.pdftohtml2html(pdfhtml.encode('utf-8'))
     else:
