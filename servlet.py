@@ -770,7 +770,6 @@ class TranslatePageHandler(TranslateHandler):
                     page = yield translation.pdf2html(pdfconverter, tempFile, toAlpha2Code(pair[0]), xsl)
             elif not re.match("^text/html(;.*)?$", response.headers.get('content-type')):
                 logging.warn(response.headers)
-                print("TODO odd headers")
             try:
                 toTranslate = self.htmlToText(page, url)
             except UnicodeDecodeError as e:
