@@ -667,19 +667,24 @@ class TranslatePageHandler(TranslateHandler):
     def getCached(self, pair, url):
         if pair not in self.url_cache:
             self.url_cache[pair] = {}
-        retranslate = False
         if url in self.url_cache[pair]:
             logging.info("got cache from memory")
-            return (*self.url_cache[pair][url], retranslate)
+            return self.url_cache[pair][url]
         dirname, basename = self.cachePath(pair, url)
         path = os.path.join(dirname, basename)
         if os.path.exists(path):
             logging.info("got cache on disk, we want to retranslate in background …")
             with open(path, 'r') as f:
-                return self.url_cache[pair][url]
-        
+                return (f.readline().strip(), f.read())
+
     def retranslateCache(self, pair, url, cached):
-                self.url_cache[pair][url] = (f.readline().strip(), f.read())
+        """If we've got something from the cache, and it isn't in memory, then
+        it was from disk. We want to retranslate anything we found on
+        disk, since it's probably using older versions of the language
+        pair.
+
+        """
+        return (cached is not None) and (self.url_cache.get(pair, {}).get(url) is not None)
 
     def handleFetch(self, response):
         if response.error is None:
