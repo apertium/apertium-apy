@@ -46,6 +46,7 @@ from util import getLocalizedLanguages, stripTags, processPerWord, getCoverage, 
 
 import systemd
 import missingdb
+from typing import Optional, Tuple
 
 if sys.version_info.minor < 3:
     import translation_py32 as translation
@@ -141,9 +142,13 @@ class BaseHandler(tornado.web.RequestHandler):
     max_idle_secs = 0
     restart_pipe_after = 1000
     doc_pipe_sem = Semaphore(3)
-    url_cache = {}
-    url_cache_path = None
-    url_xsls = {}
+    # Empty the url_cache[pair] when it's this full:
+    max_inmemory_url_cache = 1000  # type: int
+    url_cache = {}                 # type: Dict[Tuple[str, str], Dict[str, str]]
+    url_cache_path = None          # type: Optional[str]
+    # Keep half a gig free when storing url_cache to disk:
+    min_free_space_disk_url_cache = 512 * 1024 * 1024  # type: int
+    url_xsls = {}                  # type: Dict[str, Dict[str, str]]
 
     def initialize(self):
         self.callback = self.get_argument('callback', default=None)
@@ -631,35 +636,55 @@ class TranslatePageHandler(TranslateHandler):
                       text)
 
     def setCached(self, pair, url, translated):
+        if len(self.url_cache[pair]) > self.max_inmemory_url_cache:
+            self.url_cache[pair] = {}
         ts = time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(time.time()))
-        self.url_cache[pair][url] = (translated, ts)
+        self.url_cache[pair][url] = (ts, translated)
         if self.url_cache_path is None:
             logging.info("No --url-cache-path, not storing cached url to disk")
             return
-        path = self.cacheDir(pair, url)
-        os.makedirs(path, exist_ok=True)
-        with open(path, 'wb') as f:
+        statvfs = os.statvfs(self.url_cache_path)
+        if (statvfs.f_frsize * statvfs.f_bavail) < self.min_free_space_disk_url_cache:
+            logging.info("Disk of --url-cache-path has < {} free, not storing cached url to disk".format(self.min_free_space_disk_url_cache))
+            return
+        dirname, basename = self.cachePath(pair, url)
+        os.makedirs(dirname, exist_ok=True)
+        path = os.path.join(dirname, basename)
+        # Note: If we make this a @gen.coroutine, we will need to lock
+        # the file to avoid concurrent same-url requests clobbering:
+        with open(path, 'w') as f:
+            f.write(ts)
+            f.write('\n')
             f.write(translated)
 
-    def cacheDir(self, pair, url):
+    def cachePath(self, pair, url):
         hsh = sha1(url.encode('utf-8')).hexdigest()
-        base = os.path.join(self.url_cache_path,
-                            # split it to avoid too many files in one dir:
-                            hsh[:1], hsh[1:2], hsh[2:])
-        return base + pair
+        dirname = os.path.join(self.url_cache_path,
+                               # split it to avoid too many files in one dir:
+                               hsh[:1], hsh[1:2], hsh[2:])
+        return (dirname, "{}-{}".format(*pair))
 
     def getCached(self, pair, url):
         if pair not in self.url_cache:
             self.url_cache[pair] = {}
-        path = self.cacheDir(pair, url)
-        with open(path, 'r') as f:
-            return f.read()
-        return self.url_cache[pair].get(url)
+        retranslate = False
+        if url in self.url_cache[pair]:
+            logging.info("got cache from memory")
+            return (*self.url_cache[pair][url], retranslate)
+        dirname, basename = self.cachePath(pair, url)
+        path = os.path.join(dirname, basename)
+        if os.path.exists(path):
+            logging.info("got cache on disk, we want to retranslate in background …")
+            with open(path, 'r') as f:
+                return self.url_cache[pair][url]
+        
+    def retranslateCache(self, pair, url, cached):
+                self.url_cache[pair][url] = (f.readline().strip(), f.read())
 
-    def handleFetch(self, cached, response):
+    def handleFetch(self, response):
         if response.error is None:
             return
-        elif response.code == 304 and cached is not None:
+        elif response.code == 304:  # means we can use cache, so don't fail on this
             return
         else:
             self.send_error(503, explanation="{} on fetching url: {}".format(response.code, response.error))
@@ -671,25 +696,26 @@ class TranslatePageHandler(TranslateHandler):
                                    -1)
         if pair is None:
             return
+        self.notePairUsage(pair)
+        mode_path = self.pairs['%s-%s' % pair]
         markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
         url = self.get_argument('url')
         headers = {}
+        got304 = False
         cached = self.getCached(pair, url)
         if cached is not None:
-            headers['If-Modified-Since'] = cached[1]
+            headers['If-Modified-Since'] = cached[0]
         request = httpclient.HTTPRequest(url=url,
                                          # TODO: tweak
                                          headers=headers,
                                          connect_timeout=20.0,
                                          request_timeout=20.0)
         try:
-            response = yield httpclient.AsyncHTTPClient().fetch(request,
-                                                                lambda r: self.handleFetch(cached, r))
+            response = yield httpclient.AsyncHTTPClient().fetch(request, self.handleFetch)
         except httpclient.HTTPError as e:
             if e.code == 304:
-                logging.info("%s – using cache", e)
-                yield self.translateAndRespond(pair, translation.CatPipeline(), cached[0], markUnknown)
-                return
+                logging.info("%s – should use cache", e)
+                got304 = True
             else:
                 print(e)
                 return
@@ -711,19 +737,19 @@ class TranslatePageHandler(TranslateHandler):
         elif not re.match("^text/html(;.*)?$", response.headers.get('content-type')):
             logging.warn(response.headers)
             print("TODO odd headers")
-        try:
-            toTranslate = self.htmlToText(page, url)
-        except UnicodeDecodeError as e:
-            logging.info("/translatePage '{}' gave UnicodeDecodeError {}".format(url, e))
-            self.send_error(503, explanation="Couldn't decode (or detect charset/encoding of) {}".format(url))
-            return
-        # TODO: issue 53 – we want to use translateAndRespond and keep pipelines open
-        self.notePairUsage(pair)
-        before = self.logBeforeTranslation()
-        translated = yield translation.translateHtmlMarkHeadings(
-            toTranslate,
-            self.pairs['%s-%s' % pair])
-        self.logAfterTranslation(before, len(toTranslate))
+        if got304 and cached is not None:
+            translated = yield translation.CatPipeline().translate(cached[1])
+        else:
+            try:
+                toTranslate = self.htmlToText(page, url)
+            except UnicodeDecodeError as e:
+                logging.info("/translatePage '{}' gave UnicodeDecodeError {}".format(url, e))
+                self.send_error(503, explanation="Couldn't decode (or detect charset/encoding of) {}".format(url))
+                return
+            before = self.logBeforeTranslation()
+            # TODO: can't keep pipelines open with url translation, see issue 53
+            translated = yield translation.translateHtmlMarkHeadings(toTranslate, mode_path)
+            self.logAfterTranslation(before, len(toTranslate))
         self.sendResponse({
             'responseData': {
                 'translatedText': self.maybeStripMarks(markUnknown, pair, translated)
@@ -731,7 +757,10 @@ class TranslatePageHandler(TranslateHandler):
             'responseDetails': None,
             'responseStatus': 200
         })
-        # pipeline = self.getPipeline(pair)
+        if self.retranslateCache(pair, url, cached):
+            translated = yield translation.translateHtmlMarkHeadings(toTranslate, mode_path)
+        self.setCached(pair, url, translated)
+        # pipeline = self.getPipeline(pair)  # commented out because of issue 53
         # translated = yield self.translateAndRespond(pair,
         #                                             pipeline,
         #                                             toTranslate,
@@ -739,7 +768,6 @@ class TranslatePageHandler(TranslateHandler):
         #                                             nosplit=False,
         #                                             deformat='apertium-deshtml',
         #                                             reformat='apertium-rehtml')
-        self.setCached(pair, url, translation)
 
 
 class TranslateDocHandler(TranslateHandler):
