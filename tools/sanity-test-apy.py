@@ -27,7 +27,7 @@ tests = {
     "cat-eng": ("Ens", "Us"),
     "cat-eng_US": ("Ens", "Us"),
     "cat-epo": ("Per", "Por"),
-    "cat-fra": ("per", "pour"),
+    "cat-fra": ("per", "par"),
     "cat-oci": ("Tinc", "Ai"),
     "cat-oci_aran": ("Tinc", "È"),
     "cat-por": ("tinc", "tenho"),
@@ -40,7 +40,7 @@ tests = {
     "epo-eng": ("kaj", "and"),
     "eus-eng": ("kaixo", "hello"),
     "eus-spa": ("kaixo", "hola"),
-    "fra-cat": ("pour", "per"),
+    "fra-cat": ("pour", "per a"),
     "fra-epo": ("Pour", "Por"),
     "fra-spa": ("Je", "Yo"),
     "glg-eng": ("Teño", "Have"),
@@ -102,6 +102,8 @@ tests = {
     "dan-swe": ("hvad", "vad"),
     "swe-isl": ("Av", "Af"),
     "tat-kaz": ("ул", "ол"),
+    "spa-ita": ("natación", "nuoto"),
+    "ita-spa": ("nuoto", "natación"),
 }
 
 
