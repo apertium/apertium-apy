@@ -635,7 +635,7 @@ class TranslatePageHandler(TranslateHandler):
                       lambda m: self.urlRepl(base, m.group(1), m.group(2), m.group(3)),
                       text)
 
-    def setCached(self, pair, url, translated):
+    def setCached(self, pair, url, translated, toTranslate):
         if len(self.url_cache[pair]) > self.max_inmemory_url_cache:
             self.url_cache[pair] = {}
         ts = time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(time.time()))
@@ -643,19 +643,24 @@ class TranslatePageHandler(TranslateHandler):
         if self.url_cache_path is None:
             logging.info("No --url-cache-path, not storing cached url to disk")
             return
-        statvfs = os.statvfs(self.url_cache_path)
-        if (statvfs.f_frsize * statvfs.f_bavail) < self.min_free_space_disk_url_cache:
-            logging.info("Disk of --url-cache-path has < {} free, not storing cached url to disk".format(self.min_free_space_disk_url_cache))
-            return
         dirname, basename = self.cachePath(pair, url)
         os.makedirs(dirname, exist_ok=True)
         path = os.path.join(dirname, basename)
+        statvfs = os.statvfs(path)
+        if (statvfs.f_frsize * statvfs.f_bavail) < self.min_free_space_disk_url_cache:
+            logging.info("Disk of --url-cache-path has < {} free, not storing cached url to disk".format(
+                self.min_free_space_disk_url_cache))
+            return
         # Note: If we make this a @gen.coroutine, we will need to lock
         # the file to avoid concurrent same-url requests clobbering:
         with open(path, 'w') as f:
             f.write(ts)
             f.write('\n')
             f.write(translated)
+        if toTranslate is not None:
+            origpath = os.path.join(dirname, pair[0])
+            with open(origpath, 'w') as f:
+                f.write(toTranslate)
 
     def cachePath(self, pair, url):
         hsh = sha1(url.encode('utf-8')).hexdigest()
@@ -668,12 +673,12 @@ class TranslatePageHandler(TranslateHandler):
         if pair not in self.url_cache:
             self.url_cache[pair] = {}
         if url in self.url_cache[pair]:
-            logging.info("got cache from memory")
+            logging.info("Got cache from memory")
             return self.url_cache[pair][url]
         dirname, basename = self.cachePath(pair, url)
         path = os.path.join(dirname, basename)
         if os.path.exists(path):
-            logging.info("got cache on disk, we want to retranslate in background …")
+            logging.info("Got cache on disk, we want to retranslate in background …")
             with open(path, 'r') as f:
                 return (f.readline().strip(), f.read())
 
@@ -684,7 +689,12 @@ class TranslatePageHandler(TranslateHandler):
         pair.
 
         """
-        return (cached is not None) and (self.url_cache.get(pair, {}).get(url) is not None)
+        mem_cached = self.url_cache.get(pair, {}).get(url)
+        if mem_cached is None and cached is not None:
+            dirname, _ = self.cachePath(pair, url)
+            origpath = os.path.join(dirname, pair[0])
+            if os.path.exists(origpath):
+                return open(origpath, 'r').read()
 
     def handleFetch(self, response):
         if response.error is None:
@@ -693,6 +703,7 @@ class TranslatePageHandler(TranslateHandler):
             return
         else:
             self.send_error(503, explanation="{} on fetching url: {}".format(response.code, response.error))
+
 
     @gen.coroutine
     def get(self):
@@ -707,6 +718,7 @@ class TranslatePageHandler(TranslateHandler):
         url = self.get_argument('url')
         headers = {}
         got304 = False
+        toTranslate = None
         cached = self.getCached(pair, url)
         if cached is not None:
             headers['If-Modified-Since'] = cached[0]
@@ -741,7 +753,6 @@ class TranslatePageHandler(TranslateHandler):
                             if url.endswith("?plainxsl"):  # DEBUG
                                 xsl = "/home/apy/plain.xsl"
                             page = yield translation.pdf2html(pdfconverter, tempFile, toAlpha2Code(pair[0]), xsl)
-
             elif not re.match("^text/html(;.*)?$", response.headers.get('content-type')):
                 logging.warn(response.headers)
                 print("TODO odd headers")
@@ -752,7 +763,6 @@ class TranslatePageHandler(TranslateHandler):
                 self.send_error(503, explanation="Couldn't decode (or detect charset/encoding of) {}".format(url))
                 return
             before = self.logBeforeTranslation()
-            # TODO: can't keep pipelines open with url translation, see issue 53
             translated = yield translation.translateHtmlMarkHeadings(toTranslate, mode_path)
             self.logAfterTranslation(before, len(toTranslate))
         self.sendResponse({
@@ -762,10 +772,13 @@ class TranslatePageHandler(TranslateHandler):
             'responseDetails': None,
             'responseStatus': 200
         })
-        if self.retranslateCache(pair, url, cached):
-            translated = yield translation.translateHtmlMarkHeadings(toTranslate, mode_path)
-        self.setCached(pair, url, translated)
-        # pipeline = self.getPipeline(pair)  # commented out because of issue 53
+        retranslate = self.retranslateCache(pair, url, cached)
+        if got304 and retranslate is not None:
+            logging.info("Retranslating")
+            translated = yield translation.translateHtmlMarkHeadings(retranslate, mode_path)
+        self.setCached(pair, url, translated, toTranslate)
+        # TODO: can't keep pipelines open with url translation, see issue 53
+        # pipeline = self.getPipeline(pair)
         # translated = yield self.translateAndRespond(pair,
         #                                             pipeline,
         #                                             toTranslate,
