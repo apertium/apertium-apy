@@ -724,27 +724,27 @@ class TranslatePageHandler(TranslateHandler):
             else:
                 print(e)
                 return
-        if response.body is None:
-            self.send_error(503, explanation="got an empty file on fetching url: {}".format(url))
-            return
-        page = response.body  # type: bytes
-        if pdfconverter is not None and response.headers.get('content-type') in ["application/pdf", "application/x-pdf", "application/octet-stream"]:
-            with tempfile.TemporaryDirectory() as tempDir:  # Since pdf2html might write a file to the same dir
-                with open(os.path.join(tempDir, 'file.pdf'), 'wb') as tempFile:
-                    tempFile.write(page)
-                    mtype = TranslateDocHandler.getMimeType(tempFile.name)
-                    if mtype in ["application/pdf", "application/x-pdf"]:
-                        xsl = self.url_xsls.get(pair[0], {}).get(url)
-                        if url.endswith("?plainxsl"):  # DEBUG
-                            xsl = "/home/apy/plain.xsl"
-                        page = yield translation.pdf2html(pdfconverter, tempFile, toAlpha2Code(pair[0]), xsl)
-
-        elif not re.match("^text/html(;.*)?$", response.headers.get('content-type')):
-            logging.warn(response.headers)
-            print("TODO odd headers")
         if got304 and cached is not None:
             translated = yield translation.CatPipeline().translate(cached[1])
         else:
+            if response.body is None:
+                self.send_error(503, explanation="got an empty file on fetching url: {}".format(url))
+                return
+            page = response.body  # type: bytes
+            if pdfconverter is not None and response.headers.get('content-type') in ["application/pdf", "application/x-pdf", "application/octet-stream"]:
+                with tempfile.TemporaryDirectory() as tempDir:  # Since pdf2html might write a file to the same dir
+                    with open(os.path.join(tempDir, 'file.pdf'), 'wb') as tempFile:
+                        tempFile.write(page)
+                        mtype = TranslateDocHandler.getMimeType(tempFile.name)
+                        if mtype in ["application/pdf", "application/x-pdf"]:
+                            xsl = self.url_xsls.get(pair[0], {}).get(url)
+                            if url.endswith("?plainxsl"):  # DEBUG
+                                xsl = "/home/apy/plain.xsl"
+                            page = yield translation.pdf2html(pdfconverter, tempFile, toAlpha2Code(pair[0]), xsl)
+
+            elif not re.match("^text/html(;.*)?$", response.headers.get('content-type')):
+                logging.warn(response.headers)
+                print("TODO odd headers")
             try:
                 toTranslate = self.htmlToText(page, url)
             except UnicodeDecodeError as e:
