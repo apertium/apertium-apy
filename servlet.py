@@ -645,14 +645,14 @@ class TranslatePageHandler(TranslateHandler):
             return
         dirname, basename = self.cachePath(pair, url)
         os.makedirs(dirname, exist_ok=True)
-        path = os.path.join(dirname, basename)
-        statvfs = os.statvfs(path)
+        statvfs = os.statvfs(dirname)
         if (statvfs.f_frsize * statvfs.f_bavail) < self.min_free_space_disk_url_cache:
             logging.info("Disk of --url-cache-path has < {} free, not storing cached url to disk".format(
                 self.min_free_space_disk_url_cache))
             return
         # Note: If we make this a @gen.coroutine, we will need to lock
         # the file to avoid concurrent same-url requests clobbering:
+        path = os.path.join(dirname, basename)
         with open(path, 'w') as f:
             f.write(ts)
             f.write('\n')
@@ -703,7 +703,6 @@ class TranslatePageHandler(TranslateHandler):
             return
         else:
             self.send_error(503, explanation="{} on fetching url: {}".format(response.code, response.error))
-
 
     @gen.coroutine
     def get(self):
@@ -774,7 +773,7 @@ class TranslatePageHandler(TranslateHandler):
         })
         retranslate = self.retranslateCache(pair, url, cached)
         if got304 and retranslate is not None:
-            logging.info("Retranslating")
+            logging.info("Retranslating {}", url)
             translated = yield translation.translateHtmlMarkHeadings(retranslate, mode_path)
         self.setCached(pair, url, translated, toTranslate)
         # TODO: can't keep pipelines open with url translation, see issue 53
