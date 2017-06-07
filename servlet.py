@@ -16,10 +16,12 @@ import random
 import base64
 from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
-from functools import wraps
+from functools import wraps, reduce
 from threading import Thread
+from hashlib import sha1
 from datetime import datetime, timedelta
 from urllib.parse import urlparse, urlunsplit
+from contextlib import contextmanager
 import heapq
 from tornado.locks import Semaphore
 import html
@@ -45,6 +47,7 @@ from util import getLocalizedLanguages, stripTags, processPerWord, getCoverage, 
 
 import systemd
 import missingdb
+from typing import Optional, Tuple
 
 if sys.version_info.minor < 3:
     import translation_py32 as translation
@@ -140,9 +143,13 @@ class BaseHandler(tornado.web.RequestHandler):
     max_idle_secs = 0
     restart_pipe_after = 1000
     doc_pipe_sem = Semaphore(3)
-    url_cache_max_age = timedelta(0, 2*3600, 0)
-    url_cache_ts = datetime.now()
-    url_cache = {}
+    # Empty the url_cache[pair] when it's this full:
+    max_inmemory_url_cache = 1000  # type: int
+    url_cache = {}                 # type: Dict[Tuple[str, str], Dict[str, str]]
+    url_cache_path = None          # type: Optional[str]
+    # Keep half a gig free when storing url_cache to disk:
+    min_free_space_disk_url_cache = 512 * 1024 * 1024  # type: int
+    url_xsls = {}                  # type: Dict[str, Dict[str, str]]
 
     def initialize(self):
         self.callback = self.get_argument('callback', default=None)
@@ -629,24 +636,94 @@ class TranslatePageHandler(TranslateHandler):
                       lambda m: self.urlRepl(base, m.group(1), m.group(2), m.group(3)),
                       text)
 
-    def maybeEmptyCache(self):
-        if datetime.now() > self.url_cache_ts + self.url_cache_max_age:
-            logging.info("Emptying URL cache ...")
-            self.url_cache_ts = datetime.now()
-            self.url_cache = {p: {} for p in self.pairs}
+    def setCached(self, pair, url, translated, origtext):
+        """Cache translated text for a pair and url to memory, and disk.
+        Also caches origtext to disk; see cachePath."""
+        if len(self.url_cache[pair]) > self.max_inmemory_url_cache:
+            self.url_cache[pair] = {}
+        ts = time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(time.time()))
+        self.url_cache[pair][url] = (ts, translated)
+        if self.url_cache_path is None:
+            logging.info("No --url-cache-path, not storing cached url to disk")
+            return
+        dirname, basename = self.cachePath(pair, url)
+        os.makedirs(dirname, exist_ok=True)
+        statvfs = os.statvfs(dirname)
+        if (statvfs.f_frsize * statvfs.f_bavail) < self.min_free_space_disk_url_cache:
+            logging.warn("Disk of --url-cache-path has < {} free, not storing cached url to disk".format(
+                self.min_free_space_disk_url_cache))
+            return
+        # Note: If we make this a @gen.coroutine, we will need to lock
+        # the file to avoid concurrent same-url requests clobbering:
+        path = os.path.join(dirname, basename)
+        with open(path, 'w') as f:
+            f.write(ts)
+            f.write('\n')
+            f.write(translated)
+        origpath = os.path.join(dirname, pair[0])
+        with open(origpath, 'w') as f:
+            f.write(origtext)
+
+    def cachePath(self, pair, url):
+        """Give the directory for where to cache the translation of this url,
+        and the file name to use for this pair."""
+        hsh = sha1(url.encode('utf-8')).hexdigest()
+        dirname = os.path.join(self.url_cache_path,
+                               # split it to avoid too many files in one dir:
+                               hsh[:1], hsh[1:2], hsh[2:])
+        return (dirname, "{}-{}".format(*pair))
 
     def getCached(self, pair, url):
-        self.maybeEmptyCache()
         if pair not in self.url_cache:
             self.url_cache[pair] = {}
         if url in self.url_cache[pair]:
+            logging.info("Got cache from memory")
             return self.url_cache[pair][url]
-        else:
-            return None
+        dirname, basename = self.cachePath(pair, url)
+        path = os.path.join(dirname, basename)
+        if os.path.exists(path):
+            logging.info("Got cache on disk, we want to retranslate in background …")
+            with open(path, 'r') as f:
+                return (f.readline().strip(), f.read())
+
+    def retranslateCache(self, pair, url, cached):
+        """If we've got something from the cache, and it isn't in memory, then
+        it was from disk. We want to retranslate anything we found on
+        disk, since it's probably using older versions of the language
+        pair.
+
+        """
+        mem_cached = self.url_cache.get(pair, {}).get(url)
+        if mem_cached is None and cached is not None:
+            dirname, _ = self.cachePath(pair, url)
+            origpath = os.path.join(dirname, pair[0])
+            if os.path.exists(origpath):
+                return open(origpath, 'r').read()
 
     def handleFetch(self, response):
-        if response.error is not None:
+        if response.error is None:
+            return
+        elif response.code == 304:  # means we can use cache, so don't fail on this
+            return
+        else:
             self.send_error(503, explanation="{} on fetching url: {}".format(response.code, response.error))
+
+    def doPdf(self, response):
+        pdf_mimes = ["application/pdf", "application/x-pdf", "application/octet-stream"]
+        return pdfconverter and response.headers.get('content-type') in pdf_mimes
+
+    @contextmanager
+    def withPdf(self, pair, url, page):
+        with tempfile.TemporaryDirectory() as tempdir:
+            # Use a tempdir since pdf2html might write a file to the same dir as our tempFile
+            with open(os.path.join(tempdir, 'file.pdf'), 'wb') as f:
+                f.write(page)
+                mtype = TranslateDocHandler.getMimeType(f.name)
+                if mtype in ["application/pdf", "application/x-pdf"]:
+                    xsl = self.url_xsls.get(pair[0], {}).get(url)
+                    if url.endswith("?plainxsl"):  # DEBUG
+                        xsl = "/home/apy/plain.xsl"
+                    yield f, xsl
 
     @gen.coroutine
     def get(self):
@@ -655,71 +732,80 @@ class TranslatePageHandler(TranslateHandler):
                                    -1)
         if pair is None:
             return
+        self.notePairUsage(pair)
+        mode_path = self.pairs['%s-%s' % pair]
+        markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
         url = self.get_argument('url')
+        headers = {}
+        got304 = False
         cached = self.getCached(pair, url)
         if cached is not None:
-            yield self.translateAndRespond(pair,
-                                           translation.CatPipeline(),
-                                           cached,
-                                           self.get_argument('markUnknown', default='yes'))
-        else:
-            http_client = httpclient.AsyncHTTPClient()
-            request = httpclient.HTTPRequest(url=url,
-                                             # TODO: tweak
-                                             connect_timeout=20.0,
-                                             request_timeout=20.0)
-            try:
-                response = yield http_client.fetch(request, self.handleFetch)
-            except httpclient.HTTPError as e:
+            headers['If-Modified-Since'] = cached[0]
+        request = httpclient.HTTPRequest(url=url,
+                                         headers=headers,
+                                         # TODO: tweak timeouts:
+                                         connect_timeout=20.0,
+                                         request_timeout=20.0)
+        try:
+            response = yield httpclient.AsyncHTTPClient().fetch(request, self.handleFetch)
+        except httpclient.HTTPError as e:
+            if e.code == 304:
+                got304 = True
+                logging.info("304, can use cache")
+            else:
                 print(e)
                 return
+        if got304 and cached is not None:
+            translated = yield translation.CatPipeline().translate(cached[1])
+        else:
             if response.body is None:
                 self.send_error(503, explanation="got an empty file on fetching url: {}".format(url))
                 return
             page = response.body  # type: bytes
-            if pdfconverter is not None and response.headers.get('content-type') in ["application/pdf", "application/x-pdf"]:
-                with tempfile.NamedTemporaryFile() as tempFile:
-                    tempFile.write(page)
-                    page = yield translation.pdf2html(pdfconverter, tempFile, toAlpha2Code(pair[0]))
+            if self.doPdf(response):
+                with self.withPdf(pair, url, page) as (tempFile, xsl):
+                    page = yield translation.pdf2html(pdfconverter, tempFile, toAlpha2Code(pair[0]), xsl)
             elif not re.match("^text/html(;.*)?$", response.headers.get('content-type')):
                 logging.warn(response.headers)
-                print("TODO odd headers")
             try:
                 toTranslate = self.htmlToText(page, url)
             except UnicodeDecodeError as e:
                 logging.info("/translatePage '{}' gave UnicodeDecodeError {}".format(url, e))
                 self.send_error(503, explanation="Couldn't decode (or detect charset/encoding of) {}".format(url))
                 return
-            # TODO: issue 53 – we want to use translateAndRespond and keep pipelines open
-            markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
-            self.notePairUsage(pair)
             before = self.logBeforeTranslation()
-            translated = yield translation.translateHtmlMarkHeadings(
-                toTranslate,
-                self.pairs['%s-%s' % pair])
+            translated = yield translation.translateHtmlMarkHeadings(toTranslate, mode_path)
             self.logAfterTranslation(before, len(toTranslate))
-            self.sendResponse({
-                'responseData': {
-                    'translatedText': self.maybeStripMarks(markUnknown, pair, translated)
-                },
-                'responseDetails': None,
-                'responseStatus': 200
-            })
-            # pipeline = self.getPipeline(pair)
-            # translated = yield self.translateAndRespond(pair,
-            #                                             pipeline,
-            #                                             toTranslate,
-            #                                             self.get_argument('markUnknown', default='yes'),
-            #                                             nosplit=False,
-            #                                             deformat='apertium-deshtml',
-            #                                             reformat='apertium-rehtml')
-            self.url_cache[pair][url] = translated
+            self.setCached(pair, url, translated, toTranslate)
+        self.sendResponse({
+            'responseData': {
+                'translatedText': self.maybeStripMarks(markUnknown, pair, translated)
+            },
+            'responseDetails': None,
+            'responseStatus': 200
+        })
+        retranslate = self.retranslateCache(pair, url, cached)
+        if got304 and retranslate is not None:
+            logging.info("Retranslating {}".format(url))
+            translated = yield translation.translateHtmlMarkHeadings(retranslate, mode_path)
+            logging.info("Done retranslating {}".format(url))
+            self.setCached(pair, url, translated, retranslate)
+        # TODO: can't keep pipelines open with url translation, see issue 53
+        # pipeline = self.getPipeline(pair)
+        # translated = yield self.translateAndRespond(pair,
+        #                                             pipeline,
+        #                                             toTranslate,
+        #                                             self.get_argument('markUnknown', default='yes'),
+        #                                             nosplit=False,
+        #                                             deformat='apertium-deshtml',
+        #                                             reformat='apertium-rehtml')
 
 
 class TranslateDocHandler(TranslateHandler):
     mimeTypeCommand = None
 
-    def getMimeType(self, f):
+    @staticmethod
+    def getMimeType(f):
         commands = {
             'mimetype': lambda x: Popen(['mimetype', '-b', x], stdout=PIPE).communicate()[0].strip(),
             'xdg-mime': lambda x: Popen(['xdg-mime', 'query', 'filetype', x], stdout=PIPE).communicate()[0].strip(),
@@ -732,13 +818,13 @@ class TranslateDocHandler(TranslateHandler):
             'xl/workbook.xml': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         }
 
-        if not self.mimeTypeCommand:
+        if not TranslateDocHandler.mimeTypeCommand:
             for command in ['mimetype', 'xdg-mime', 'file']:
                 if Popen(['which', command], stdout=PIPE).communicate()[0]:
                     TranslateDocHandler.mimeTypeCommand = command
                     break
 
-        mimeType = commands[self.mimeTypeCommand](f).decode('utf-8')
+        mimeType = commands[TranslateDocHandler.mimeTypeCommand](f).decode('utf-8')
         if mimeType == 'application/zip':
             with zipfile.ZipFile(f) as zf:
                 for typeFile in typeFiles:
@@ -1243,9 +1329,8 @@ def setupHandler(
     port, pairs_path, nonpairs_path, langNames, missingFreqsPath, timeout,
     max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs,
     restart_pipe_after, max_doc_pipes, verbosity=0, scaleMtLogs=False, memory=1000,
-    userdb=None
+    userdb=None, url_xsls=[], url_cache_path=None
 ):
-
     global missingFreqsDb
     if missingFreqsPath:
         missingFreqsDb = missingdb.MissingDb(missingFreqsPath, memory)
@@ -1263,6 +1348,9 @@ def setupHandler(
     Handler.userdb = set()
     if userdb is not None:
         Handler.userdb = set(up.strip() for up in open(userdb).readlines())
+    for corpuspath in url_xsls:
+        Handler.url_xsls = translation.walkGTCorpus(corpuspath, Handler.url_xsls)
+    Handler.url_cache_path = url_cache_path
     Handler.doc_pipe_sem = Semaphore(max_doc_pipes)
 
     modes = searchPath(pairs_path, verbosity=verbosity)
@@ -1337,6 +1425,10 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--bypass-token', help="ReCAPTCHA bypass token", action='store_true')
     parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA secret for suggestion validation", default=None)
     parser.add_argument('-ud', '--userdb', help="Basicauth user/password file", default=None)
+    parser.add_argument('-up', '--url-cache-path', help="Where to store cached url translations", default=None)
+    parser.add_argument('-ux', '--url-xsls', help="Path to Giellatekno xsl's, parent dir of language code dirs (typically $GTHOME/freecorpus/orig). This argument may be supplied multiple times.", action='append', default=[])
+    # git svn clone -rHEAD --include-paths='pdf.xsl' https://victorio.uit.no/freecorpus/orig /home/apy/freecorpus-orig-pdf-xsl
+    # git svn clone -rHEAD --include-paths='pdf.xsl' https://victorio.uit.no/boundcorpus/orig /home/apy/boundcorpus-orig-pdf-xsl
     parser.add_argument('-md', '--max-doc-pipes',
                         help='how many concurrent document translation pipelines we allow (default = 3)', type=int, default=3)
     args = parser.parse_args()
@@ -1374,7 +1466,7 @@ if __name__ == '__main__':
     setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
                  args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs,
                  args.restart_pipe_after, args.max_doc_pipes, args.verbosity, args.scalemt_logs, args.unknown_memory_limit,
-                 args.userdb)
+                 args.userdb, args.url_xsls, args.url_cache_path)
 
     application = tornado.web.Application([
         (r'/', RootHandler),

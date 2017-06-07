@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# -*- indent-tabs-mode: nil -*-
+# coding=utf-8
+
 import re
 import os
 from subprocess import Popen, PIPE
