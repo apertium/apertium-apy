@@ -16,8 +16,9 @@ import random
 import base64
 from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
-from functools import wraps
+from functools import wraps, reduce
 from threading import Thread
+from hashlib import sha1
 from datetime import datetime, timedelta
 from urllib.parse import urlparse, urlunsplit
 import heapq
@@ -141,6 +142,7 @@ class BaseHandler(tornado.web.RequestHandler):
     restart_pipe_after = 1000
     doc_pipe_sem = Semaphore(3)
     url_cache = {}
+    url_cache_path = None
     url_xsls = {}
 
     def initialize(self):
@@ -628,9 +630,30 @@ class TranslatePageHandler(TranslateHandler):
                       lambda m: self.urlRepl(base, m.group(1), m.group(2), m.group(3)),
                       text)
 
+    def setCached(self, pair, url, translated):
+        ts = time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(time.time()))
+        self.url_cache[pair][url] = (translated, ts)
+        if self.url_cache_path is None:
+            logging.info("No --url-cache-path, not storing cached url to disk")
+            return
+        path = self.cacheDir(pair, url)
+        os.makedirs(path, exist_ok=True)
+        with open(path, 'wb') as f:
+            f.write(translated)
+
+    def cacheDir(self, pair, url):
+        hsh = sha1(url.encode('utf-8')).hexdigest()
+        base = os.path.join(self.url_cache_path,
+                            # split it to avoid too many files in one dir:
+                            hsh[:1], hsh[1:2], hsh[2:])
+        return base + pair
+
     def getCached(self, pair, url):
         if pair not in self.url_cache:
             self.url_cache[pair] = {}
+        path = self.cacheDir(pair, url)
+        with open(path, 'r') as f:
+            return f.read()
         return self.url_cache[pair].get(url)
 
     def handleFetch(self, cached, response):
@@ -716,8 +739,7 @@ class TranslatePageHandler(TranslateHandler):
         #                                             nosplit=False,
         #                                             deformat='apertium-deshtml',
         #                                             reformat='apertium-rehtml')
-        ts = time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(time.time()))
-        self.url_cache[pair][url] = (translated, ts)
+        self.setCached(pair, url, translation)
 
 
 class TranslateDocHandler(TranslateHandler):
@@ -1248,7 +1270,7 @@ def setupHandler(
     port, pairs_path, nonpairs_path, langNames, missingFreqsPath, timeout,
     max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs,
     restart_pipe_after, max_doc_pipes, verbosity=0, scaleMtLogs=False, memory=1000,
-    userdb=None, url_xsls=[]
+    userdb=None, url_xsls=[], url_cache_path=None
 ):
     global missingFreqsDb
     if missingFreqsPath:
@@ -1269,6 +1291,7 @@ def setupHandler(
         Handler.userdb = set(up.strip() for up in open(userdb).readlines())
     for corpuspath in url_xsls:
         Handler.url_xsls = translation.walkGTCorpus(corpuspath, Handler.url_xsls)
+    Handler.url_cache_path = url_cache_path
     Handler.doc_pipe_sem = Semaphore(max_doc_pipes)
 
     modes = searchPath(pairs_path, verbosity=verbosity)
@@ -1343,7 +1366,10 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--bypass-token', help="ReCAPTCHA bypass token", action='store_true')
     parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA secret for suggestion validation", default=None)
     parser.add_argument('-ud', '--userdb', help="Basicauth user/password file", default=None)
+    parser.add_argument('-up', '--url-cache-path', help="Where to store cached url translations", default=None)
     parser.add_argument('-ux', '--url-xsls', help="Path to Giellatekno xsl's, parent dir of language code dirs (typically $GTHOME/freecorpus/orig). This argument may be supplied multiple times.", action='append', default=[])
+    # git svn clone -rHEAD --include-paths='pdf.xsl' https://victorio.uit.no/freecorpus/orig /home/apy/freecorpus-orig-pdf-xsl
+    # git svn clone -rHEAD --include-paths='pdf.xsl' https://victorio.uit.no/boundcorpus/orig /home/apy/boundcorpus-orig-pdf-xsl
     parser.add_argument('-md', '--max-doc-pipes',
                         help='how many concurrent document translation pipelines we allow (default = 3)', type=int, default=3)
     args = parser.parse_args()
@@ -1381,7 +1407,7 @@ if __name__ == '__main__':
     setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
                  args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs,
                  args.restart_pipe_after, args.max_doc_pipes, args.verbosity, args.scalemt_logs, args.unknown_memory_limit,
-                 args.userdb, args.url_xsls)
+                 args.userdb, args.url_xsls, args.url_cache_path)
 
     application = tornado.web.Application([
         (r'/', RootHandler),
