@@ -768,7 +768,7 @@ class TranslatePageHandler(TranslateHandler):
             if self.doPdf(response):
                 with self.withPdf(pair, url, page) as (tempFile, xsl):
                     page = yield translation.pdf2html(pdfconverter, tempFile, toAlpha2Code(pair[0]), xsl)
-            if not re.match("^text/html(;.*)?$", response.headers.get('content-type')):
+            elif not re.match("^text/html(;.*)?$", response.headers.get('content-type')):
                 logging.warn(response.headers)
                 print("TODO odd headers")
             try:
