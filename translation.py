@@ -421,7 +421,10 @@ def pdf2html(pdfconverter, pdffile, sourceLang, xslfile=None):
     Optional xslfile is value from `walkGTCorpus`."""
     if xslfile is not None:
         logging.info("Using pdfconverter.py with xsl {}".format(xslfile))
-        copyfile(xslfile, pdffile.name + '.xsl')
+        try:
+            copyfile(xslfile, pdffile.name + '.xsl')
+        except Exception as e:
+            logging.warn("Couldn't copy {} to {}, will end up with plain xsl. Reason: {}".format(xslfile, pdffile.name, e))
         commands = [["pdftohtml", "-hidden", "-enc", "UTF-8", "-stdout", "-nodrm", "-i", "-xml", pdffile.name]]
         converter = pdfconverter.PDF2XMLConverter(pdffile.name)
         converter.metadata.set_variable('mainlang', sourceLang)
