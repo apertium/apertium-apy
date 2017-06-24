@@ -723,9 +723,9 @@ class TranslatePageHandler(TranslateHandler):
             http_client = httpclient.AsyncHTTPClient()
             url = self.get_argument('url')
             request = httpclient.HTTPRequest(url=url,
-                                            # TODO: tweak
-                                            connect_timeout=20.0,
-                                            request_timeout=20.0)
+                                             # TODO: tweak
+                                             connect_timeout=20.0,
+                                             request_timeout=20.0)
             response = yield http_client.fetch(request)
             toTranslate = self.htmlToText(response.body, url)
 
