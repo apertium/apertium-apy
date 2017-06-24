@@ -16,7 +16,7 @@ import random
 import base64
 from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
-from functools import wraps, reduce
+from functools import wraps
 from threading import Thread
 from hashlib import sha1
 from datetime import datetime, timedelta
@@ -47,7 +47,7 @@ from util import getLocalizedLanguages, stripTags, processPerWord, getCoverage, 
 
 import systemd
 import missingdb
-from typing import Optional, Tuple
+# from typing import Optional, Tuple
 
 if sys.version_info.minor < 3:
     import translation_py32 as translation
@@ -1430,7 +1430,9 @@ if __name__ == '__main__':
     parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA secret for suggestion validation", default=None)
     parser.add_argument('-ud', '--userdb', help="Basicauth user/password file", default=None)
     parser.add_argument('-up', '--url-cache-path', help="Where to store cached url translations", default=None)
-    parser.add_argument('-ux', '--url-xsls', help="Path to Giellatekno xsl's, parent dir of language code dirs (typically $GTHOME/freecorpus/orig). This argument may be supplied multiple times.", action='append', default=[])
+    parser.add_argument('-ux', '--url-xsls',
+                        help="Path to Giellatekno xsl's, parent dir of language code dirs (typically $GTHOME/freecorpus/orig). This argument may be supplied multiple times.",
+                        action='append', default=[])
     # git svn clone -rHEAD --include-paths='pdf.xsl' https://victorio.uit.no/freecorpus/orig /home/apy/freecorpus-orig-pdf-xsl
     # git svn clone -rHEAD --include-paths='pdf.xsl' https://victorio.uit.no/boundcorpus/orig /home/apy/boundcorpus-orig-pdf-xsl
     parser.add_argument('-md', '--max-doc-pipes',
