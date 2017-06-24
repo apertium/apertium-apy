@@ -21,7 +21,8 @@ from datetime import datetime, timedelta
 from urllib.parse import urlparse, urlunsplit
 import heapq
 from tornado.locks import Semaphore
-
+import html
+from contextlib import contextmanager
 import tornado
 import tornado.web
 import tornado.httpserver
@@ -127,7 +128,13 @@ class BaseHandler(tornado.web.RequestHandler):
     max_idle_secs = 0
     restart_pipe_after = 1000
     doc_pipe_sem = Semaphore(3)
-
+    # Empty the url_cache[pair] when it's this full:
+    max_inmemory_url_cache = 1000  # type: int
+    url_cache = {} # type: Dict[Tuple[str, str], Dict[str, str]]
+    url_cache_path = None # type: Optional[str]
+    # Keep half a gig free when storing url_cache to disk:
+    min_free_space_disk_url_cache = 512 * 1024 * 1024 # type: int
+    url_xsls = {} # type: Dict[str, Dict[str, str]]
     def initialize(self):
         self.callback = self.get_argument('callback', default=None)
 
@@ -587,19 +594,124 @@ class TranslatePageHandler(TranslateHandler):
             newurl = aurl
         return ' {a}={q}{u}{q}'.format(a=attr, u=newurl, q=quote)
 
-    def cleanHtml(self, html):
-        return html.replace('&shy;', '').replace('­', '')  # literal and entity soft hyphen
+    def unescape(self, page):
+        # First workaround old bug that exists in a lot of
+        # Windows-based web pages, see
+        # http://stackoverflow.com/a/1398921/69663 :
+        page = page.replace('&#150;', '&#8211;')
+        # Unescape all other entities the regular way:
+        return html.unescape(page)
 
-    def htmlToText(self, html, url):
+    def cleanHtml(self, page, urlbase):
+        page = self.unescape(page)
+        if urlbase.netloc in ['www.avvir.no', 'avvir.no']:
+            page = re.sub(r'([a-zæøåášžđŋ])=([a-zæøåášžđŋ])',
+                          '\\1\\2',
+                          page)
+        return page.replace('­', '')  # literal and entity soft hyphen
+
+    def htmlToText(self, page, url):
+        encoding = "utf-8"
         if chardet:
-            encoding = chardet.detect(html).get("encoding", "utf-8")
-        else:
-            encoding = "utf-8"
+            encoding = chardet.detect(page).get("encoding", "utf-8") or encoding
         base = urlparse(url)
-        text = html.decode(encoding)
+        text = self.cleanHtml(page.decode(encoding), base)  # type: str
         return re.sub(r' (href|src)=([\'"])(..*?)\2',
                       lambda m: self.urlRepl(base, m.group(1), m.group(2), m.group(3)),
                       text)
+
+
+    def setCached(self, pair, url, translated, origtext):
+        """Cache translated text for a pair and url to memory, and disk.
+        Also caches origtext to disk; see cachePath."""
+        if pair not in self.url_cache:
+            self.url_cache[pair] = {}
+        elif len(self.url_cache[pair]) > self.max_inmemory_url_cache:
+            self.url_cache[pair] = {}
+        ts = time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(time.time()))
+        self.url_cache[pair][url] = (ts, translated)
+        if self.url_cache_path is None:
+            logging.info("No --url-cache-path, not storing cached url to disk")
+            return
+        dirname, basename = self.cachePath(pair, url)
+        os.makedirs(dirname, exist_ok=True)
+        statvfs = os.statvfs(dirname)
+        if (statvfs.f_frsize * statvfs.f_bavail) < self.min_free_space_disk_url_cache:
+            logging.warn("Disk of --url-cache-path has < {} free, not storing cached url to disk".format(
+                self.min_free_space_disk_url_cache))
+            return
+        # Note: If we make this a @gen.coroutine, we will need to lock
+        # the file to avoid concurrent same-url requests clobbering:
+        path = os.path.join(dirname, basename)
+        with open(path, 'w') as f:
+            f.write(ts)
+            f.write('\n')
+            f.write(translated)
+        origpath = os.path.join(dirname, pair[0])
+        with open(origpath, 'w') as f:
+            f.write(origtext)
+
+    def cachePath(self, pair, url):
+        """Give the directory for where to cache the translation of this url,
+        and the file name to use for this pair."""
+        hsh = sha1(url.encode('utf-8')).hexdigest()
+        dirname = os.path.join(self.url_cache_path,
+                               # split it to avoid too many files in one dir:
+                               hsh[:1], hsh[1:2], hsh[2:])
+        return (dirname, "{}-{}".format(*pair))
+
+    def getCached(self, pair, url):
+        if not self.url_cache_path:
+            return None
+        if pair not in self.url_cache:
+            self.url_cache[pair] = {}
+        if url in self.url_cache[pair]:
+            logging.info("Got cache from memory")
+            return self.url_cache[pair][url]
+        dirname, basename = self.cachePath(pair, url)
+        path = os.path.join(dirname, basename)
+        if os.path.exists(path):
+            logging.info("Got cache on disk, we want to retranslate in background …")
+            with open(path, 'r') as f:
+                return (f.readline().strip(), f.read())
+
+    def retranslateCache(self, pair, url, cached):
+        """If we've got something from the cache, and it isn't in memory, then
+        it was from disk. We want to retranslate anything we found on
+        disk, since it's probably using older versions of the language
+        pair.
+        """
+        mem_cached = self.url_cache.get(pair, {}).get(url)
+        if mem_cached is None and cached is not None:
+            dirname, _ = self.cachePath(pair, url)
+            origpath = os.path.join(dirname, pair[0])
+            if os.path.exists(origpath):
+                return open(origpath, 'r').read()
+
+    def handleFetch(self, response):
+        if response.error is None:
+            return
+        elif response.code == 304:  # means we can use cache, so don't fail on this
+            return
+        else:
+            self.send_error(503, explanation="{} on fetching url: {}".format(response.code, response.error))
+
+    def doPdf(self, response):
+        pdf_mimes = ["application/pdf", "application/x-pdf", "application/octet-stream"]
+        return pdfconverter and response.headers.get('content-type') in pdf_mimes
+
+    @contextmanager
+    def withPdf(self, pair, url, page):
+        with tempfile.TemporaryDirectory() as tempdir:
+            # Use a tempdir since pdf2html might write a file to the same dir as our tempFile
+            with open(os.path.join(tempdir, 'file.pdf'), 'wb') as f:
+                f.write(page)
+                mtype = TranslateDocHandler.getMimeType(f.name)
+                if mtype in ["application/pdf", "application/x-pdf"]:
+                    xsl = self.url_xsls.get(pair[0], {}).get(url)
+                    if url.endswith("?plainxsl"):  # DEBUG
+                        xsl = "/home/apy/plain.xsl"
+                    yield f, xsl
 
     @gen.coroutine
     def get(self):
@@ -611,9 +723,9 @@ class TranslatePageHandler(TranslateHandler):
             http_client = httpclient.AsyncHTTPClient()
             url = self.get_argument('url')
             request = httpclient.HTTPRequest(url=url,
-                                             # TODO: tweak
-                                             connect_timeout=20.0,
-                                             request_timeout=20.0)
+                                            # TODO: tweak
+                                            connect_timeout=20.0,
+                                            request_timeout=20.0)
             response = yield http_client.fetch(request)
             toTranslate = self.htmlToText(response.body, url)
 
@@ -624,6 +736,51 @@ class TranslatePageHandler(TranslateHandler):
                                            nosplit=True,
                                            deformat='apertium-deshtml',
                                            reformat='apertium-rehtml')
+        try:
+            response = yield httpclient.AsyncHTTPClient().fetch(request, self.handleFetch)
+        except httpclient.HTTPError as e:
+            if e.code == 304:
+                got304 = True
+                logging.info("304, can use cache")
+            elif e.code == 500:
+                print(e)
+                logging.info("efewfwef")
+                return
+        if got304 and cached is not None:
+            translated = yield translation.CatPipeline().translate(cached[1])
+        else:
+            if response.body is None:
+                self.send_error(503, explanation="got an empty file on fetching url: {}".format(url))
+                return
+            page = response.body  # type: bytes
+            if self.doPdf(response):
+                with self.withPdf(pair, url, page) as (tempFile, xsl):
+                    page = yield translation.pdf2html(pdfconverter, tempFile, toAlpha2Code(pair[0]), xsl)
+            elif not re.match("^text/html(;.*)?$", response.headers.get('content-type')):
+                logging.warn(response.headers)
+            try:
+                toTranslate = self.htmlToText(page, url)
+            except UnicodeDecodeError as e:
+                logging.info("/translatePage '{}' gave UnicodeDecodeError {}".format(url, e))
+                self.send_error(503, explanation="Couldn't decode (or detect charset/encoding of) {}".format(url))
+                return
+            before = self.logBeforeTranslation()
+            translated = yield translation.translateHtmlMarkHeadings(toTranslate, mode_path)
+            self.logAfterTranslation(before, len(toTranslate))
+            self.setCached(pair, url, translated, toTranslate)
+        self.sendResponse({
+            'responseData': {
+                'translatedText': self.maybeStripMarks(markUnknown, pair, translated)
+            },
+            'responseDetails': None,
+            'responseStatus': 200
+        })
+        retranslate = self.retranslateCache(pair, url, cached)
+        if got304 and retranslate is not None:
+            logging.info("Retranslating {}".format(url))
+            translated = yield translation.translateHtmlMarkHeadings(retranslate, mode_path)
+            logging.info("Done retranslating {}".format(url))
+            self.setCached(pair, url, translated, retranslate)
 
 
 class TranslateDocHandler(TranslateHandler):
@@ -1122,7 +1279,7 @@ def setupHandler(
     Handler.scaleMtLogs = scaleMtLogs
     Handler.verbosity = verbosity
     Handler.doc_pipe_sem = Semaphore(max_doc_pipes)
-
+    # Handler.url_cache_path = url_cache_path
     modes = searchPath(pairs_path, verbosity=verbosity)
     if nonpairs_path:
         src_modes = searchPath(nonpairs_path, include_pairs=False, verbosity=verbosity)
