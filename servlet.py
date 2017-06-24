@@ -639,7 +639,9 @@ class TranslatePageHandler(TranslateHandler):
     def setCached(self, pair, url, translated, origtext):
         """Cache translated text for a pair and url to memory, and disk.
         Also caches origtext to disk; see cachePath."""
-        if len(self.url_cache[pair]) > self.max_inmemory_url_cache:
+        if pair not in self.url_cache:
+            self.url_cache[pair] = {}
+        elif len(self.url_cache[pair]) > self.max_inmemory_url_cache:
             self.url_cache[pair] = {}
         ts = time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(time.time()))
         self.url_cache[pair][url] = (ts, translated)
@@ -674,6 +676,8 @@ class TranslatePageHandler(TranslateHandler):
         return (dirname, "{}-{}".format(*pair))
 
     def getCached(self, pair, url):
+        if not self.url_cache_path:
+            return None
         if pair not in self.url_cache:
             self.url_cache[pair] = {}
         if url in self.url_cache[pair]:
