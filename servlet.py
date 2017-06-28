@@ -726,7 +726,12 @@ class TranslatePageHandler(TranslateHandler):
                                              # TODO: tweak
                                              connect_timeout=20.0,
                                              request_timeout=20.0)
-            response = yield http_client.fetch(request)
+            try:
+                response = yield http_client.fetch(request)
+            except:
+                logging.info('Not working! Bad SSL!!!')
+                self.send_error(503, explanation="{} on fetching url: {}".format('2000', 'ni chal raha bhai'))
+                return
             toTranslate = self.htmlToText(response.body, url)
 
             yield self.translateAndRespond(pair,
@@ -744,7 +749,6 @@ class TranslatePageHandler(TranslateHandler):
                 logging.info("304, can use cache")
             elif e.code == 500:
                 print(e)
-                logging.info("efewfwef")
                 return
         if got304 and cached is not None:
             translated = yield translation.CatPipeline().translate(cached[1])
