@@ -730,7 +730,7 @@ class TranslatePageHandler(TranslateHandler):
                 response = yield http_client.fetch(request)
             except:
                 logging.info('Not working! Bad SSL!!!')
-                self.send_error(503, explanation="{} on fetching url: {}".format('2000', 'ni chal raha bhai'))
+                self.send_error(503, explanation="{} on fetching url: {}".format('2000', 'SSL Certificate cannot be verified'))
                 return
             toTranslate = self.htmlToText(response.body, url)
 
