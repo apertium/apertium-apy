@@ -130,11 +130,11 @@ class BaseHandler(tornado.web.RequestHandler):
     doc_pipe_sem = Semaphore(3)
     # Empty the url_cache[pair] when it's this full:
     max_inmemory_url_cache = 1000  # type: int
-    url_cache = {} # type: Dict[Tuple[str, str], Dict[str, str]]
-    url_cache_path = None # type: Optional[str]
+    url_cache = {}  # type: Dict[Tuple[str, str], Dict[str, str]]
+    url_cache_path = None  # type: Optional[str]
     # Keep half a gig free when storing url_cache to disk:
-    min_free_space_disk_url_cache = 512 * 1024 * 1024 # type: int
-    url_xsls = {} # type: Dict[str, Dict[str, str]]
+    min_free_space_disk_url_cache = 512 * 1024 * 1024  # type: int
+
     def initialize(self):
         self.callback = self.get_argument('callback', default=None)
 
@@ -620,7 +620,6 @@ class TranslatePageHandler(TranslateHandler):
                       lambda m: self.urlRepl(base, m.group(1), m.group(2), m.group(3)),
                       text)
 
-
     def setCached(self, pair, url, translated, origtext):
         """Cache translated text for a pair and url to memory, and disk.
         Also caches origtext to disk; see cachePath."""
@@ -696,23 +695,6 @@ class TranslatePageHandler(TranslateHandler):
         else:
             self.send_error(503, explanation="{} on fetching url: {}".format(response.code, response.error))
 
-    def doPdf(self, response):
-        pdf_mimes = ["application/pdf", "application/x-pdf", "application/octet-stream"]
-        return pdfconverter and response.headers.get('content-type') in pdf_mimes
-
-    @contextmanager
-    def withPdf(self, pair, url, page):
-        with tempfile.TemporaryDirectory() as tempdir:
-            # Use a tempdir since pdf2html might write a file to the same dir as our tempFile
-            with open(os.path.join(tempdir, 'file.pdf'), 'wb') as f:
-                f.write(page)
-                mtype = TranslateDocHandler.getMimeType(f.name)
-                if mtype in ["application/pdf", "application/x-pdf"]:
-                    xsl = self.url_xsls.get(pair[0], {}).get(url)
-                    if url.endswith("?plainxsl"):  # DEBUG
-                        xsl = "/home/apy/plain.xsl"
-                    yield f, xsl
-
     @gen.coroutine
     def get(self):
         pair = self.getPairOrError(self.get_argument('langpair'),
@@ -730,7 +712,7 @@ class TranslatePageHandler(TranslateHandler):
                 response = yield http_client.fetch(request)
             except:
                 logging.info('Not working! Bad SSL!!!')
-                self.send_error(503, explanation="{} on fetching url: {}".format('2000', 'SSL Certificate cannot be verified'))
+                self.send_error(404, explanation="{} on fetching url: {}".format('2000', 'SSL Certificate cannot be verified'))
                 return
             toTranslate = self.htmlToText(response.body, url)
 
@@ -757,11 +739,6 @@ class TranslatePageHandler(TranslateHandler):
                 self.send_error(503, explanation="got an empty file on fetching url: {}".format(url))
                 return
             page = response.body  # type: bytes
-            if self.doPdf(response):
-                with self.withPdf(pair, url, page) as (tempFile, xsl):
-                    page = yield translation.pdf2html(pdfconverter, tempFile, toAlpha2Code(pair[0]), xsl)
-            elif not re.match("^text/html(;.*)?$", response.headers.get('content-type')):
-                logging.warn(response.headers)
             try:
                 toTranslate = self.htmlToText(page, url)
             except UnicodeDecodeError as e:
