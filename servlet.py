@@ -714,9 +714,9 @@ class TranslatePageHandler(TranslateHandler):
                                              request_timeout=20.0)
             try:
                 response = yield http_client.fetch(request)
-            except:
-                logging.info('Not working! Bad SSL!!!')
-                self.send_error(404, explanation="{} on fetching url: {}".format('404', 'SSL Certificate cannot be verified'))
+            except Exception as e:
+                logging.info('%s exception has occurred' % e)
+                self.send_error(404, explanation="{} on fetching url: {}".format('Error 404', e))
                 return
             toTranslate = self.htmlToText(response.body, url)
 
