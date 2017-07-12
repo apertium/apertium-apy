@@ -1264,6 +1264,7 @@ def setupHandler(
     Handler.scaleMtLogs = scaleMtLogs
     Handler.verbosity = verbosity
     Handler.doc_pipe_sem = Semaphore(max_doc_pipes)
+
     modes = searchPath(pairs_path, verbosity=verbosity)
     if nonpairs_path:
         src_modes = searchPath(nonpairs_path, include_pairs=False, verbosity=verbosity)
