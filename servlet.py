@@ -283,8 +283,8 @@ class ListHandler(BaseHandler):
             self.sendResponse({pair: modename for (pair, (path, modename)) in self.generators.items()})
         elif query == 'taggers' or query == 'disambiguators':
             self.sendResponse({pair: modename for (pair, (path, modename)) in self.taggers.items()})
-        elif query == 'speller':
-            sel
+        elif query == 'spellers':
+            self.sendResponse({lang_src: modename for (lang_src, (path, modename)) in self.spellers.items()})
         else:
             self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, disambiguators, or pairs')
 
@@ -810,7 +810,8 @@ class SpellerHandler(BaseHandler):
            
             self.sendResponse(units)
         else:
-            self.send_error(400, explanation='That mode is not installed')
+            logging.info('Spellchecker not working')
+            self.send_error(404, explanation="{} on spellchecker mode: {}".format('Error 404', 'Mode not installed'))
 
 class GenerateHandler(BaseHandler):
 
