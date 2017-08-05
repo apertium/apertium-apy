@@ -11,6 +11,8 @@ unescape = html.parser.HTMLParser().unescape
 
 TIMEOUT = 15
 tests = {
+    "rus-bel": ("мяне", "меня"),
+    "bel-rus": ("меня", "мяне"),
     "hbs-eng": ("jeziku", "language"),
     "hin-urd": ("लेख हैं", "تحریر ہیں"),
     "urd-hin": ("تحریر ہیں", "लेख हैं"),
