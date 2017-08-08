@@ -14,6 +14,7 @@ import zipfile
 import string
 import random
 import base64
+import fcntl
 from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
 from functools import wraps
@@ -1296,6 +1297,45 @@ class SuggestionHandler(BaseHandler):
                 self.send_error(400, explanation='Page update failed')
 
 
+class ReportErrorHandler(BaseHandler):
+    @gen.coroutine
+    def get(self):
+        if not self.error_reports:
+            self.send_error(500, explanation="Server doesn't support error reporting")
+            return
+        columns = [
+            str(datetime.now()),
+            self.get_argument('langpair'),
+            self.get_argument('markUnknown'),
+            self.get_argument('selectedText'),
+            self.get_argument('userText'),
+            self.get_argument('originalText'),
+            self.get_argument('translatedText'),
+        ]
+        row = "\t".join(c.replace('\t', '\\t').replace('\n', '\\n')
+                        for c in columns)
+        if len(row) > 10000:    # just avoid writing too much to disk
+            self.send_error(400, explanation="Error report is too large, try a shorter translation")
+            return
+        with open(self.error_reports, 'a') as f:
+            with flock(f):  # rows can be long enough that appends are not atomic
+                f.write(row + "\n")
+        self.sendResponse({
+            'responseData': {
+                'reported': True
+                },
+            'responseDetails': None,
+            'responseStatus': 200
+        })
+
+
+@contextmanager
+def flock(f):
+    fcntl.flock(f, fcntl.LOCK_EX)
+    yield
+    fcntl.flock(f, fcntl.LOCK_UN)
+
+
 class PipeDebugHandler(BaseHandler):
 
     @gen.coroutine
@@ -1333,7 +1373,7 @@ def setupHandler(
     port, pairs_path, nonpairs_path, langNames, missingFreqsPath, timeout,
     max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs,
     restart_pipe_after, max_doc_pipes, verbosity=0, scaleMtLogs=False, memory=1000,
-    userdb=None, url_xsls=[], url_cache_path=None
+    userdb=None, url_xsls=[], url_cache_path=None, error_reports=None
 ):
     global missingFreqsDb
     if missingFreqsPath:
@@ -1349,6 +1389,7 @@ def setupHandler(
     Handler.restart_pipe_after = restart_pipe_after
     Handler.scaleMtLogs = scaleMtLogs
     Handler.verbosity = verbosity
+    Handler.error_reports = error_reports
     Handler.userdb = set()
     if userdb is not None:
         Handler.userdb = set(up.strip() for up in open(userdb).readlines())
@@ -1428,6 +1469,7 @@ if __name__ == '__main__':
     parser.add_argument('-wu', '--wiki-username', help="Apertium Wiki account username for SuggestionHandler", default=None)
     parser.add_argument('-b', '--bypass-token', help="ReCAPTCHA bypass token", action='store_true')
     parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA secret for suggestion validation", default=None)
+    parser.add_argument('-er', '--error-reports', help="File to append error reports to", default=None)
     parser.add_argument('-ud', '--userdb', help="Basicauth user/password file", default=None)
     parser.add_argument('-up', '--url-cache-path', help="Where to store cached url translations", default=None)
     parser.add_argument('-ux', '--url-xsls',
@@ -1472,7 +1514,7 @@ if __name__ == '__main__':
     setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
                  args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs,
                  args.restart_pipe_after, args.max_doc_pipes, args.verbosity, args.scalemt_logs, args.unknown_memory_limit,
-                 args.userdb, args.url_xsls, args.url_cache_path)
+                 args.userdb, args.url_xsls, args.url_cache_path, args.error_reports)
 
     application = tornado.web.Application([
         (r'/', RootHandler),
@@ -1492,6 +1534,7 @@ if __name__ == '__main__':
         (r'/identifyLang', IdentifyLangHandler),
         (r'/getLocale', GetLocaleHandler),
         (r'/pipedebug', PipeDebugHandler),
+        (r'/reportError', ReportErrorHandler),
         (r'/suggest', SuggestionHandler)
     ])
 
