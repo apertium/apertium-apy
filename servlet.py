@@ -1311,6 +1311,7 @@ class ReportErrorHandler(BaseHandler):
             self.get_argument('userText'),
             self.get_argument('originalText'),
             self.get_argument('translatedText'),
+            self.get_argument('url', default=''),
         ]
         row = "\t".join(c.replace('\t', '\\t').replace('\n', '\\n')
                         for c in columns)
