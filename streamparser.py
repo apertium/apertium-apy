@@ -6,7 +6,11 @@ Usage: streamparser.py [FILE]
 Consumes input from a file (first argument) or stdin, parsing and pretty printing the readings of lexical units found.
 """
 
-import re, pprint, sys, itertools, fileinput
+import re
+import pprint
+import sys
+import itertools
+import fileinput
 from collections import namedtuple
 
 
@@ -20,14 +24,22 @@ class Knownness:
 """
     symbol = ""
 
+
 class known(Knownness):
     pass
+
+
 class unknown(Knownness):
     symbol = "*"
+
+
 class biunknown(Knownness):
     symbol = "@"
+
+
 class genunknown(Knownness):
     symbol = "#"
+
 
 SReading = namedtuple('SReading', ['baseform', 'tags'])
 try:
@@ -40,11 +52,14 @@ except AttributeError:
     # Python 3.2 users have to read the source
     pass
 
+
 def subreadingToString(sub):
     return sub.baseform+"".join("<"+t+">" for t in sub.tags)
 
+
 def readingToString(reading):
     return "+".join(subreadingToString(sub) for sub in reading)
+
 
 def mainpos(reading, ltr=False):
     """Return the first part-of-speech tag of a reading. If there are
@@ -60,6 +75,7 @@ def mainpos(reading, ltr=False):
     else:
         return reading[-1].tags[0]
 
+
 class LexicalUnit:
 
     """A lexical unit consisting of a lemma and its readings.
@@ -72,6 +88,7 @@ class LexicalUnit:
     """
 
     knownness = known
+
     def __init__(self, lexicalUnit):
         self.lexicalUnit = lexicalUnit
 
