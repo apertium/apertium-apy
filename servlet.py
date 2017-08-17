@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 from urllib.parse import urlparse, urlunsplit
 import heapq
 from tornado.locks import Semaphore
-from streamparser import parse, Knownness, known, unknown
+from streamparser import parse, known
 import tornado
 import tornado.web
 import tornado.httpserver
@@ -786,12 +786,12 @@ class SpellerHandler(BaseHandler):
             formatting = 'none'
             commands = [['apertium', '-d', path, '-f', formatting, self.get_argument('lang')+'-tokenise']]
             result = yield translation.translateSimple(in_text, commands)
-           
+
             tokens = parse(result)
             units = []
             for token in tokens:
-                if token.knownness == known: 
-                    units.append({'token':token.wordform, 'known': True, 'sugg': []})
+                if token.knownness == known:
+                    units.append({'token': token.wordform, 'known': True, 'sugg': []})
                 else:
                     suggestion = []
                     commands = [['apertium', '-d', path, '-f', formatting, mode]]
@@ -804,14 +804,15 @@ class SpellerHandler(BaseHandler):
                             continue
                         if foundSugg and '    ' in line:
                             s, w = line.split('    ')
-                            suggestion.append((s, w));
+                            suggestion.append((s, w))
 
-                    units.append({'token':token.wordform, 'known': False, 'sugg': suggestion})
-           
+                    units.append({'token': token.wordform, 'known': False, 'sugg': suggestion})
+
             self.sendResponse(units)
         else:
             logging.info('Spellchecker not working')
             self.send_error(404, explanation="{} on spellchecker mode: {}".format('Error 404', 'Mode not installed'))
+
 
 class GenerateHandler(BaseHandler):
 
