@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 from urllib.parse import urlparse, urlunsplit
 import heapq
 from tornado.locks import Semaphore
-
+from streamparser import parse, known
 import tornado
 import tornado.web
 import tornado.httpserver
@@ -98,6 +98,7 @@ class BaseHandler(tornado.web.RequestHandler):
     analyzers = {}
     generators = {}
     taggers = {}
+    spellers = {}
     pipelines = {}  # (l1, l2): [translation.Pipeline], only contains flushing pairs!
     pipelines_holding = []
     callback = None
@@ -282,6 +283,8 @@ class ListHandler(BaseHandler):
             self.sendResponse({pair: modename for (pair, (path, modename)) in self.generators.items()})
         elif query == 'taggers' or query == 'disambiguators':
             self.sendResponse({pair: modename for (pair, (path, modename)) in self.taggers.items()})
+        elif query == 'spellers':
+            self.sendResponse({lang_src: modename for (lang_src, (path, modename)) in self.spellers.items()})
         else:
             self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, disambiguators, or pairs')
 
@@ -769,6 +772,48 @@ class AnalyzeHandler(BaseHandler):
             self.send_error(400, explanation='That mode is not installed')
 
 
+class SpellerHandler(BaseHandler):
+
+    @tornado.web.asynchronous
+    @gen.coroutine
+    def get(self):
+        in_text = self.get_argument('q') + '*'
+        in_mode = toAlpha3Code(self.get_argument('lang'))
+        logging.info(in_text)
+        logging.info(in_mode)
+        if in_mode in self.spellers:
+            [path, mode] = self.spellers[in_mode]
+            formatting = 'none'
+            commands = [['apertium', '-d', path, '-f', formatting, self.get_argument('lang')+'-tokenise']]
+            result = yield translation.translateSimple(in_text, commands)
+
+            tokens = parse(result)
+            units = []
+            for token in tokens:
+                if token.knownness == known:
+                    units.append({'token': token.wordform, 'known': True, 'sugg': []})
+                else:
+                    suggestion = []
+                    commands = [['apertium', '-d', path, '-f', formatting, mode]]
+
+                    result = yield translation.translateSimple(token.wordform, commands)
+                    foundSugg = False
+                    for line in result.split('\n'):
+                        if line.count('Corrections for'):
+                            foundSugg = True
+                            continue
+                        if foundSugg and '    ' in line:
+                            s, w = line.split('    ')
+                            suggestion.append((s, w))
+
+                    units.append({'token': token.wordform, 'known': False, 'sugg': suggestion})
+
+            self.sendResponse(units)
+        else:
+            logging.info('Spellchecker not working')
+            self.send_error(404, explanation="{} on spellchecker mode: {}".format('Error 404', 'Mode not installed'))
+
+
 class GenerateHandler(BaseHandler):
 
     def preproc_text(self, in_text):
@@ -1140,6 +1185,9 @@ def setupHandler(
         Handler.generators[lang_pair] = (dirpath, modename)
     for dirpath, modename, lang_pair in modes['tagger']:
         Handler.taggers[lang_pair] = (dirpath, modename)
+    for dirpath, modename, lang_src in modes['spell']:
+        if (any(lang_src == elem[2] for elem in modes['tokenise'])):
+            Handler.spellers[lang_src] = (dirpath, modename)
 
     Handler.initPairsGraph()
     Handler.initPaths()
@@ -1250,7 +1298,8 @@ if __name__ == '__main__':
         (r'/identifyLang', IdentifyLangHandler),
         (r'/getLocale', GetLocaleHandler),
         (r'/pipedebug', PipeDebugHandler),
-        (r'/suggest', SuggestionHandler)
+        (r'/suggest', SuggestionHandler),
+        (r'/speller', SpellerHandler)
     ])
 
     if args.bypass_token:
