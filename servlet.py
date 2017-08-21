@@ -679,6 +679,7 @@ class TranslatePageHandler(TranslateHandler):
         it was from disk. We want to retranslate anything we found on
         disk, since it's probably using older versions of the language
         pair.
+
         """
         mem_cached = self.url_cache.get(pair, {}).get(url)
         if mem_cached is None and cached is not None:
@@ -700,40 +701,35 @@ class TranslatePageHandler(TranslateHandler):
         pair = self.getPairOrError(self.get_argument('langpair'),
                                    # Don't yet know the size of the text, and don't want to fetch it unnecessarily:
                                    -1)
-        if pair is not None:
-            pipeline = self.getPipeline(pair)
-            http_client = httpclient.AsyncHTTPClient()
-            url = self.get_argument('url')
-            mode_path = self.pairs['%s-%s' % pair]
-            markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
-            cached = self.getCached(pair, url)
-            got304 = False
-            request = httpclient.HTTPRequest(url=url,
-                                             # TODO: tweak
-                                             connect_timeout=20.0,
-                                             request_timeout=20.0)
-            try:
-                response = yield http_client.fetch(request)
-            except Exception as e:
-                logging.info('%s exception has occurred' % e)
-                self.send_error(404, explanation="{} on fetching url: {}".format('Error 404', e))
-                return
-            toTranslate = self.htmlToText(response.body, url)
+        if pair is None:
+            return
+        self.notePairUsage(pair)
+        mode_path = self.pairs['%s-%s' % pair]
+        markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
+        url = self.get_argument('url')
+        #headers = {}
+        got304 = False
+        cached = self.getCached(pair, url)
+        #if cached is not None:
+        #    headers['If-Modified-Since'] = cached[0]
+        request = httpclient.HTTPRequest(url=url,
+                                         # TODO: tweak timeouts:
+                                         connect_timeout=20.0,
+                                         request_timeout=20.0)
 
-            yield self.translateAndRespond(pair,
-                                           pipeline,
-                                           toTranslate,
-                                           self.get_argument('markUnknown', default='yes'),
-                                           nosplit=True,
-                                           deformat='apertium-deshtml',
-                                           reformat='apertium-rehtml')
+        try:
+            response = yield httpclient.AsyncHTTPClient().fetch(request)
+        except Exception as e:
+            logging.info('%s exception has occurred' % e)
+            self.send_error(404, explanation="{} on fetching url: {}".format('Error 404', e))
+            return
         try:
             response = yield httpclient.AsyncHTTPClient().fetch(request, self.handleFetch)
         except httpclient.HTTPError as e:
             if e.code == 304:
                 got304 = True
                 logging.info("304, can use cache")
-            elif e.code == 500:
+            else:
                 print(e)
                 return
         if got304 and cached is not None:
