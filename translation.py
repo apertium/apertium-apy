@@ -332,6 +332,7 @@ def translatePipeline(toTranslate, commands):
 
     return output, all_cmds
 
+
 @gen.coroutine
 def translateSimple(toTranslate, commands):
     proc_in, proc_out = startPipeline(commands)
