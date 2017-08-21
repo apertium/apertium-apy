@@ -707,11 +707,10 @@ class TranslatePageHandler(TranslateHandler):
         mode_path = self.pairs['%s-%s' % pair]
         markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
         url = self.get_argument('url')
-        #headers = {}
+        if url.find('http://') == -1:
+            url = 'http://' + url
         got304 = False
         cached = self.getCached(pair, url)
-        #if cached is not None:
-        #    headers['If-Modified-Since'] = cached[0]
         request = httpclient.HTTPRequest(url=url,
                                          # TODO: tweak timeouts:
                                          connect_timeout=20.0,
