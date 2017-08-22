@@ -707,7 +707,7 @@ class TranslatePageHandler(TranslateHandler):
         mode_path = self.pairs['%s-%s' % pair]
         markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
         url = self.get_argument('url')
-        if url.find('http://') == -1:
+        if not url.startswith('http'):
             url = 'http://' + url
         got304 = False
         cached = self.getCached(pair, url)
