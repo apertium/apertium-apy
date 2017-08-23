@@ -344,6 +344,41 @@ def translateSimple(toTranslate, commands):
     return translated.decode('utf-8')
 
 
+def startPipelineFromModeFile(modeFile, fmt, unknownMarks=False):
+    modesdir = os.path.dirname(os.path.dirname(modeFile))
+    mode = os.path.splitext(os.path.basename(modeFile))[0]
+    if unknownMarks:
+        cmd = ['apertium', '-f', fmt,       '-d', modesdir, mode]
+    else:
+        cmd = ['apertium', '-f', fmt, '-u', '-d', modesdir, mode]
+    return startPipeline([cmd])
+
+
+@gen.coroutine
+def translateModefileBytes(toTranslateBytes, fmt, modeFile, unknownMarks=False):
+    proc_in, proc_out = startPipelineFromModeFile(modeFile, fmt, unknownMarks)
+    assert proc_in == proc_out
+    yield gen.Task(proc_in.stdin.write, toTranslateBytes)
+    proc_in.stdin.close()
+    translatedBytes = yield gen.Task(proc_out.stdout.read_until_close)
+    proc_in.stdout.close()
+    return translatedBytes
+
+
+@gen.coroutine
+def translateHtmlMarkHeadings(toTranslate, modeFile, unknownMarks=False):
+    proc_deformat = Popen(['apertium-deshtml', '-o'], stdin=PIPE, stdout=PIPE)
+    deformatted = proc_deformat.communicate(bytes(toTranslate, 'utf-8'))[0]
+    checkRetCode("Deformatter", proc_deformat)
+
+    translated = yield translateModefileBytes(deformatted, 'none', modeFile, unknownMarks)
+
+    proc_reformat = Popen(['apertium-rehtml-noent'], stdin=PIPE, stdout=PIPE)
+    reformatted = proc_reformat.communicate(translated)[0]
+    checkRetCode("Reformatter", proc_reformat)
+    return reformatted.decode('utf-8')
+
+
 @gen.coroutine
 def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
     modesdir = os.path.dirname(os.path.dirname(modeFile))
