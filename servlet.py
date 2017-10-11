@@ -742,7 +742,8 @@ class TranslatePageHandler(TranslateHandler):
         markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
         url = self.get_argument('url')
         headers = {
-            'X-Requested-With': 'apertium-apy'
+            'X-Requested-With': 'apertium-apy',
+            'User-Agent': self.request.headers.get('User-Agent', '')
         }
         got304 = False
         cached = self.getCached(pair, url)
