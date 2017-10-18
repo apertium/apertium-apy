@@ -781,6 +781,23 @@ class TranslatePageHandler(TranslateHandler):
                 logging.info("/translatePage '{}' gave UnicodeDecodeError {}".format(url, e))
                 self.send_error(503, explanation="Couldn't decode (or detect charset/encoding of) {}".format(url))
                 return
+            # Don't translate if server claims it's already in target language (but note that in responseDetails so js can tell user)
+            iso2codes = [toAlpha2Code(pair[1])]
+            if pair[1] == "nob" and pair[0] != "nno":
+                iso2codes.append("no")
+            if response.headers.get('Content-Language', '') in iso2codes:
+                logging.info("Content-Language: {} while target language is {}, sending back untranslated".format(response.headers.get('Content-Language', ''), pair[1]))
+                self.sendResponse({
+                    'responseData': {
+                        'translatedText': toTranslate
+                    },
+                    'responseDetails': {
+                        'untranslated': True,
+                        'reason': 'Content-Language header matches target language'
+                    },
+                    'responseStatus': 200
+                })
+                return
             before = self.logBeforeTranslation()
             translated = yield translation.translateHtmlMarkHeadings(toTranslate, mode_path)
             self.logAfterTranslation(before, len(toTranslate))
