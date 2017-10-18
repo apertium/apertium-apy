@@ -26,6 +26,7 @@ from contextlib import contextmanager
 import heapq
 from tornado.locks import Semaphore
 import html
+from html.parser import HTMLParser
 
 import tornado
 import tornado.web
@@ -599,6 +600,19 @@ class TranslateChainHandler(TranslateHandler):
 
 
 class TranslatePageHandler(TranslateHandler):
+
+    class HtmlLangParser(HTMLParser):
+        def __init__(self):
+            HTMLParser.__init__(self)
+            self.lang = None
+
+        def handle_starttag(self, tag, attrs):
+            if self.lang is None and tag == "html":
+                d = dict(attrs)
+                self.lang = d.get("lang",
+                                  d.get("xml:lang",
+                                        self.lang))
+
     def urlRepl(self, base, attr, quote, aurl):
         a = urlparse(aurl)
         if a.netloc == '':
@@ -717,6 +731,48 @@ class TranslatePageHandler(TranslateHandler):
         pdf_mimes = ["application/pdf", "application/x-pdf", "application/octet-stream"]
         return pdfconverter and response.headers.get('content-type') in pdf_mimes
 
+    def translatedResponse(self, markUnknown, pair, translated):
+        return {
+            'responseData': {
+                'translatedText': self.maybeStripMarks(markUnknown, pair, translated)
+            },
+            'responseDetails': None,
+            'responseStatus': 200
+        }
+
+    def untranslatedResponse(self, url, response):
+        return {
+            'responseData': {
+                'translatedText': self.htmlToText(response.body, url)
+            },
+            'responseDetails': {
+                'untranslated': True,
+                'reason': 'Content-Language header matches target language'
+            },
+            'responseStatus': 200
+        }
+
+    def keepUntranslated(self, pair, url, response):
+        """Don't translate if server claims it's already in target language
+        (but note that in responseDetails so js can tell user)"""
+        if not response:
+            return False
+        trgIso2 = [toAlpha2Code(pair[1])]
+        if pair[1] == "nob" and pair[0] != "nno":
+            trgIso2.append("no")
+        logging.info("Content-Language: {} while target language is {}, trgIso2 {}".format(response.headers.get('Content-Language', ''), pair[1], trgIso2))
+        if response.headers.get('Content-Language', '') in trgIso2:
+            logging.info("Content-Language: {} while target language is {}, sending back untranslated".format(response.headers.get('Content-Language', ''), pair[1]))
+            return True
+        parser = self.HtmlLangParser()
+        parser.feed(self.htmlToText(response.body, url))
+        logging.info("parsed as {}".format(parser.lang))
+        if parser.lang in trgIso2:
+            logging.info("<html lang='{}' while target language is {}, sending back untranslated".format(parser.lang, pair[1]))
+            return True
+        else:
+            return False
+
     @contextmanager
     def withPdf(self, pair, url, page):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -754,6 +810,7 @@ class TranslatePageHandler(TranslateHandler):
                                          # TODO: tweak timeouts:
                                          connect_timeout=20.0,
                                          request_timeout=20.0)
+        response = None
         try:
             response = yield httpclient.AsyncHTTPClient().fetch(request, self.handleFetch)
         except httpclient.HTTPError as e:
@@ -763,7 +820,10 @@ class TranslatePageHandler(TranslateHandler):
             else:
                 print(e)
                 return
-        if got304 and cached is not None:
+        if self.keepUntranslated(pair, url, response):
+            self.sendResponse(self.untranslatedResponse(url, response))
+            return
+        elif got304 and cached is not None:
             translated = yield translation.CatPipeline().translate(cached[1])
         else:
             if response.body is None:
@@ -781,34 +841,11 @@ class TranslatePageHandler(TranslateHandler):
                 logging.info("/translatePage '{}' gave UnicodeDecodeError {}".format(url, e))
                 self.send_error(503, explanation="Couldn't decode (or detect charset/encoding of) {}".format(url))
                 return
-            # Don't translate if server claims it's already in target language (but note that in responseDetails so js can tell user)
-            iso2codes = [toAlpha2Code(pair[1])]
-            if pair[1] == "nob" and pair[0] != "nno":
-                iso2codes.append("no")
-            if response.headers.get('Content-Language', '') in iso2codes:
-                logging.info("Content-Language: {} while target language is {}, sending back untranslated".format(response.headers.get('Content-Language', ''), pair[1]))
-                self.sendResponse({
-                    'responseData': {
-                        'translatedText': toTranslate
-                    },
-                    'responseDetails': {
-                        'untranslated': True,
-                        'reason': 'Content-Language header matches target language'
-                    },
-                    'responseStatus': 200
-                })
-                return
             before = self.logBeforeTranslation()
             translated = yield translation.translateHtmlMarkHeadings(toTranslate, mode_path)
             self.logAfterTranslation(before, len(toTranslate))
             self.setCached(pair, url, translated, toTranslate)
-        self.sendResponse({
-            'responseData': {
-                'translatedText': self.maybeStripMarks(markUnknown, pair, translated)
-            },
-            'responseDetails': None,
-            'responseStatus': 200
-        })
+        self.sendResponse(self.translatedResponse(markUnknown, pair, translated))
         retranslate = self.retranslateCache(pair, url, cached)
         if got304 and retranslate is not None:
             logging.info("Retranslating {}".format(url))
