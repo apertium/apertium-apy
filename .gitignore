@@ -2,3 +2,4 @@
 /t/apertium-apy.log
 /__pycache__/
 /langNames.db
+/cache/
