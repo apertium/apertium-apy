@@ -52,7 +52,7 @@ else:
 
 try:
     import cld2full as cld2
-except:
+except ImportError as _e:
     cld2 = None
 
 RECAPTCHA_VERIFICATION_URL = 'https://www.google.com/recaptcha/api/siteverify'
@@ -60,7 +60,7 @@ bypassToken = ''.join(random.choice(string.ascii_letters + string.digits) for _ 
 
 try:
     import chardet
-except:
+except ImportError as _e:
     chardet = None
 
 __version__ = "0.9.1"
@@ -195,9 +195,9 @@ class BaseHandler(tornado.web.RequestHandler):
             if vmsize > self.stats['vmsize']:
                 logging.warning("VmSize of %s from %d to %d" % (os.getpid(), self.stats['vmsize'], vmsize))
                 self.stats['vmsize'] = vmsize
-        except:
-            # don't let a stupid logging function mess us up
-            pass
+        except Exception as e:
+            # Don't fail just because we couldn't log:
+            logging.info('Exception in log_vmsize: %s' % e)
 
     def sendResponse(self, data):
         self.log_vmsize()
