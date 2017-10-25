@@ -54,8 +54,8 @@ def populateDatabase(args):
                                                                   changes, locale[1] if locale[0] == locale[1] else '%s -> %s' % locale))
         except (KeyboardInterrupt, SystemExit):
             raise
-        except:
-            print('Failed to retreive language %s' % locale[1])
+        except Exception as e:
+            print('Failed to retreive language %s, exception: %s' % (locale[1], e))
 
     conn.commit()
     c.close()
