@@ -397,7 +397,8 @@ def testServerPool(serverList):
             try:
                 result = http.fetch(requestURL, request_timeout=15, validate_cert=verifySSLCert)
                 handleResult(result, (testPath, testFn), (domain, port))
-            except:
+            except Exception as e:
+                logging.warning('Exception in testServerPool: %s', e)
                 handleResult(None, (testPath, testFn), (domain, port))
 
     return testResults
@@ -437,8 +438,8 @@ def determineServerCapabilities(serverlist):
             # make the request
             try:
                 result = http.fetch(requestURL, request_timeout=15, validate_cert=verifySSLCert)
-            except:
-                logging.error("Fetch for data from %s for %s failed, dropping server" % (genServerName(domain, port), mode))
+            except Exception as e:
+                logging.error("Fetch for data from %s for %s failed with %s, dropping server" % (genServerName(domain, port), mode, e))
                 continue
             # parse the return
             try:

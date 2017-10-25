@@ -174,13 +174,13 @@ def upToBytes(string, max_bytes):
 
     """
     b = bytes(string, 'utf-8')
-    l = max_bytes
-    while l:
+    bl = max_bytes
+    while bl:
         try:
-            dec = b[:l].decode('utf-8')
+            dec = b[:bl].decode('utf-8')
             return len(dec)
         except UnicodeDecodeError:
-            l -= 1
+            bl -= 1
     return 0
 
 
