@@ -9197,8 +9197,9 @@ INSERT INTO "fixes" VALUES(NULL,'smn','fi','suomâkielâ');
 INSERT INTO "fixes" VALUES(NULL,'tr','gag','Gagavuzca');
 INSERT INTO "fixes" VALUES(NULL,'gag','gag','Gagauzça');
 INSERT INTO "fixes" VALUES(NULL,'crh','gag','Ğağauzça');
-INSERT INTO "fixes" VALUES(NULL,'kaz','gag','Ғағауызша');
-INSERT INTO "fixes" VALUES(NULL,'kaz','gag','Гагаузча');
+INSERT INTO "fixes" VALUES(NULL,'kk','gag','Ғағауызша');
+INSERT INTO "fixes" VALUES(NULL,'ky','gag','Гагаузча');
+INSERT INTO "fixes" VALUES(NULL,'en','gag','Gagauz');
 
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
 COMMIT;
