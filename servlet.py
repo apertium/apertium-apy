@@ -39,6 +39,7 @@ except ImportError:  # 2.1
     from tornado.options import enable_pretty_logging
 
 from modeSearch import searchPath
+import util
 from keys import getKey
 from util import getLocalizedLanguages, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, scaleMtLog, TranslationInfo, removeDotFromDeformat
 
@@ -905,7 +906,6 @@ class AnalyzeHandler(BaseHandler):
         else:
             self.send_error(400, explanation='That mode is not installed')
 
-
 class GenerateHandler(BaseHandler):
 
     def preproc_text(self, in_text):
@@ -934,6 +934,91 @@ class GenerateHandler(BaseHandler):
         else:
             self.send_error(400, explanation='That mode is not installed')
 
+class DictionaryLookupHandler(BaseHandler):
+    def getPipeCmds(self, l1, l2):
+        if (l1, l2) not in self.pipeline_cmds:
+            mode_path = self.pairs['%s-%s' % (l1, l2)]
+            self.pipeline_cmds[(l1, l2)] = translation.parseModeFile(mode_path)
+        return self.pipeline_cmds[(l1, l2)]
+
+    def getPairOrError(self, langpair):
+        try:
+            l1, l2 = map(toAlpha3Code, langpair.split('|'))
+        except ValueError:
+            self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
+            return None
+        if '%s-%s' % (l1, l2) not in self.pairs:
+            self.send_error(400, explanation='That pair is not installed')
+            return None
+        else:
+            return (l1, l2)
+
+    def postproc_morph(self, in_text, result):
+        lexical_units = util.removeDotFromDeformat(in_text, re.findall(r'\^([^\$]*)\$([^\^]*)', result))
+        ret = []
+        for lu in lexical_units:
+            splits = lu[0].split('/')
+            form = splits[0]
+            readings = splits[1:]
+            ret.append(["^"+form+"/"+reading+"$" for reading in readings])
+        return ret
+
+    def prepare_answer(self, translated_result):
+        sending_structure = {}
+        for elem in translated_result:
+            elem = elem.replace("^", "").replace('$\u0000\u0000\u0000', '')
+            elem = elem.split('/')
+            for item in elem[1:]:
+                item = item.replace(">", "").split('<')
+                if len(item) > 1:
+                    if item[1] not in sending_structure.keys():
+                        sending_structure[item[1]] = [item[0]]
+                    else:
+                        if item[0] not in sending_structure[item[1]]:
+                            sending_structure[item[1]].append(item[0])
+        return sending_structure  
+
+    def morphCmds(self, parsedmodes):
+        commands = parsedmodes.commands
+        return [["apertium-deshtml"], commands[0]]
+
+    def morphToBiCmds(self, parsedmodes):
+        commands = parsedmodes.commands
+        i_bicmd = self.findall_indices(commands, self.is_bicmd)[0]
+        cmdstobi = commands[1:i_bicmd+1]
+        # Some pairs use apertium-transfer to do bidix-lookup; use lt-proc -b instead:
+        if cmdstobi[-1][0] == "apertium-transfer":
+            i_bifile = self.findall_indices(cmdstobi[-1], lambda x: x.find("autobil.bin")!=-1)
+            cmdstobi[-1] = ["lt-proc", "-b", cmdstobi[-1][i_bifile[0]]]
+        return cmdstobi
+
+    def is_bicmd(self, cmd):
+        return any(x.find("autobil.bin")!=-1 for x in cmd)
+
+    def findall_indices(self, lst, test):
+        return [i for i,x in enumerate(lst) if test(x)]
+
+    @tornado.web.asynchronous
+    @gen.coroutine
+    def get(self):
+        in_text = self.get_argument('q')
+        pair = self.getPairOrError(self.get_argument('langpair'))
+        
+        if pair is not None:
+            (l1, l2) = pair
+            mode = self.getPipeCmds(l1, l2)
+            morph_result = yield translation.translateNoFlush(in_text, self.morphCmds(mode))
+            split_analyses = self.postproc_morph(in_text, morph_result)
+            if len(split_analyses) != 1:
+                logging.info(morph_result)
+                self.send_error(501, explanation='This mode supports only one lexical unit')
+            else:
+                analysis = split_analyses[0]
+                translated_splits = []
+                for reading in analysis:
+                    lookup_result = yield translation.translateNoFlush(reading, self.morphToBiCmds(mode))
+                    translated_splits.append(lookup_result)
+                self.sendResponse(self.prepare_answer(translated_splits))
 
 class ListLanguageNamesHandler(BaseHandler):
 
@@ -1380,6 +1465,7 @@ if __name__ == '__main__':
         (r'/translatePage', TranslatePageHandler),
         (r'/translateRaw', TranslateRawHandler),
         (r'/analy[sz]e', AnalyzeHandler),
+        (r'/dictionaryLookup', DictionaryLookupHandler),
         (r'/generate', GenerateHandler),
         (r'/listLanguageNames', ListLanguageNamesHandler),
         (r'/perWord', PerWordHandler),

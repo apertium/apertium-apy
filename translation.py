@@ -343,6 +343,14 @@ def translateSimple(toTranslate, commands):
     proc_in.stdout.close()
     return translated.decode('utf-8')
 
+@gen.coroutine
+def translateNoFlush(toTranslate, commands):
+    proc_in, proc_out = startPipeline(commands) 
+    yield gen.Task(proc_in.stdin.write, bytes(toTranslate, 'utf-8'))
+    proc_in.stdin.close()   
+    translated = yield gen.Task(proc_out.stdout.read_until_close)
+    proc_in.stdout.close()
+    return translated.decode('utf-8')
 
 def startPipelineFromModeFile(modeFile, fmt, unknownMarks=False):
     modesdir = os.path.dirname(os.path.dirname(modeFile))
