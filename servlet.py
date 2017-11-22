@@ -386,7 +386,7 @@ class TranslateHandler(BaseHandler):
                 missingFreqsDb.noteUnknown(token, pair)
 
     def cleanable(self, i, pair, pipe):
-        if pipe.useCount > self.restart_pipe_after:
+        if self.stats['useCount'].get(pair, 0) > self.restart_pipe_after:
             # Not affected by min_pipes_per_pair
             logging.info('A pipe for pair %s-%s has handled %d requests, scheduling restart',
                          pair[0], pair[1], self.restart_pipe_after)
