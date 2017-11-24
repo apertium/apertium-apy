@@ -121,6 +121,7 @@ def getCoverages(text, modes, penalize=False):
 def getCoverage(text, mode, modeDir, penalize=False):
     analysis = apertium(text, mode, modeDir)
     lexicalUnits = removeDotFromDeformat(text, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
+    # tries to handle URLs, see goavki PR #67
     analyzedLexicalUnits = list(filter(lambda x: not x[0].split('/')[(x[0].count('/') + 1) // 2][0] in '*&#', lexicalUnits))
     if len(lexicalUnits) and not penalize:
         return len(analyzedLexicalUnits) / len(lexicalUnits)
