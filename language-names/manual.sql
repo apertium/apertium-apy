@@ -336,7 +336,10 @@ INSERT INTO "additions" VALUES(NULL,'en','mrj','Hill Mari');
 INSERT INTO "additions" VALUES(NULL,'en','snd','Sindhi');
 INSERT INTO "additions" VALUES(NULL,'en','qve','Quechua');
 INSERT INTO "additions" VALUES(NULL,'en','ssp','Spanish Sign Language');
+INSERT INTO "additions" VALUES(NULL,'en','khk','Khalkha Mongolian');
 
+INSERT INTO "additions" VALUES(NULL,'byv','byv','Mə̀dʉ̂mbɑ̀');
+INSERT INTO "additions" VALUES(NULL,'en','byv','Medumba');
 
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "additions";
