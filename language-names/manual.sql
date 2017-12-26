@@ -331,6 +331,12 @@ INSERT INTO "additions" VALUES(NULL,'en','liv','Livonian');
 INSERT INTO "additions" VALUES(NULL,'en','olo','Livvi-Karelian');
 INSERT INTO "additions" VALUES(NULL,'en','sjo','Xibe');
 INSERT INTO "additions" VALUES(NULL,'en','srn','Sranan');
+INSERT INTO "additions" VALUES(NULL,'en','guc','Wayuu');
+INSERT INTO "additions" VALUES(NULL,'en','mrj','Hill Mari');
+INSERT INTO "additions" VALUES(NULL,'en','snd','Sindhi');
+INSERT INTO "additions" VALUES(NULL,'en','qve','Quechua');
+INSERT INTO "additions" VALUES(NULL,'en','ssp','Spanish Sign Lnaguage');
+
 
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "additions";
