@@ -1,6 +1,10 @@
 PRAGMA foreign_keys=OFF;
 BEGIN TRANSACTION;
 CREATE TABLE fixes (id integer primary key, lg text, inLg text, name text, unique(lg, inLg) on conflict replace);
+CREATE TABLE additions (id integer primary key, lg text, inLg text, name text, unique(lg, inLg) on conflict replace);
+
+/* NOTE: many inserts into "fixes" predate the additions table */
+
 INSERT INTO "fixes" VALUES(NULL,'ky','ar','арабча');
 INSERT INTO "fixes" VALUES(NULL,'ky','ba','башкортчо');
 INSERT INTO "fixes" VALUES(NULL,'ky','cv','чубашча');
@@ -317,5 +321,17 @@ INSERT INTO "fixes" VALUES(NULL,'kk','gag','ғағауызша');
 INSERT INTO "fixes" VALUES(NULL,'ky','gag','гагаузча');
 INSERT INTO "fixes" VALUES(NULL,'en','gag','Gagauz');
 
+INSERT INTO "additions" VALUES(NULL,'en','guj','Gujarati');
+INSERT INTO "additions" VALUES(NULL,'guj','guj','ગુજરાતી');
+
+INSERT INTO "additions" VALUES(NULL,'en','lvs','Latvian');
+INSERT INTO "additions" VALUES(NULL,'lvs','lvs','latviešu valoda');
+
+INSERT INTO "additions" VALUES(NULL,'en','liv','Livonian');
+INSERT INTO "additions" VALUES(NULL,'en','olo','Livvi-Karelian');
+INSERT INTO "additions" VALUES(NULL,'en','sjo','Xibe');
+INSERT INTO "additions" VALUES(NULL,'en','srn','Sranan');
+
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
+INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "additions";
 COMMIT;
