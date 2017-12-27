@@ -3,6 +3,7 @@
 
 import sqlite3
 import logging
+from typing import Dict
 from datetime import datetime
 import threading
 from collections import defaultdict
@@ -15,7 +16,7 @@ class MissingDb(object):
         self.lock = threading.RLock()
         self.conn = None
         self.dbPath = dbPath
-        self.words = defaultdict(lambda: defaultdict(lambda: 0))
+        self.words = defaultdict(lambda: defaultdict(lambda: 0)) # type: Dict[str, Dict[str, int]]
         self.wordcount = 0
         self.wordmemlimit = wordmemlimit
 

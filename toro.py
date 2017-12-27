@@ -18,6 +18,7 @@
 import contextlib
 import heapq
 import collections
+from typing import List
 from functools import partial
 from queue import Full, Empty
 
@@ -174,7 +175,7 @@ class AsyncResult(object):
     def __init__(self, io_loop=None):
         self.io_loop = io_loop or ioloop.IOLoop.current()
         self.value = _null_result
-        self.waiters = []
+        self.waiters = [] # type: List[_TimeoutFuture]
 
     def __str__(self):
         result = '<%s ' % (self.__class__.__name__, )
@@ -242,7 +243,8 @@ class Condition(object):
 
     def __init__(self, io_loop=None):
         self.io_loop = io_loop or ioloop.IOLoop.current()
-        self.waiters = collections.deque()  # Queue of _Waiter objects
+        # Queue of _Waiter objects
+        self.waiters = collections.deque() # type: collections.deque
 
     def __str__(self):
         result = '<%s' % (self.__class__.__name__, )
@@ -379,13 +381,13 @@ class Queue(object):
         self._maxsize = maxsize
 
         # _TimeoutFutures
-        self.getters = collections.deque([])
+        self.getters = collections.deque([]) # type: collections.deque
         # Pairs of (item, _TimeoutFuture)
-        self.putters = collections.deque([])
+        self.putters = collections.deque([]) # type: collections.deque
         self._init(maxsize)
 
     def _init(self, maxsize):
-        self.queue = collections.deque()
+        self.queue = collections.deque() # type: collections.deque
 
     def _get(self):
         return self.queue.popleft()

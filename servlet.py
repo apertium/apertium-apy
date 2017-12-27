@@ -7,14 +7,17 @@ import os
 import re
 import argparse
 import logging
+from logging import handlers as logging_handlers # type: ignore
 import time
 import signal
 import tempfile
 import zipfile
 import string
 import random
+from typing import Dict, List, Optional, Tuple
 from subprocess import Popen, PIPE
-from multiprocessing import Pool, TimeoutError
+from multiprocessing import Pool
+from multiprocessing import TimeoutError # type: ignore
 from functools import wraps
 from threading import Thread
 from datetime import datetime, timedelta
@@ -36,7 +39,7 @@ from tornado.escape import utf8
 try:  # 3.1
     from tornado.log import enable_pretty_logging
 except ImportError:  # 2.1
-    from tornado.options import enable_pretty_logging
+    from tornado.options import enable_pretty_logging # type: ignore
 
 from modeSearch import searchPath
 from keys import getKey
@@ -47,11 +50,13 @@ import missingdb
 
 if sys.version_info.minor < 3:
     import translation_py32 as translation
+    from translation_py32 import CatPipeline as translation_CatPipeline # type: ignore
 else:
-    import translation
+    import translation # type: ignore
+    from translation import CatPipeline as translation_CatPipeline # type: ignore
 
 try:
-    import cld2full as cld2
+    import cld2full as cld2 # type: ignore
 except ImportError as _e:
     cld2 = None
 
@@ -95,12 +100,13 @@ def sig_handler(sig, frame):
 
 
 class BaseHandler(tornado.web.RequestHandler):
-    pairs = {}
-    analyzers = {}
-    generators = {}
-    taggers = {}
-    pipelines = {}  # (l1, l2): [translation.Pipeline], only contains flushing pairs!
-    pipelines_holding = []
+    pairs = {} # type: Dict[str, str]
+    analyzers = {} # type: Dict[str, Tuple[str, str]]
+    generators = {} # type: Dict[str, Tuple[str, str]]
+    taggers = {} # type: Dict[str, Tuple[str, str]]
+    # (l1, l2): [translation.Pipeline], only contains flushing pairs!
+    pipelines = {} # type: Dict[str, List]
+    pipelines_holding = [] # type: List
     callback = None
     timeout = None
     scaleMtLogs = False
@@ -108,11 +114,11 @@ class BaseHandler(tornado.web.RequestHandler):
 
     # dict representing a graph of translation pairs; keys are source languages
     # e.g. pairs_graph['eng'] = ['fra', 'spa']
-    pairs_graph = {}
+    pairs_graph = {} # type: Dict[str, List[str]]
     # 2-D dict storing the shortest path for a chained translation pair
     # keys are source and target languages
     # e.g. paths['eng']['fra'] = ['eng', 'spa', 'fra']
-    paths = {}
+    paths = {} # type: Dict[str, Dict[str, List[str]]]
 
     stats = {
         'startdate': datetime.now(),
@@ -121,7 +127,8 @@ class BaseHandler(tornado.web.RequestHandler):
         'timing': []
     }
 
-    pipeline_cmds = {}  # (l1, l2): translation.ParsedModes
+    # (l1, l2): translation.ParsedModes
+    pipeline_cmds = {} # type: Dict
     max_pipes_per_pair = 1
     min_pipes_per_pair = 0
     max_users_per_pipe = 5
@@ -269,14 +276,12 @@ class ListHandler(BaseHandler):
         if query == 'pairs':
             src = self.get_argument('src', default=None)
             responseData = []
-            if not src:
-                pairs_list = self.pairs
-
-                def langs(pair): return pair.split('-')
-            else:
+            if src:
                 pairs_list = self.paths[src]
-
-                def langs(trgt): return src, trgt
+                langs = lambda lang: (src, lang)
+            else:
+                pairs_list = self.pairs
+                langs = lambda pair: (pair.split('-')[0], pair.split('-')[1])
             for pair in pairs_list:
                 l1, l2 = langs(pair)
                 responseData.append({'sourceLanguage': l1, 'targetLanguage': l2})
@@ -732,7 +737,7 @@ class TranslatePageHandler(TranslateHandler):
                 print(e)
                 return
         if got304 and cached is not None:
-            translated = yield translation.CatPipeline().translate(cached[1])
+            translated = yield translation_CatPipeline().translate(cached[1])
         else:
             if response.body is None:
                 self.send_error(503, explanation="got an empty file on fetching url: {}".format(url))
@@ -1112,7 +1117,7 @@ class GetLocaleHandler(BaseHandler):
 
 
 class SuggestionHandler(BaseHandler):
-    wiki_session = None
+    wiki_session = None # type: Optional[requests.Session]
     wiki_edit_token = None
     SUGGEST_URL = None
     recaptcha_secret = None
@@ -1349,8 +1354,9 @@ if __name__ == '__main__':
         logger = logging.getLogger('scale-mt')
         logger.propagate = False
         smtlog = os.path.join(args.log_path, 'ScaleMTRequests.log')
-        loggingHandler = logging.handlers.TimedRotatingFileHandler(smtlog, 'midnight', 0)
-        loggingHandler.suffix = "%Y-%m-%d"
+        loggingHandler = logging_handlers.TimedRotatingFileHandler(smtlog, 'midnight', 0)
+        # internal attribute, should not use
+        loggingHandler.suffix = "%Y-%m-%d" # type: ignore
         logger.addHandler(loggingHandler)
 
         # if scalemt_logs is enabled, disable tornado.access logs
