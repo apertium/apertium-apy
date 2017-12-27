@@ -7,17 +7,17 @@ import os
 import re
 import argparse
 import logging
-from logging import handlers as logging_handlers # type: ignore
+from logging import handlers as logging_handlers  # type: ignore
 import time
 import signal
 import tempfile
 import zipfile
 import string
 import random
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple  # noqa
 from subprocess import Popen, PIPE
 from multiprocessing import Pool
-from multiprocessing import TimeoutError # type: ignore
+from multiprocessing import TimeoutError  # type: ignore
 from functools import wraps
 from threading import Thread
 from datetime import datetime, timedelta
@@ -39,7 +39,7 @@ from tornado.escape import utf8
 try:  # 3.1
     from tornado.log import enable_pretty_logging
 except ImportError:  # 2.1
-    from tornado.options import enable_pretty_logging # type: ignore
+    from tornado.options import enable_pretty_logging  # type: ignore
 
 from modeSearch import searchPath
 from keys import getKey
@@ -50,13 +50,13 @@ import missingdb
 
 if sys.version_info.minor < 3:
     import translation_py32 as translation
-    from translation_py32 import CatPipeline as translation_CatPipeline # type: ignore
+    from translation_py32 import CatPipeline as translation_CatPipeline  # type: ignore
 else:
-    import translation # type: ignore
-    from translation import CatPipeline as translation_CatPipeline # type: ignore
+    import translation  # type: ignore
+    from translation import CatPipeline as translation_CatPipeline  # type: ignore
 
 try:
-    import cld2full as cld2 # type: ignore
+    import cld2full as cld2  # type: ignore
 except ImportError as _e:
     cld2 = None
 
@@ -100,13 +100,13 @@ def sig_handler(sig, frame):
 
 
 class BaseHandler(tornado.web.RequestHandler):
-    pairs = {} # type: Dict[str, str]
-    analyzers = {} # type: Dict[str, Tuple[str, str]]
-    generators = {} # type: Dict[str, Tuple[str, str]]
-    taggers = {} # type: Dict[str, Tuple[str, str]]
+    pairs = {}  # type: Dict[str, str]
+    analyzers = {}  # type: Dict[str, Tuple[str, str]]
+    generators = {}  # type: Dict[str, Tuple[str, str]]
+    taggers = {}  # type: Dict[str, Tuple[str, str]]
     # (l1, l2): [translation.Pipeline], only contains flushing pairs!
-    pipelines = {} # type: Dict[str, List]
-    pipelines_holding = [] # type: List
+    pipelines = {}  # type: Dict[str, List]
+    pipelines_holding = []  # type: List
     callback = None
     timeout = None
     scaleMtLogs = False
@@ -114,11 +114,11 @@ class BaseHandler(tornado.web.RequestHandler):
 
     # dict representing a graph of translation pairs; keys are source languages
     # e.g. pairs_graph['eng'] = ['fra', 'spa']
-    pairs_graph = {} # type: Dict[str, List[str]]
+    pairs_graph = {}  # type: Dict[str, List[str]]
     # 2-D dict storing the shortest path for a chained translation pair
     # keys are source and target languages
     # e.g. paths['eng']['fra'] = ['eng', 'spa', 'fra']
-    paths = {} # type: Dict[str, Dict[str, List[str]]]
+    paths = {}  # type: Dict[str, Dict[str, List[str]]]
 
     stats = {
         'startdate': datetime.now(),
@@ -128,7 +128,7 @@ class BaseHandler(tornado.web.RequestHandler):
     }
 
     # (l1, l2): translation.ParsedModes
-    pipeline_cmds = {} # type: Dict
+    pipeline_cmds = {}  # type: Dict
     max_pipes_per_pair = 1
     min_pipes_per_pair = 0
     max_users_per_pipe = 5
@@ -278,10 +278,14 @@ class ListHandler(BaseHandler):
             responseData = []
             if src:
                 pairs_list = self.paths[src]
-                langs = lambda lang: (src, lang)
+
+                def langs(foo):
+                    return (src, foo)
             else:
                 pairs_list = self.pairs
-                langs = lambda pair: (pair.split('-')[0], pair.split('-')[1])
+
+                def langs(foo):
+                    return (foo.split('-')[0], foo.split('-')[1])
             for pair in pairs_list:
                 l1, l2 = langs(pair)
                 responseData.append({'sourceLanguage': l1, 'targetLanguage': l2})
@@ -1117,7 +1121,7 @@ class GetLocaleHandler(BaseHandler):
 
 
 class SuggestionHandler(BaseHandler):
-    wiki_session = None # type: Optional[requests.Session]
+    wiki_session = None  # type: Optional[requests.Session]
     wiki_edit_token = None
     SUGGEST_URL = None
     recaptcha_secret = None
@@ -1356,7 +1360,7 @@ if __name__ == '__main__':
         smtlog = os.path.join(args.log_path, 'ScaleMTRequests.log')
         loggingHandler = logging_handlers.TimedRotatingFileHandler(smtlog, 'midnight', 0)
         # internal attribute, should not use
-        loggingHandler.suffix = "%Y-%m-%d" # type: ignore
+        loggingHandler.suffix = "%Y-%m-%d"  # type: ignore
         logger.addHandler(loggingHandler)
 
         # if scalemt_logs is enabled, disable tornado.access logs

@@ -10,8 +10,8 @@ import random
 import socket
 import servlet
 import pprint
-from typing import Any, Dict, List, Set, Tuple
-from collections import OrderedDict, defaultdict
+from typing import Any, Dict, List, Set, Tuple  # noqa
+from collections import OrderedDict
 import tornado
 import tornado.httpserver
 import tornado.web
@@ -20,7 +20,7 @@ from tornado.web import RequestHandler
 try:  # 3.1
     from tornado.log import enable_pretty_logging
 except ImportError:  # 2.1
-    from tornado.options import enable_pretty_logging # type: ignore
+    from tornado.options import enable_pretty_logging  # type: ignore
 
 global verifySSLCert
 
@@ -52,7 +52,7 @@ class requestHandler(RequestHandler):
             '/getLocale': 'getLocale'
         }
 
-        if not path in pathToMode:
+        if path not in pathToMode:
             return self.send_error(400)
 
         mode = pathToMode[path]
@@ -285,7 +285,7 @@ class Fastest(Balancer):
                 return next(self.serverCycle)
             elif mode == 'perWord':
                 modes = kwargs['perWordModes']
-                possibleServersSet = set() # type: Set
+                possibleServersSet = set()  # type: Set
                 if ('morph' in modes or 'biltrans' in modes) and ('analyze', langPair) in self.serverlist:
                     possibleServersSet.update(self.serverlist[('analyze', langPair)])
                 elif ('tagger' in modes or 'disambig' in modes or 'translate' in modes) and ('tag', langPair) in self.serverlist:
@@ -375,7 +375,7 @@ def testServerPool(serverList):
         '/list?q=taggers': lambda x: isinstance(x, dict) and all(map(lambda y: isinstance(y, str), list(x.keys()) + list(x.values()))),
         '/list?q=generators': lambda x: isinstance(x, dict) and all(map(lambda y: isinstance(y, str), list(x.keys()) + list(x.values())))
     }
-    testResults = {server: {} for server in serverList} # type: Dict[Any, Dict[str, Tuple[bool, float]]]
+    testResults = {server: {} for server in serverList}  # type: Dict[Any, Dict[str, Tuple[bool, float]]]
     http = tornado.httpclient.HTTPClient()
 
     def handleResult(result, test, server):
@@ -411,7 +411,7 @@ def determineServerCapabilities(serverlist):
 
     The return data from this function is a little complex, better illustrated than described:
     capabilities = {
-        "pairs": { #note that pairs is a special mode compared to taggers/generators/analyzers
+        "pairs": {  #note that pairs is a special mode compared to taggers/generators/analyzers
             ("lang", "pair"): [(server1, port1), (server2, port2)]
             }
         "taggers|generators|analyzers": {
@@ -426,7 +426,7 @@ def determineServerCapabilities(serverlist):
     # look at the return codes in order to do this.
     http = tornado.httpclient.HTTPClient()
     modes = ("pairs", "taggers", "generators", "analyzers")
-    capabilities = {} # type: Dict[str, Dict]
+    capabilities = {}  # type: Dict[str, Dict]
     for (domain, port) in serverlist:
         server = (domain, port)
         for mode in modes:

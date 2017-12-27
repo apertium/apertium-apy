@@ -8,7 +8,7 @@ import json
 import sys
 
 import html.parser
-unescape = html.parser.HTMLParser().unescape # type: ignore
+unescape = html.parser.HTMLParser().unescape  # type: ignore
 
 TIMEOUT = 15
 tests = {

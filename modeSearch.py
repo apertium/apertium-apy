@@ -1,7 +1,7 @@
 import re
 import os
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple  # noqa
 from util import toAlpha3Code
 
 
@@ -38,7 +38,7 @@ def searchPath(rootpath, include_pairs=True, verbosity=1):
         'analyzer': [],
         'generator': [],
         'tagger': [],
-    } # type: Dict[str, List[Tuple[str, str, str]]]
+    }  # type: Dict[str, List[Tuple[str, str, str]]]
 
     real_root = os.path.abspath(os.path.realpath(rootpath))
 

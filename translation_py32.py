@@ -1,6 +1,6 @@
 import re
 import os
-from typing import List
+from typing import List  # noqa
 from subprocess import Popen, PIPE
 from tornado import gen
 import tornado.process
@@ -8,7 +8,7 @@ import tornado.iostream
 try:  # >=4.2
     import tornado.locks as locks
 except ImportError:
-    import toro as locks # type: ignore
+    import toro as locks  # type: ignore
 import logging
 from select import PIPE_BUF
 from contextlib import contextmanager
@@ -101,7 +101,7 @@ def makePipeline(modes_parsed):
 
 
 def startPipeline(commands):
-    procs = [] # type: List[tornado.process.Subprocess]
+    procs = []  # type: List[tornado.process.Subprocess]
     for i, cmd in enumerate(commands):
         if i == 0:
             in_from = tornado.process.Subprocess.STREAM
