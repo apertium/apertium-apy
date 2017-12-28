@@ -337,6 +337,8 @@ INSERT INTO "additions" VALUES(NULL,'en','snd','Sindhi');
 INSERT INTO "additions" VALUES(NULL,'en','qve','Quechua');
 INSERT INTO "additions" VALUES(NULL,'en','ssp','Spanish Sign Language');
 INSERT INTO "additions" VALUES(NULL,'en','khk','Khalkha Mongolian');
+INSERT INTO "additions" VALUES(NULL,'en','vro','Võro');
+INSERT INTO "additions" VALUES(NULL,'en','mdf','Moksha');
 
 INSERT INTO "additions" VALUES(NULL,'byv','byv','Mə̀dʉ̂mbɑ̀');
 INSERT INTO "additions" VALUES(NULL,'en','byv','Medumba');
