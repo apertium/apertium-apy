@@ -14,7 +14,7 @@ import tempfile
 import zipfile
 import string
 import random
-from typing import Dict, List, Optional, Tuple  # noqa
+from typing import Dict, List, Optional, Tuple  # noqa: F401
 from subprocess import Popen, PIPE
 from multiprocessing import Pool
 from multiprocessing import TimeoutError  # type: ignore

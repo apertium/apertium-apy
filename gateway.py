@@ -10,7 +10,7 @@ import random
 import socket
 import servlet
 import pprint
-from typing import Any, Dict, List, Set, Tuple  # noqa
+from typing import Any, Dict, List, Set, Tuple  # noqa: F401
 from collections import OrderedDict
 import tornado
 import tornado.httpserver

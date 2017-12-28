@@ -3,7 +3,7 @@
 
 import sqlite3
 import logging
-from typing import Dict  # noqa
+from typing import Dict  # noqa: F401
 from datetime import datetime
 import threading
 from collections import defaultdict

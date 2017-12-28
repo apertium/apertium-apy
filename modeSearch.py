@@ -1,7 +1,7 @@
 import re
 import os
 import logging
-from typing import Dict, List, Tuple  # noqa
+from typing import Dict, List, Tuple  # noqa: F401
 from util import toAlpha3Code
 
 

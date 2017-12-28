@@ -1,6 +1,6 @@
 import re
 import os
-from typing import List  # noqa
+from typing import List  # noqa: F401
 from subprocess import Popen, PIPE
 from tornado import gen
 import tornado.process
