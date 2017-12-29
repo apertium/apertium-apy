@@ -1,7 +1,13 @@
+#!/usr/bin/env python3
+
+try:
+    from typing import Dict, List, Tuple  # noqa: F401
+except ImportError:  # 3.2
+    pass
+
 import re
 import os
 import logging
-from typing import Dict, List, Tuple  # noqa: F401
 from util import toAlpha3Code
 
 

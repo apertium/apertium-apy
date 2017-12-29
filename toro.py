@@ -15,10 +15,14 @@
 # under the License.
 
 
+try:
+    from typing import List  # noqa: F401
+except ImportError:  # 3.2
+    pass
+
 import contextlib
 import heapq
 import collections
-from typing import List
 from functools import partial
 from queue import Full, Empty
 

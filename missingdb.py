@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 # vim: set ts=4 sw=4 sts=4 et :
 
+try:
+    from typing import Dict  # noqa: F401
+except ImportError:  # 3.2
+    pass
+
 import sqlite3
 import logging
-from typing import Dict  # noqa: F401
 from datetime import datetime
 import threading
 from collections import defaultdict

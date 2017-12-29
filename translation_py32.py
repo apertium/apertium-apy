@@ -1,6 +1,12 @@
+#!/usr/bin/env python3
+
+try:
+    from typing import List  # noqa: F401
+except ImportError:  # 3.2
+    pass
+
 import re
 import os
-from typing import List  # noqa: F401
 from subprocess import Popen, PIPE
 from tornado import gen
 import tornado.process

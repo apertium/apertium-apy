@@ -2,6 +2,11 @@
 # -*- indent-tabs-mode: nil -*-
 # coding=utf-8
 
+try:
+    from typing import Dict, List, Optional, Tuple  # noqa: F401
+except ImportError:  # 3.2
+    pass
+
 import sys
 import os
 import re
@@ -14,7 +19,6 @@ import tempfile
 import zipfile
 import string
 import random
-from typing import Dict, List, Optional, Tuple  # noqa: F401
 from subprocess import Popen, PIPE
 from multiprocessing import Pool
 from multiprocessing import TimeoutError  # type: ignore
@@ -50,10 +54,8 @@ import missingdb
 
 if sys.version_info.minor < 3:
     import translation_py32 as translation
-    from translation_py32 import CatPipeline as translation_CatPipeline  # type: ignore
 else:
     import translation  # type: ignore
-    from translation import CatPipeline as translation_CatPipeline  # type: ignore
 
 try:
     import cld2full as cld2  # type: ignore
@@ -741,6 +743,7 @@ class TranslatePageHandler(TranslateHandler):
                 print(e)
                 return
         if got304 and cached is not None:
+            translation_CatPipeline = translation.CatPipeline  # type: ignore
             translated = yield translation_CatPipeline().translate(cached[1])
         else:
             if response.body is None:
