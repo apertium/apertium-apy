@@ -608,7 +608,8 @@ class TranslatePageHandler(TranslateHandler):
             page = re.sub(r'([a-zæøåášžđŋ])=([a-zæøåášžđŋ])',
                           '\\1\\2',
                           page)
-        return page.replace('­', '')  # literal and entity soft hyphen
+        page = page.replace('\u00ad', '')  # soft hyphen
+        return page
 
     def htmlToText(self, page, url):
         encoding = "utf-8"
