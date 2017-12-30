@@ -7,40 +7,42 @@ try:
 except ImportError:  # 3.2
     pass
 
-import sys
-import os
-import re
 import argparse
+import configparser
+from datetime import datetime, timedelta
+from functools import wraps
+from hashlib import sha1
+import heapq
+import html
 import logging
 from logging import handlers as logging_handlers  # type: ignore
-import time
-import signal
-import tempfile
-import zipfile
-import string
-import random
-from subprocess import Popen, PIPE
 from multiprocessing import Pool
 from multiprocessing import TimeoutError  # type: ignore
-from functools import wraps
+import os
+import random
+import re
+import signal
+import string
+from subprocess import Popen, PIPE
+import sys
+import tempfile
 from threading import Thread
-from datetime import datetime, timedelta
+import time
 from urllib.parse import urlparse, urlunsplit
-import heapq
-from tornado.locks import Semaphore
-import html
-from hashlib import sha1
+import zipfile
+
 import tornado
-import tornado.web
+from tornado import escape
+from tornado import gen
+from tornado import httpclient
+from tornado.escape import utf8
 import tornado.httpserver
 import tornado.httputil
-import tornado.process
 import tornado.iostream
-from tornado import httpclient
-from tornado import gen
-from tornado import escape
-import configparser
-from tornado.escape import utf8
+from tornado.locks import Semaphore
+import tornado.process
+import tornado.web
+
 try:  # 3.1
     from tornado.log import enable_pretty_logging
 except ImportError:  # 2.1
