@@ -1335,7 +1335,7 @@ def apply_config(args, apySection):
                 else:
                     res = fn(apySection[name])
             except ValueError:
-                pass
+                print("Warning: Unable to cast " + apySection[name] + " to expected type")
 
             # only override is value (argument) is default
             if res is not None and value == default:
