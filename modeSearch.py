@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+
+try:
+    from typing import Dict, List, Tuple  # noqa: F401
+except ImportError:  # 3.2
+    pass
+
 import re
 import os
 import logging
@@ -37,7 +44,7 @@ def searchPath(rootpath, include_pairs=True, verbosity=1):
         'analyzer': [],
         'generator': [],
         'tagger': [],
-    }
+    }  # type: Dict[str, List[Tuple[str, str, str]]]
 
     real_root = os.path.abspath(os.path.realpath(rootpath))
 

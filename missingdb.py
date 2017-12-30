@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 # vim: set ts=4 sw=4 sts=4 et :
 
+try:
+    from typing import Dict  # noqa: F401
+except ImportError:  # 3.2
+    pass
+
 import sqlite3
 import logging
 from datetime import datetime
@@ -15,7 +20,7 @@ class MissingDb(object):
         self.lock = threading.RLock()
         self.conn = None
         self.dbPath = dbPath
-        self.words = defaultdict(lambda: defaultdict(lambda: 0))
+        self.words = defaultdict(lambda: defaultdict(lambda: 0))  # type: Dict[str, Dict[str, int]]
         self.wordcount = 0
         self.wordmemlimit = wordmemlimit
 

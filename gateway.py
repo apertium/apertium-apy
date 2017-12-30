@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+try:
+    from typing import Any, Dict, List, Set, Tuple  # noqa: F401
+except ImportError:  # 3.2
+    pass
+
 import argparse
 import logging
 import sys
@@ -10,7 +15,7 @@ import random
 import socket
 import servlet
 import pprint
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 import tornado
 import tornado.httpserver
 import tornado.web
@@ -19,7 +24,7 @@ from tornado.web import RequestHandler
 try:  # 3.1
     from tornado.log import enable_pretty_logging
 except ImportError:  # 2.1
-    from tornado.options import enable_pretty_logging
+    from tornado.options import enable_pretty_logging  # type: ignore
 
 global verifySSLCert
 
@@ -43,13 +48,17 @@ class requestHandler(RequestHandler):
     def get(self):
         path = self.request.path
         mode, langPair, perWordModes = [None] * 3
-        pathToMode = defaultdict(lambda: None,
-                                 {'/translate': 'pairs', '/analyze': 'analyzers',
-                                  '/analyse': 'analyzers', '/generate': 'generators',
-                                  '/perWord': 'perWord', '/coverage': 'coverage',
-                                  '/listLanguageNames': 'languageNames', '/identifyLang': 'identifyLang',
-                                  '/getLocale': 'getLocale'
-                                  })
+        pathToMode = {
+            '/translate': 'pairs', '/analyze': 'analyzers',
+            '/analyse': 'analyzers', '/generate': 'generators',
+            '/perWord': 'perWord', '/coverage': 'coverage',
+            '/listLanguageNames': 'languageNames', '/identifyLang': 'identifyLang',
+            '/getLocale': 'getLocale'
+        }
+
+        if path not in pathToMode:
+            return self.send_error(400)
+
         mode = pathToMode[path]
 
         if path == '/translate':
@@ -64,9 +73,6 @@ class requestHandler(RequestHandler):
             perWordModes = self.get_argument('modes').split()
         elif path == '/coverage':
             langPair = self.get_argument('mode')
-
-        if not mode:
-            return self.send_error(400)
 
         query = self.request.query
         headers = self.request.headers
@@ -276,23 +282,23 @@ class Fastest(Balancer):
             modeToURL = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag', 'coverage': 'analyze'}
             if mode in modeToURL:
                 if (modeToURL[mode], langPair) in self.serverlist:
-                    possibleServers = list(self.serverlist[(modeToURL[mode], langPair)])
-                    if len(possibleServers):
-                        return possibleServers[0]
+                    possibleServersList = list(self.serverlist[(modeToURL[mode], langPair)])
+                    if len(possibleServersList):
+                        return possibleServersList[0]
             elif mode == 'languageNames' or mode == 'identifyLang' or mode == 'getLocale':
                 return next(self.serverCycle)
             elif mode == 'perWord':
                 modes = kwargs['perWordModes']
-                possibleServers = set()
+                possibleServersSet = set()  # type: Set
                 if ('morph' in modes or 'biltrans' in modes) and ('analyze', langPair) in self.serverlist:
-                    possibleServers.update(self.serverlist[('analyze', langPair)])
+                    possibleServersSet.update(self.serverlist[('analyze', langPair)])
                 elif ('tagger' in modes or 'disambig' in modes or 'translate' in modes) and ('tag', langPair) in self.serverlist:
-                    if possibleServers:
-                        possibleServers &= self.serverlist[('tag', langPair)]
+                    if possibleServersSet:
+                        possibleServersSet &= self.serverlist[('tag', langPair)]
                     else:
-                        possibleServers.update(self.serverlist[('tag', langPair)])
-                if len(possibleServers):
-                    return list(possibleServers)[0]
+                        possibleServersSet.update(self.serverlist[('tag', langPair)])
+                if len(possibleServersSet):
+                    return list(possibleServersSet)[0]
         else:
             logging.critical('Empty serverlist')
             sys.exit(-1)
@@ -373,7 +379,7 @@ def testServerPool(serverList):
         '/list?q=taggers': lambda x: isinstance(x, dict) and all(map(lambda y: isinstance(y, str), list(x.keys()) + list(x.values()))),
         '/list?q=generators': lambda x: isinstance(x, dict) and all(map(lambda y: isinstance(y, str), list(x.keys()) + list(x.values())))
     }
-    testResults = {server: {} for server in serverList}
+    testResults = {server: {} for server in serverList}  # type: Dict[Any, Dict[str, Tuple[bool, float]]]
     http = tornado.httpclient.HTTPClient()
 
     def handleResult(result, test, server):
@@ -409,7 +415,7 @@ def determineServerCapabilities(serverlist):
 
     The return data from this function is a little complex, better illustrated than described:
     capabilities = {
-        "pairs": { #note that pairs is a special mode compared to taggers/generators/analyzers
+        "pairs": {  #note that pairs is a special mode compared to taggers/generators/analyzers
             ("lang", "pair"): [(server1, port1), (server2, port2)]
             }
         "taggers|generators|analyzers": {
@@ -424,7 +430,7 @@ def determineServerCapabilities(serverlist):
     # look at the return codes in order to do this.
     http = tornado.httpclient.HTTPClient()
     modes = ("pairs", "taggers", "generators", "analyzers")
-    capabilities = {}
+    capabilities = {}  # type: Dict[str, Dict]
     for (domain, port) in serverlist:
         server = (domain, port)
         for mode in modes:
