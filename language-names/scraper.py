@@ -1,33 +1,43 @@
 #!/usr/bin/env python3
 
-import sqlite3
 import argparse
 import os
-import subprocess
 import re
+import sqlite3
+import subprocess
 import sys
+import textwrap
+
 from lxml import etree
 
 sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)), '..'))
 from util import toAlpha2Code  # noqa: E402
 
-apertiumLanguages = {'sr', 'bs', 'hr'}  # Add more manually as necessary
+htmlToolsLanguages = set(map(toAlpha2Code, {
+    'arg', 'heb', 'cat', 'sme', 'deu', 'eng', 'eus', 'fra', 'spa', 'ava', 'nno',
+    'nob', 'oci', 'por', 'kaz', 'kaa', 'kir', 'ron', 'rus', 'fin', 'tat', 'tur',
+    'uig', 'uzb', 'zho', 'srd', 'swe',
+}))
+
+apertiumLanguages = htmlToolsLanguages | {'sr', 'bs', 'hr'}  # Add more manually as necessary
 
 
 def getApertiumLanguages():
-    dirs = [('incubator', r'<name>apertium-(\w{2,3})(?:-(\w{2,3}))?</name>'),
-            ('nursery', r'<name>apertium-(\w{2,3})(?:-(\w{2,3}))?</name>'),
-            ('staging', r'<name>apertium-(\w{2,3})(?:-(\w{2,3}))?</name>'),
-            ('trunk', r'<name>(apertium)-(\w{2,3})-(\w{2,3})</name>'),
-            ('languages', r'<name>(apertium)-(\w{3})</name>'),
-            ]
+    dirs = [
+        ('incubator', r'<name>apertium-(\w{2,3})(?:-(\w{2,3}))?</name>'),
+        ('nursery', r'<name>apertium-(\w{2,3})(?:-(\w{2,3}))?</name>'),
+        ('staging', r'<name>apertium-(\w{2,3})(?:-(\w{2,3}))?</name>'),
+        ('trunk', r'<name>(apertium)-(\w{2,3})-(\w{2,3})</name>'),
+        ('languages', r'<name>(apertium)-(\w{3})</name>'),
+        ('incubator', r'<name>(apertium)-(\w{3})</name>'),
+    ]
     for (dirPath, dirRegex) in dirs:
         svnData = str(subprocess.check_output('svn list --xml https://svn.code.sf.net/p/apertium/svn/%s/' %
                                               dirPath, stderr=subprocess.STDOUT, shell=True), 'utf-8')
         for langCodes in re.findall(dirRegex, svnData, re.DOTALL):
-            apertiumLanguages.update([convertISOCode(langCode)[1] for langCode in langCodes if not langCode == 'apertium'])
+            apertiumLanguages.update(convertISOCode(langCode)[1] for langCode in langCodes if langCode and not langCode == 'apertium')
 
-    print('Found %s apertium languages' % len(apertiumLanguages))
+    print('Found %s apertium languages: %s.' % (len(apertiumLanguages), ', '.join(apertiumLanguages)))
     return apertiumLanguages
 
 
@@ -38,24 +48,37 @@ def convertISOCode(code):
 def populateDatabase(args):
     conn = sqlite3.connect(args.database)
     c = conn.cursor()
-    c.execute('''create table if not exists languageNames (id integer primary key, lg text, inLg text, name text, unique(lg, inLg) on conflict replace)''')
+    c.execute(textwrap.dedent('''
+        CREATE TABLE IF NOT EXISTS languageNames (
+            id INTEGER PRIMARY KEY,
+            lg TEXT,
+            inLg TEXT,
+            name TEXT,
+            UNIQUE(lg, inLg) ON CONFLICT REPLACE
+        )'''))
     for locale in args.languages:
         locale = convertISOCode(locale)
         try:
             tree = etree.parse('http://www.unicode.org/repos/cldr/tags/latest/common/main/%s.xml' % locale[1])
             languages = tree.xpath('//language')
-            changes = conn.total_changes
+            scraped = set()
             for language in languages:
                 if language.text:
                     if not args.apertiumNames or (args.apertiumNames and language.get('type') in apertiumLanguages):
-                        c.execute('''insert into languageNames values (?, ?, ?, ?)''',
+                        c.execute('''INSERT INTO languageNames VALUES (?, ?, ?, ?)''',
                                   (None, locale[1], language.get('type'), language.text))
-            print('Scraped %s localized language names for %s' % (conn.total_changes -
-                                                                  changes, locale[1] if locale[0] == locale[1] else '%s -> %s' % locale))
+                        scraped.add(language.get('type'))
+
+            print('Scraped %d localized language names for %s, missing %d (%s).' % (
+                len(scraped),
+                locale[1] if locale[0] == locale[1] else '%s -> %s' % locale,
+                len(apertiumLanguages) - len(scraped) if args.apertiumNames else 0,
+                ', '.join(apertiumLanguages - scraped if args.apertiumNames else set())
+            ))
         except (KeyboardInterrupt, SystemExit):
             raise
         except Exception as e:
-            print('Failed to retreive language %s, exception: %s' % (locale[1], e))
+            print('Failed to retrieve language %s, exception: %s' % (locale[1], e))
 
     conn.commit()
     c.close()
@@ -64,7 +87,7 @@ def populateDatabase(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Scrape Unicode.org for language names in different locales.')
     parser.add_argument('languages', nargs='*', help='list of languages to add to DB')
-    parser.add_argument('-d', '--database', help='name of database file', default='langNames.db')
+    parser.add_argument('-d', '--database', help='name of database file', default='../langNames.db')
     parser.add_argument('-n', '--apertiumNames', help='only save names of Apertium languages to database',
                         action='store_true', default=False)
     parser.add_argument('-l', '--apertiumLangs', help='scrape localized names in all Apertium languages',
@@ -76,6 +99,8 @@ if __name__ == '__main__':
 
     if args.apertiumNames or args.apertiumLangs:
         getApertiumLanguages()
+
     if args.apertiumLangs:
         args.languages = apertiumLanguages
+
     populateDatabase(args)

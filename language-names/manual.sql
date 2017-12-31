@@ -273,34 +273,34 @@ INSERT INTO "fixes" VALUES(NULL,'eu','crh','Krimeako tatarera');
 INSERT INTO "fixes" VALUES(NULL,'en','oci_aran','Occitan Aranese');
 INSERT INTO "fixes" VALUES(NULL,'de','oci_aran','Okzitanisch Aranesisch');
 INSERT INTO "fixes" VALUES(NULL,'oci_aran','oci_aran','Aranés');
-INSERT INTO "fixes" VALUES(NULL,'kmr','kmr', 'Kurmancî');
-INSERT INTO "fixes" VALUES(NULL,'en', 'kmr', 'Kurdish Kurmanji');
-INSERT INTO "fixes" VALUES(NULL,'scn','scn', 'sicilianu');
-INSERT INTO "fixes" VALUES(NULL,'es','scn', 'siciliano');
-INSERT INTO "fixes" VALUES(NULL,'ca','scn', 'sicilià');
-INSERT INTO "fixes" VALUES(NULL,'en','scn', 'Sicilian');
+INSERT INTO "fixes" VALUES(NULL,'kmr','kmr','Kurmancî');
+INSERT INTO "fixes" VALUES(NULL,'en','kmr','Kurdish Kurmanji');
+INSERT INTO "fixes" VALUES(NULL,'scn','scn','sicilianu');
+INSERT INTO "fixes" VALUES(NULL,'es','scn','siciliano');
+INSERT INTO "fixes" VALUES(NULL,'ca','scn','sicilià');
+INSERT INTO "fixes" VALUES(NULL,'en','scn','Sicilian');
 
-INSERT INTO "fixes" VALUES(NULL,'en','smn', 'Inari Saami');
-INSERT INTO "fixes" VALUES(NULL,'fi','smn', 'inarinsaame');
-INSERT INTO "fixes" VALUES(NULL,'nn','smn', 'enaresamisk');
-INSERT INTO "fixes" VALUES(NULL,'nb','smn', 'enaresamisk');
-INSERT INTO "fixes" VALUES(NULL,'sma','smn', 'enaresaemien');
-INSERT INTO "fixes" VALUES(NULL,'se','smn', 'anársámegiella');
-INSERT INTO "fixes" VALUES(NULL,'smj','smn', 'anársámegiella');
-INSERT INTO "fixes" VALUES(NULL,'smn','smn', 'anarâškielâ');
+INSERT INTO "fixes" VALUES(NULL,'en','smn','Inari Saami');
+INSERT INTO "fixes" VALUES(NULL,'fi','smn','inarinsaame');
+INSERT INTO "fixes" VALUES(NULL,'nn','smn','enaresamisk');
+INSERT INTO "fixes" VALUES(NULL,'nb','smn','enaresamisk');
+INSERT INTO "fixes" VALUES(NULL,'sma','smn','enaresaemien');
+INSERT INTO "fixes" VALUES(NULL,'se','smn','anársámegiella');
+INSERT INTO "fixes" VALUES(NULL,'smj','smn','anársámegiella');
+INSERT INTO "fixes" VALUES(NULL,'smn','smn','anarâškielâ');
 
-INSERT INTO "fixes" VALUES(NULL,'en','smj', 'Lule Saami');
-INSERT INTO "fixes" VALUES(NULL,'fi','smj', 'luulajansaame');
-INSERT INTO "fixes" VALUES(NULL,'nn','smj', 'lulesamisk');
-INSERT INTO "fixes" VALUES(NULL,'nb','smj', 'lulesamisk');
-INSERT INTO "fixes" VALUES(NULL,'sma','smj', 'julevsaemiengïele');
-INSERT INTO "fixes" VALUES(NULL,'se','smj', 'julevsámegiella');
-INSERT INTO "fixes" VALUES(NULL,'smj','smj', 'julevsámegiella');
-INSERT INTO "fixes" VALUES(NULL,'smn','smj', 'juulevsämikielâ');
+INSERT INTO "fixes" VALUES(NULL,'en','smj','Lule Saami');
+INSERT INTO "fixes" VALUES(NULL,'fi','smj','luulajansaame');
+INSERT INTO "fixes" VALUES(NULL,'nn','smj','lulesamisk');
+INSERT INTO "fixes" VALUES(NULL,'nb','smj','lulesamisk');
+INSERT INTO "fixes" VALUES(NULL,'sma','smj','julevsaemiengïele');
+INSERT INTO "fixes" VALUES(NULL,'se','smj','julevsámegiella');
+INSERT INTO "fixes" VALUES(NULL,'smj','smj','julevsámegiella');
+INSERT INTO "fixes" VALUES(NULL,'smn','smj','juulevsämikielâ');
 
-INSERT INTO "fixes" VALUES(NULL,'sma','se', 'noerhtesaemiengïele');
-INSERT INTO "fixes" VALUES(NULL,'smj','se', 'nuorttasámegiella');
-INSERT INTO "fixes" VALUES(NULL,'smn','se', 'pajekielâ');
+INSERT INTO "fixes" VALUES(NULL,'sma','se','noerhtesaemiengïele');
+INSERT INTO "fixes" VALUES(NULL,'smj','se','nuorttasámegiella');
+INSERT INTO "fixes" VALUES(NULL,'smn','se','pajekielâ');
 
 INSERT INTO "fixes" VALUES(NULL,'sma','sma','åarjelsaemiengïele');
 INSERT INTO "fixes" VALUES(NULL,'smj','sma','oarjjelsámegiella');
@@ -319,29 +319,19 @@ INSERT INTO "fixes" VALUES(NULL,'gag','gag','Gagauzça');
 INSERT INTO "fixes" VALUES(NULL,'crh','gag','ğağauzça');
 INSERT INTO "fixes" VALUES(NULL,'kk','gag','ғағауызша');
 INSERT INTO "fixes" VALUES(NULL,'ky','gag','гагаузча');
-INSERT INTO "fixes" VALUES(NULL,'en','gag','Gagauz');
-
-INSERT INTO "additions" VALUES(NULL,'en','guj','Gujarati');
-INSERT INTO "additions" VALUES(NULL,'guj','guj','ગુજરાતી');
 
 INSERT INTO "additions" VALUES(NULL,'en','lvs','Latvian');
 INSERT INTO "additions" VALUES(NULL,'lvs','lvs','latviešu valoda');
 
-INSERT INTO "additions" VALUES(NULL,'en','liv','Livonian');
+INSERT INTO "additions" VALUES(NULL,'guj','guj','ગુજરાતી');
+INSERT INTO "additions" VALUES(NULL,'byv','byv','Mə̀dʉ̂mbɑ̀');
+
 INSERT INTO "additions" VALUES(NULL,'en','olo','Livvi-Karelian');
 INSERT INTO "additions" VALUES(NULL,'en','sjo','Xibe');
-INSERT INTO "additions" VALUES(NULL,'en','srn','Sranan');
-INSERT INTO "additions" VALUES(NULL,'en','guc','Wayuu');
-INSERT INTO "additions" VALUES(NULL,'en','mrj','Hill Mari');
 INSERT INTO "additions" VALUES(NULL,'en','snd','Sindhi');
 INSERT INTO "additions" VALUES(NULL,'en','qve','Quechua');
 INSERT INTO "additions" VALUES(NULL,'en','ssp','Spanish Sign Language');
 INSERT INTO "additions" VALUES(NULL,'en','khk','Khalkha Mongolian');
-INSERT INTO "additions" VALUES(NULL,'en','vro','Võro');
-INSERT INTO "additions" VALUES(NULL,'en','mdf','Moksha');
-
-INSERT INTO "additions" VALUES(NULL,'byv','byv','Mə̀dʉ̂mbɑ̀');
-INSERT INTO "additions" VALUES(NULL,'en','byv','Medumba');
 
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "additions";
