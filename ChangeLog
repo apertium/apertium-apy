@@ -1,5 +1,241 @@
 See NEWS for a per-release summary, this is just the git log.
 
+2017-12-31  Robin Richtsfeld <robin.richtsfeld@gmail.com>
+
+  * Fix mypy line count error
+
+2017-12-31  Robin Richtsfeld <robin.richtsfeld@gmail.com>
+
+  * Remove support for Python 3.2
+
+2017-12-30  Robin Richtsfeld <robin.richtsfeld@gmail.com>
+
+  * Add a couple language names in English
+
+2017-12-26  Sushain Cherivirala <sushain@skc.name>
+
+  * Couple more language names
+
+2017-12-25  Sushain Cherivirala <sushain@skc.name>
+
+  * Fix language name typo
+
+2017-12-25  Sushain Cherivirala <sushain@skc.name>
+
+  * case fixes
+
+2017-11-12  Jonathan North Washington <jonathan.north.washington@gmail.com>
+
+  * Gagauz in English
+
+2017-11-12  Jonathan North Washington <jonathan.north.washington@gmail.com>
+
+  * Gagauz in a few languages
+
+2017-11-01  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * travis: comment out flake8 for python3.2 for now
+
+2017-10-25  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * more flake8
+
+2017-10-25  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * please flake8
+
+2017-09-16  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * actual words in test
+
+2017-09-16  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * test srd-cat, crh-tur (but messed up on server still)
+
+2017-08-23  Monish Godhia <monish1247@gmail.com>
+
+  * doh
+
+2017-08-05  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * bel-rus
+
+2017-06-07  Tino Didriksen <mail@tinodidriksen.com>
+
+  * Updated tests fra-cat spa-ita
+
+2017-06-01  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * unindent main content a bit by using 'if should_fail:return' style
+
+2017-05-22  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * minor mypy fixes (issue #56)
+
+2017-02-07  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * flake8
+
+2017-02-07  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * remove soft hyphen
+
+2017-02-06  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * dgen is also a generator suffix
+
+2017-02-01  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * change in translation.py that was missing from py32
+
+2017-01-18  Kevin Brubeck Unhammer <unhammer+dill@mm.st>
+
+  * some langnames from https://victorio.uit.no/langtech/trunk/techdoc/mt/smenob/Lokalisering.jspwiki
+
+2017-01-17  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * minor
+
+2017-01-16  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * exc_info might not have log_message nor reason attrs
+
+2017-01-14  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * translatePage: also fix url base for src=
+
+2017-01-14  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * translatePage: only set url.netloc to base if it's unset
+
+2016-11-23  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * doh, self
+
+2016-11-23  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * doh, sub wants something to sub
+
+2016-11-23  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * translatepage: better urlrebasing; do href→onclick in js
+
+2016-11-17  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * don't strip input text – leads to wrong offsets
+
+2017-01-14  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * Fix PEP8 formatting error
+
+2017-01-06  Shardul Chiplunkar <shardul.chiplunkar@gmail.com>
+
+  * Changes requested by sushain97.
+
+2017-01-05  Shardul Chiplunkar <shardul.chiplunkar@gmail.com>
+
+  * Make minor changes requested by Putti.
+
+2017-01-04  Shardul Chiplunkar <shardul.chiplunkar@gmail.com>
+
+  * Move new formatting functinality to new function getFormat.
+
+2016-12-18  Shardul Chiplunkar <shardul.chiplunkar@gmail.com>
+
+  * Fix travis indentation error.
+
+2016-12-18  Shardul Chiplunkar <shardul.chiplunkar@gmail.com>
+
+  * Improve translate/ formatting interface, add rtf formatting handler
+
+2016-12-09  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * Fixed https://github.com/goavki/apertium-apy/issues/15
+
+2016-11-27  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * sadly not a syntax error
+
+2016-11-27  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * Merge branch 'master' of github.com:goavki/apertium-apy
+
+2016-11-27  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * simplify if x == True then True else False
+
+2016-11-27  Jonathan North Washington <firespeaker@apertium.vm.bytemark.co.uk>
+
+  * crh in ru
+
+2016-11-26  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * smn langnames
+
+2016-11-22  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * sardu langnames
+
+2016-11-22  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * test for ita-srd
+
+2016-11-18  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * thought I'd fixed this in b2fd8c93 …
+
+2016-11-18  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * bytes need b''
+
+2016-11-17  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * flaky8
+
+2016-10-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * travis: require trusty, sudo
+
+2016-10-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * Merge branch 'master' of github.com:goavki/apertium-apy
+
+2016-10-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * Ensure flake8 works for py3.2
+
+2016-08-24  Sushain Cherivirala <sushain@skc.name>
+
+  * Merge branch 'master' into travis-flake8
+
+2016-08-23  Sushain Cherivirala <sushain@skc.name>
+
+  * Fix all Flake8 errors
+
+2016-08-23  Sushain Cherivirala <sushain@skc.name>
+
+  * Add flake8 to Travis config
+
+2016-08-24  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * oci_aran, not oct_aran
+
+2016-06-20  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+  * kmr, scn fixes mostly
+
+2016-06-14  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * nob-swe was missing
+
+2016-06-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * doh, package has /modes at the end
+
+2016-06-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+  * User=apertium and expect data in /usr/share/apertium like the debian version
+
 2016-06-10  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
 	* tools/sanity-test-apy.py: test swe-nor
