@@ -1320,7 +1320,7 @@ def apply_config(args, apySection):
             fn = type(value)
             res = None
             try:
-                if fn is type(None):
+                if fn is None:
                     if apySection[name] == 'None':
                         res = None
                     else:
@@ -1340,6 +1340,7 @@ def apply_config(args, apySection):
             # only override is value (argument) is default
             if res is not None and value == default:
                 setattr(args, name, res)
+
 
 if __name__ == '__main__':
     sanity_check()
