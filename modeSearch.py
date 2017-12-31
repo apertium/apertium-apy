@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 
-try:
-    from typing import Dict, List, Tuple  # noqa: F401
-except ImportError:  # 3.2
-    pass
+from typing import Dict, List, Tuple  # noqa: F401
 
 import re
 import os

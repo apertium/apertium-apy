@@ -2,10 +2,7 @@
 # -*- indent-tabs-mode: nil -*-
 # coding=utf-8
 
-try:
-    from typing import Dict, List, Optional, Tuple  # noqa: F401
-except ImportError:  # 3.2
-    pass
+from typing import Dict, List, Optional, Tuple  # noqa: F401
 
 import sys
 import os
@@ -51,11 +48,7 @@ from util import getLocalizedLanguages, stripTags, processPerWord, getCoverage, 
 
 import systemd
 import missingdb
-
-if sys.version_info.minor < 3:
-    import translation_py32 as translation
-else:
-    import translation  # type: ignore
+import translation  # type: ignore
 
 try:
     import cld2full as cld2  # type: ignore

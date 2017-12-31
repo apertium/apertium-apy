@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 
-try:
-    from typing import Any, Dict, List, Set, Tuple  # noqa: F401
-except ImportError:  # 3.2
-    pass
+from typing import Any, Dict, List, Set, Tuple  # noqa: F401
 
 import argparse
 import logging

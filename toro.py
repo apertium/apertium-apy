@@ -15,10 +15,7 @@
 # under the License.
 
 
-try:
-    from typing import List  # noqa: F401
-except ImportError:  # 3.2
-    pass
+from typing import List  # noqa: F401
 
 import contextlib
 import heapq

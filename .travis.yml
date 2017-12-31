@@ -5,7 +5,6 @@ sudo: required
 dist: trusty
 
 python:
-    - "3.2"
     - "3.3"
     - "3.4"
     - "3.5"
@@ -13,12 +12,7 @@ python:
     - "nightly"
 
 install:
-    - if [[ $TRAVIS_PYTHON_VERSION = 3.2 ]]; then
-        pip3 install tornado==4.3;
-      fi
-    - if [[ $TRAVIS_PYTHON_VERSION != 3.2 ]]; then
-        pip3 install tornado mypy;
-      fi
+    - pip3 install tornado mypy
     - pip3 install flake8
 
 before_script:
@@ -27,19 +21,13 @@ before_script:
     - sudo apt-get -f install apertium-sme-nob apertium-es-en
     - svn co https://svn.code.sf.net/p/apertium/svn/languages/apertium-nno /tmp/languages/apertium-nno
     - ( cd /tmp/languages/apertium-nno && ./autogen.sh && make -j2 )
-    # flake8 fails to run at all under 3.2 on Travis
-    # - if [[ $TRAVIS_PYTHON_VERSION = 3.2 ]]; then flake8 . --max-line-length 180 --exclude=toro.py,translation.py; fi
-    - if [[ $TRAVIS_PYTHON_VERSION != 3.2 ]]; then
-        flake8 . --max-line-length 180 --exclude=toro.py,translation_py32.py;
-      fi
-    - if [[ $TRAVIS_PYTHON_VERSION != 3.2 ]]; then
-        lines="$(mypy --check-untyped-defs --strict-optional ./**/*.py)";
-        echo "$lines";
-        lines="$(echo "$lines" | grep -v 'note:\|No library stub file')";
-        count="$(echo "$lines" | wc -l)"
-        echo "mypy reported $count critical errors"
-        exit "$count";
-      fi
+    - flake8 . --max-line-length 180 --exclude=toro.py;
+    - lines="$(mypy --check-untyped-defs --strict-optional ./**/*.py)";
+      echo "$lines";
+      lines="$(echo "$lines" | grep -v 'note:\|No library stub file')";
+      count="$(echo "$lines" | wc -l)";
+      echo "mypy reported $count critical errors";
+      exit "$count";
 
 script:
     - NONPAIRS=/tmp/languages t/run-tests
