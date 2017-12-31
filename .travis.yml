@@ -24,8 +24,7 @@ before_script:
     - flake8 . --max-line-length 180 --exclude=toro.py;
     - lines="$(mypy --check-untyped-defs --strict-optional ./**/*.py)";
       echo "$lines";
-      lines="$(echo "$lines" | grep -v 'note:\|No library stub file')";
-      count="$(echo "$lines" | wc -l)";
+      count="$(echo "$lines" | grep -cv 'note:\|No library stub file')";
       echo "mypy reported $count critical errors";
       exit "$count";
 
