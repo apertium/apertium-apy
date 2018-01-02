@@ -1,6 +1,41 @@
 # -*- mode:org -*-
 #+STARTUP: showall
 
+* Version 0.10.0, 2018-01-01
+  Git rev: f8222079baa2ac348943a52491f18827d8bea2a9
+
+  Changes since 0.9.1:
+
+  - Various minor cleanups and lints
+
+  - User=apertium and expect data in /usr/share/apertium like the debian version
+
+  - Friendlier 400 messages
+
+  - Improve translate/ formatting interface, add rtf formatting handler
+
+  - Move new formatting functinality to new function getFormat
+
+  - Better URL rebasing
+
+  - Fix URL base for empty src
+
+  - New language names from
+    https://victorio.uit.no/langtech/trunk/techdoc/mt/smenob/Lokalisering.jspwiki
+
+  - Remove soft hyphen
+
+  - Updated various tests
+
+  - Gagauz in some languages
+
+  - Case fixes
+
+  - Add more language names
+
+  - Remove support for Python 3.2
+
+
 * Version 0.9.1, 2016-06-10
   Git rev: 3c536b37def552d073ddda4d27d9358103e304c4
 
