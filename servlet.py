@@ -947,28 +947,36 @@ class GenerateHandler(BaseHandler):
 class ListLanguageNamesHandler(BaseHandler):
 
     @tornado.web.asynchronous
+    @gen.coroutine
     def get(self):
         localeArg = self.get_argument('locale')
         languagesArg = self.get_argument('languages', default=None)
 
-        if self.langNames:
-            if localeArg:
-                if languagesArg:
-                    self.sendResponse(getLocalizedLanguages(localeArg, self.langNames, languages=languagesArg.split(' ')))
-                else:
-                    self.sendResponse(getLocalizedLanguages(localeArg, self.langNames))
-            elif 'Accept-Language' in self.request.headers:
-                locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
-                for locale in locales:
-                    languageNames = getLocalizedLanguages(locale, self.langNames)
-                    if languageNames:
-                        self.sendResponse(languageNames)
-                        return
-                self.sendResponse(getLocalizedLanguages('en', self.langNames))
-            else:
-                self.sendResponse(getLocalizedLanguages('en', self.langNames))
-        else:
+        if not self.langNames:
             self.sendResponse({})
+            return
+
+        if localeArg:
+            if languagesArg:
+                result = yield getLocalizedLanguages(localeArg, self.langNames, languages=languagesArg.split(' '))
+            else:
+                result = yield getLocalizedLanguages(localeArg, self.langNames)
+
+            self.sendResponse(result)
+            return
+
+        if 'Accept-Language' in self.request.headers:
+            locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
+
+            for locale in locales:
+                result = yield getLocalizedLanguages(locale, self.langNames)
+
+                if result:
+                    self.sendResponse(result)
+                    return
+
+        result = yield getLocalizedLanguages('en', self.langNames)
+        self.sendResponse(result)
 
 
 class PerWordHandler(BaseHandler):
