@@ -22,7 +22,8 @@ iso639Codes = {"abk": "ab", "aar": "aa", "afr": "af", "aka": "ak", "sqi": "sq", 
         JSON.stringify(out);
 '''
 
-# TODO: does this need a lock?
+# single-threaded for thread-safety
+langNamesDBThread = ThreadPoolExecutor(1)
 langNamesDBConn = None
 
 
@@ -49,17 +50,16 @@ def getLanguageNames(locale, dbPath):
     if not langNamesDBConn:
         if os.path.exists(dbPath):
             langNameDBConn = sqlite3.connect(dbPath)
-            cursor = langNameDBConn.cursor()
         else:
-            logging.error('Failed to locate language name DB: %s' % dbPath)
             return None
 
+    cursor = langNameDBConn.cursor()
     return cursor.execute('SELECT * FROM languageNames WHERE lg=?', (locale, )).fetchall()
 
 
 @gen.coroutine
 def getLocalizedLanguages(locale, dbPath, languages=[]):
-    languageResults = yield ThreadPoolExecutor(1).submit(getLanguageNames, locale, dbPath)
+    languageResults = yield langNamesDBThread.submit(getLanguageNames, locale, dbPath)
 
     if not languageResults:
         logging.error('Failed to locate language name DB: %s' % dbPath)
