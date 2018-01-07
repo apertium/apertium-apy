@@ -28,7 +28,6 @@ import time
 from urllib.parse import urlparse, urlunsplit
 import zipfile
 
-from streamparser.streamparser import parse, known
 import tornado
 from tornado import escape
 from tornado import gen
@@ -44,20 +43,19 @@ try:  # 3.1
     from tornado.log import enable_pretty_logging
 except ImportError:  # 2.1
     from tornado.options import enable_pretty_logging  # type: ignore
+try:
+    import cld2full as cld2  # type: ignore
+except ImportError as _e:
+    cld2 = None
 
 from modeSearch import searchPath
 from keys import getKey
 from util import (getLocalizedLanguages, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code,
                   toAlpha2Code, scaleMtLog, TranslationInfo, removeDotFromDeformat)
-
 import systemd
 import missingdb
 import translation  # type: ignore
-
-try:
-    import cld2full as cld2  # type: ignore
-except ImportError as _e:
-    cld2 = None
+from streamparser.streamparser import parse, known
 
 RECAPTCHA_VERIFICATION_URL = 'https://www.google.com/recaptcha/api/siteverify'
 bypassToken = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(24))
@@ -913,8 +911,6 @@ class AnalyzeHandler(BaseHandler):
 
 
 class SpellerHandler(BaseHandler):
-
-    @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
         in_text = self.get_argument('q') + '*'
