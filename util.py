@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 # vim: set ts=4 sw=4 sts=4 et :
 
-import sqlite3
-import re
-import os
-import logging
-from subprocess import Popen, PIPE
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+import logging
+import re
+import sqlite3
+from subprocess import Popen, PIPE
+import os
+
+from tornado import gen
+
 from missingdb import timedeltaToMilliseconds
 from wiki_util import wikiGetPage, wikiEditPage, wikiAddText
 
@@ -18,7 +22,8 @@ iso639Codes = {"abk": "ab", "aar": "aa", "afr": "af", "aka": "ak", "sqi": "sq", 
         JSON.stringify(out);
 '''
 
-# TODO: does this need a lock?
+# single-threaded for thread-safety
+langNamesDBThread = ThreadPoolExecutor(1)
 langNamesDBConn = None
 
 
@@ -39,39 +44,54 @@ def toAlpha3Code(code):
         return iso639CodesInverse[code] if code in iso639CodesInverse else code
 
 
-def getLocalizedLanguages(locale, dbPath, languages=[]):
+def getLanguageNames(locale, dbPath):
     global langNamesDBConn
+
     if not langNamesDBConn:
         if os.path.exists(dbPath):
             langNameDBConn = sqlite3.connect(dbPath)
-            c = langNameDBConn.cursor()
         else:
-            logging.error('Failed to locate language name DB: %s' % dbPath)
-            return {}
+            return None
+
+    cursor = langNameDBConn.cursor()
+    return cursor.execute('SELECT * FROM languageNames WHERE lg=?', (locale, )).fetchall()
+
+
+@gen.coroutine
+def getLocalizedLanguages(locale, dbPath, languages=[]):
+    languageResults = yield langNamesDBThread.submit(getLanguageNames, locale, dbPath)
+
+    if not languageResults:
+        logging.error('Failed to locate language name DB: %s' % dbPath)
+        return {}
 
     locale = toAlpha2Code(locale)
     languages = list(set(languages))
 
     convertedLanguages, duplicatedLanguages = {}, {}
+
     for language in languages:
         if language in iso639Codes and iso639Codes[language] in languages:
             duplicatedLanguages[iso639Codes[language]] = language
             duplicatedLanguages[language] = iso639Codes[language]
+
         convertedLanguages[toAlpha2Code(language)] = language
+
     output = {}
 
-    languageResults = c.execute('SELECT * FROM languageNames WHERE lg=?', (locale, )).fetchall()
     if languages:
         for languageResult in languageResults:
             if languageResult[2] in convertedLanguages:
                 language, languageName = languageResult[2], languageResult[3]
                 output[convertedLanguages[language]] = languageName
+
                 if language in duplicatedLanguages:
                     output[language] = languageName
                     output[duplicatedLanguages[language]] = languageName
     else:
         for languageResult in languageResults:
             output[languageResult[2]] = languageResult[3]
+
     return output
 
 

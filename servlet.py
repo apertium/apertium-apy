@@ -39,7 +39,6 @@ import tornado.iostream
 from tornado.locks import Semaphore
 import tornado.process
 import tornado.web
-
 try:  # 3.1
     from tornado.log import enable_pretty_logging
 except ImportError:  # 2.1
@@ -47,7 +46,8 @@ except ImportError:  # 2.1
 
 from modeSearch import searchPath
 from keys import getKey
-from util import getLocalizedLanguages, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code, toAlpha2Code, scaleMtLog, TranslationInfo, removeDotFromDeformat
+from util import (getLocalizedLanguages, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code,
+                  toAlpha2Code, scaleMtLog, TranslationInfo, removeDotFromDeformat)
 
 import systemd
 import missingdb
@@ -66,7 +66,7 @@ try:
 except ImportError as _e:
     chardet = None
 
-__version__ = "0.9.1"
+__version__ = "0.10.0"
 
 
 def run_async_thread(func):
@@ -266,7 +266,6 @@ class BaseHandler(tornado.web.RequestHandler):
 
 
 class ListHandler(BaseHandler):
-
     @tornado.web.asynchronous
     def get(self):
         query = self.get_argument('q', default='pairs')
@@ -301,7 +300,6 @@ class ListHandler(BaseHandler):
 
 
 class StatsHandler(BaseHandler):
-
     @tornado.web.asynchronous
     def get(self):
         numRequests = self.get_argument('requests', 1000)
@@ -349,14 +347,12 @@ class StatsHandler(BaseHandler):
 
 
 class RootHandler(BaseHandler):
-
     @tornado.web.asynchronous
     def get(self):
         self.redirect("http://wiki.apertium.org/wiki/Apertium-apy")
 
 
 class TranslateHandler(BaseHandler):
-
     def notePairUsage(self, pair):
         self.stats['useCount'][pair] = 1 + self.stats['useCount'].get(pair, 0)
 
@@ -517,7 +513,6 @@ class TranslateHandler(BaseHandler):
 
 
 class TranslateChainHandler(TranslateHandler):
-
     def pairList(self, langs):
         return [(langs[i], langs[i+1]) for i in range(0, len(langs)-1)]
 
@@ -737,7 +732,7 @@ class TranslatePageHandler(TranslateHandler):
                 got304 = True
                 logging.info("304, can use cache")
             else:
-                print(e)
+                logging.error(e)
                 return
         if got304 and cached is not None:
             translation_CatPipeline = translation.CatPipeline  # type: ignore
@@ -893,14 +888,12 @@ class TranslateRawHandler(TranslateHandler):
 
 
 class AnalyzeHandler(BaseHandler):
-
     def postproc_text(self, in_text, result):
         lexical_units = removeDotFromDeformat(in_text, re.findall(r'\^([^\$]*)\$([^\^]*)', result))
         return [(lu[0], lu[0].split('/')[0] + lu[1])
                 for lu
                 in lexical_units]
 
-    @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
         in_text = self.get_argument('q')
@@ -916,7 +909,6 @@ class AnalyzeHandler(BaseHandler):
 
 
 class GenerateHandler(BaseHandler):
-
     def preproc_text(self, in_text):
         lexical_units = re.findall(r'(\^[^\$]*\$[^\^]*)', in_text)
         if len(lexical_units) == 0:
@@ -928,7 +920,6 @@ class GenerateHandler(BaseHandler):
                 for (i, generation)
                 in enumerate(result.split('[SEP]'))]
 
-    @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
         in_text = self.get_argument('q')
@@ -945,35 +936,40 @@ class GenerateHandler(BaseHandler):
 
 
 class ListLanguageNamesHandler(BaseHandler):
-
     @tornado.web.asynchronous
+    @gen.coroutine
     def get(self):
         localeArg = self.get_argument('locale')
         languagesArg = self.get_argument('languages', default=None)
 
-        if self.langNames:
-            if localeArg:
-                if languagesArg:
-                    self.sendResponse(getLocalizedLanguages(localeArg, self.langNames, languages=languagesArg.split(' ')))
-                else:
-                    self.sendResponse(getLocalizedLanguages(localeArg, self.langNames))
-            elif 'Accept-Language' in self.request.headers:
-                locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
-                for locale in locales:
-                    languageNames = getLocalizedLanguages(locale, self.langNames)
-                    if languageNames:
-                        self.sendResponse(languageNames)
-                        return
-                self.sendResponse(getLocalizedLanguages('en', self.langNames))
-            else:
-                self.sendResponse(getLocalizedLanguages('en', self.langNames))
-        else:
+        if not self.langNames:
             self.sendResponse({})
+            return
+
+        if localeArg:
+            if languagesArg:
+                result = yield getLocalizedLanguages(localeArg, self.langNames, languages=languagesArg.split(' '))
+            else:
+                result = yield getLocalizedLanguages(localeArg, self.langNames)
+
+            self.sendResponse(result)
+            return
+
+        if 'Accept-Language' in self.request.headers:
+            locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
+
+            for locale in locales:
+                result = yield getLocalizedLanguages(locale, self.langNames)
+
+                if result:
+                    self.sendResponse(result)
+                    return
+
+        result = yield getLocalizedLanguages('en', self.langNames)
+        self.sendResponse(result)
 
 
 class PerWordHandler(BaseHandler):
-
-    @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
         lang = toAlpha3Code(self.get_argument('lang'))
@@ -1043,8 +1039,6 @@ class PerWordHandler(BaseHandler):
 
 
 class CoverageHandler(BaseHandler):
-
-    @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
         mode = toAlpha3Code(self.get_argument('lang'))
@@ -1079,7 +1073,6 @@ class CoverageHandler(BaseHandler):
 
 
 class IdentifyLangHandler(BaseHandler):
-
     @tornado.web.asynchronous
     def get(self):
         text = self.get_argument('q')
@@ -1110,7 +1103,6 @@ class IdentifyLangHandler(BaseHandler):
 
 
 class GetLocaleHandler(BaseHandler):
-
     @tornado.web.asynchronous
     def get(self):
         if 'Accept-Language' in self.request.headers:
@@ -1215,7 +1207,6 @@ class SuggestionHandler(BaseHandler):
 
 
 class PipeDebugHandler(BaseHandler):
-
     @gen.coroutine
     def get(self):
 
@@ -1291,13 +1282,11 @@ def setupHandler(
     Handler.initPaths()
 
 
-def sanity_check():
-    locale_vars = ["LANG", "LC_ALL"]
-    u8 = re.compile("UTF-?8", re.IGNORECASE)
-    if not any(re.search(u8, os.environ.get(key, ""))
-               for key in locale_vars):
-        print("servlet.py: error: APY needs a UTF-8 locale, please set LANG or LC_ALL",
-              file=sys.stderr)
+def check_utf8():
+    locale_vars = ['LANG', 'LC_ALL']
+    u8 = re.compile('UTF-?8', re.IGNORECASE)
+    if not any(re.search(u8, os.environ.get(key, '')) for key in locale_vars):
+        logging.fatal('servlet.py: error: APY needs a UTF-8 locale, please set LANG or LC_ALL')
         sys.exit(1)
 
 
@@ -1337,7 +1326,8 @@ def apply_config(args, apySection):
 
 
 if __name__ == '__main__':
-    sanity_check()
+    check_utf8()
+
     parser = argparse.ArgumentParser(description='Apertium APY -- API server for machine translation and language analysis')
     parser.add_argument('pairs_path', help='path to Apertium installed pairs (all modes files in this path are included)')
     parser.add_argument('-s', '--nonpairs-path', help='path to Apertium SVN (only non-translator debug modes are included from this path)')
@@ -1454,7 +1444,7 @@ if __name__ == '__main__':
     ])
 
     if args.bypass_token:
-        logging.info('reCaptcha bypass for testing:%s' % bypassToken)
+        logging.info('reCaptcha bypass for testing: %s' % bypassToken)
 
     if all([args.wiki_username, args.wiki_password]):
         logging.info('Logging into Apertium Wiki with username %s' % args.wiki_username)

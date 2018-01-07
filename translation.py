@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 
-from typing import List  # noqa: F401
-
-import re
-import os
+from collections import namedtuple
+from contextlib import contextmanager
+from select import PIPE_BUF
 from subprocess import Popen, PIPE
+from time import time
+import logging
+import os
+import re
+
 from tornado import gen
 import tornado.process
 import tornado.iostream
@@ -12,15 +16,10 @@ try:  # >=4.2
     import tornado.locks as locks
 except ImportError:
     import toro as locks  # type: ignore
-import logging
-from select import PIPE_BUF
-from contextlib import contextmanager
-from collections import namedtuple
-from time import time
+from typing import List  # noqa: F401
 
 
 class Pipeline(object):
-
     def __init__(self, *args, **kwargs):
         # The lock is needed so we don't let two coroutines write
         # simultaneously to a pipeline; then the first call to read might
@@ -53,7 +52,6 @@ class Pipeline(object):
 
 
 class FlushingPipeline(Pipeline):
-
     def __init__(self, commands, *args, **kwargs):
         self.inpipe, self.outpipe = startPipeline(commands)
         super().__init__(*args, **kwargs)
@@ -80,7 +78,6 @@ class FlushingPipeline(Pipeline):
 
 
 class SimplePipeline(Pipeline):
-
     def __init__(self, commands, *args, **kwargs):
         self.commands = list(commands)
         super().__init__(*args, **kwargs)
@@ -302,7 +299,6 @@ def translateNULFlush(toTranslate, pipeline, unsafe_deformat, unsafe_reformat):
 
 @gen.coroutine
 def translatePipeline(toTranslate, commands):
-
     proc_deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
     proc_deformat.stdin.write(bytes(toTranslate, 'utf-8'))
     deformatted = proc_deformat.communicate()[0]
