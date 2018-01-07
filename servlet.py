@@ -298,7 +298,7 @@ class ListHandler(BaseHandler):
         elif query == 'spellers':
             self.sendResponse({lang_src: modename for (lang_src, (path, modename)) in self.spellers.items()})
         else:
-            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, disambiguators, or pairs')
+            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, spellers, disambiguators, or pairs')
 
 
 class StatsHandler(BaseHandler):
@@ -934,12 +934,12 @@ class SpellerHandler(BaseHandler):
 
                     result = yield translation.translateSimple(token.wordform, commands)
                     foundSugg = False
-                    for line in result.split('\n'):
+                    for line in result.splitlines():
                         if line.count('Corrections for'):
                             foundSugg = True
                             continue
-                        if foundSugg and '    ' in line:
-                            s, w = line.split('    ')
+                        if foundSugg and '\t' in line:
+                            s, w = line.split('\t')
                             suggestion.append((s, w))
 
                     units.append({'token': token.wordform, 'known': False, 'sugg': suggestion})
@@ -1486,7 +1486,7 @@ if __name__ == '__main__':
         (r'/getLocale', GetLocaleHandler),
         (r'/pipedebug', PipeDebugHandler),
         (r'/suggest', SuggestionHandler),
-        (r'/speller', SpellerHandler)
+        (r'/speller', SpellerHandler),
     ])
 
     if args.bypass_token:

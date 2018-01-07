@@ -36,7 +36,7 @@ def searchPath(rootpath, include_pairs=True, verbosity=1):
         'generator': re.compile(r'(({0}(-{0})?)-gener[A-z]*)\.mode'.format(lang_code)),
         'tagger': re.compile(r'(({0}(-{0})?)-tagger)\.mode'.format(lang_code)),
         'spell': re.compile(r'(({0}(-{0})?)-spell)\.mode'.format(lang_code)),
-        'tokenise': re.compile(r'(({0}(-{0})?)-tokenise)\.mode'.format(lang_code))
+        'tokenise': re.compile(r'(({0}(-{0})?)-tokenise)\.mode'.format(lang_code)),
     }
     modes = {
         'pair': [],
