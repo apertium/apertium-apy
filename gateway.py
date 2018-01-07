@@ -84,9 +84,8 @@ class requestHandler(RequestHandler):
         logging.info('Redirecting %s?%s to %s%s?%s' % (path, query, server_port, path, query))
 
         http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch(server_port + path + "?" + query,
-                   functools.partial(self._on_download, (server, port), langPair),
-                   validate_cert=verifySSLCert, headers=headers)
+        http.fetch(server_port + path + "?" + query, functools.partial(self._on_download,
+                                                                       (server, port), langPair), validate_cert=verifySSLCert, headers=headers)
         self.balancer.inform('start', (server, port), url=path)
 
     def _on_download(self, server, langPair, response):
@@ -319,8 +318,8 @@ class Fastest(Balancer):
             if mode in self.serverlist:
                 if action == 'complete':
                     if self.serverlist[mode][server]:
-                        self.serverlist[mode][server] = ((self.serverlist[mode][server] *
-                                                         (self.numResponses - 1) + requestTime / responseLen) / self.numResponses)
+                        self.serverlist[mode][server] = (self.serverlist[mode][server] * (self.numResponses -
+                                                                                          1) + requestTime / responseLen) / self.numResponses
                     else:
                         self.serverlist[mode][server] = requestTime / responseLen / self.numResponses
                 elif action == 'drop':

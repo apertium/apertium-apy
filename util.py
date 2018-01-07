@@ -145,8 +145,7 @@ def getCoverage(text, mode, modeDir, penalize=False):
     if len(lexicalUnits) and not penalize:
         return len(analyzedLexicalUnits) / len(lexicalUnits)
     elif len(lexicalUnits) and len(text) and penalize:
-        return (len(analyzedLexicalUnits) / len(lexicalUnits)
-                - (1 - sum([len(lexicalUnit[0].split('/')[0]) for lexicalUnit in lexicalUnits]) / len(text)))
+        return len(analyzedLexicalUnits) / len(lexicalUnits) - (1 - sum([len(lexicalUnit[0].split('/')[0]) for lexicalUnit in lexicalUnits]) / len(text))
     else:
         return -1
 
