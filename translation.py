@@ -2,12 +2,12 @@
 
 from collections import namedtuple
 from contextlib import contextmanager
-import logging
-import os
-import re
 from select import PIPE_BUF
 from subprocess import Popen, PIPE
 from time import time
+import logging
+import os
+import re
 
 from tornado import gen
 import tornado.process
