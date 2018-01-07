@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 # vim: set ts=4 sw=4 sts=4 et :
 
-from typing import Dict  # noqa: F401
-
-import sqlite3
-import logging
-from datetime import datetime
-import threading
 from collections import defaultdict
 from contextlib import closing
+from datetime import datetime
+import logging
+import sqlite3
+import threading
+
+from typing import Dict  # noqa: F401
 
 
 class MissingDb(object):
-
     def __init__(self, dbPath, wordmemlimit):
         self.lock = threading.RLock()
         self.conn = None
@@ -40,7 +39,11 @@ class MissingDb(object):
                 c.execute("PRAGMA synchronous = NORMAL")
                 c.execute('CREATE TABLE IF NOT EXISTS missingFreqs (pair TEXT, token TEXT, frequency INTEGER, UNIQUE(pair, token))')
                 c.executemany(
-                    'INSERT OR REPLACE INTO missingFreqs VALUES (:pair, :token, COALESCE((SELECT frequency FROM missingFreqs WHERE pair=:pair AND token=:token), 0) + :amount)',
+                    '''INSERT OR REPLACE INTO missingFreqs VALUES (
+                        :pair,
+                        :token,
+                        COALESCE((SELECT frequency FROM missingFreqs WHERE pair=:pair AND token=:token), 0) + :amount
+                    )''',
                     ({'pair': pair,
                       'token': token,
                       'amount': self.words[pair][token]}
