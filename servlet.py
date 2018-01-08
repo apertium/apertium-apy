@@ -946,7 +946,7 @@ class SpellerHandler(BaseHandler):
 
             self.sendResponse(units)
         else:
-            self.send_error(404, explanation="{} on spellchecker mode: {}".format('Error 404', 'Mode not installed'))
+            self.send_error(404, explanation="{} on spellchecker mode: {}".format('Error 404', 'Spelling mode for ' + in_mode + ' is not installed'))
 
 
 class GenerateHandler(BaseHandler):
