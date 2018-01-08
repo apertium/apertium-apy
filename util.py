@@ -59,14 +59,14 @@ def getLanguageNames(locale, dbPath):
 
 @gen.coroutine
 def getLocalizedLanguages(locale, dbPath, languages=[]):
-    languageResults = yield langNamesDBThread.submit(getLanguageNames, locale, dbPath)
-
-    if not languageResults:
-        logging.error('Failed to locate language name DB: %s' % dbPath)
-        return {}
-
     locale = toAlpha2Code(locale)
     languages = list(set(languages))
+
+    languageResults = yield langNamesDBThread.submit(getLanguageNames, locale, dbPath)
+
+    if languageResults is None:
+        logging.error('Failed to locate language name DB: %s' % dbPath)
+        return {}
 
     convertedLanguages, duplicatedLanguages = {}, {}
 
