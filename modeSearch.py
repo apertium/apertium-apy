@@ -34,13 +34,17 @@ def searchPath(rootpath, include_pairs=True, verbosity=1):
         'pair': re.compile(r'({0})-({0})\.mode'.format(lang_code)),
         'analyzer': re.compile(r'(({0}(-{0})?)-(an)?mor(ph)?)\.mode'.format(lang_code)),
         'generator': re.compile(r'(({0}(-{0})?)-gener[A-z]*)\.mode'.format(lang_code)),
-        'tagger': re.compile(r'(({0}(-{0})?)-tagger)\.mode'.format(lang_code))
+        'tagger': re.compile(r'(({0}(-{0})?)-tagger)\.mode'.format(lang_code)),
+        'spell': re.compile(r'(({0}(-{0})?)-spell)\.mode'.format(lang_code)),
+        'tokenise': re.compile(r'(({0}(-{0})?)-tokenise)\.mode'.format(lang_code)),
     }
     modes = {
         'pair': [],
         'analyzer': [],
         'generator': [],
         'tagger': [],
+        'spell': [],
+        'tokenise': [],
     }  # type: Dict[str, List[Tuple[str, str, str]]]
 
     real_root = os.path.abspath(os.path.realpath(rootpath))

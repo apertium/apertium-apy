@@ -1,0 +1,3 @@
+[submodule "streamparser"]
+	path = streamparser
+	url = https://github.com/goavki/streamparser.git
