@@ -333,6 +333,10 @@ INSERT INTO "additions" VALUES(NULL,'en','qve','Quechua');
 INSERT INTO "additions" VALUES(NULL,'en','ssp','Spanish Sign Language');
 INSERT INTO "additions" VALUES(NULL,'en','khk','Khalkha Mongolian');
 
+INSERT INTO "additions" VALUES(NULL,'khk','khk','монгол хэл');
+INSERT INTO "additions" VALUES(NULL,'kmr','kmr','Kurmancî');
+
+
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "additions";
 COMMIT;
