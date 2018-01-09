@@ -916,9 +916,14 @@ class SpellerHandler(BaseHandler):
         in_text = self.get_argument('q') + '*'
         in_mode = toAlpha3Code(self.get_argument('lang'))
         logging.info(in_text)
+        logging.info(self.get_argument('lang'))
         logging.info(in_mode)
+        logging.info(self.spellers)
         if in_mode in self.spellers:
+            logging.info(self.spellers[in_mode])
             [path, mode] = self.spellers[in_mode]
+            logging.info(path)
+            logging.info(mode)
             formatting = 'none'
             commands = [['apertium', '-d', path, '-f', formatting, self.get_argument('lang')+'-tokenise']]
             result = yield translation.translateSimple(in_text, commands)
