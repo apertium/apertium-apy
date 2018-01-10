@@ -18,6 +18,7 @@ INSERT INTO "languageNames" VALUES(NULL,"en","hbs_SR","Serbian");
 INSERT INTO "languageNames" VALUES(NULL,"en","mlt_translit","Maltese Transliterated");
 INSERT INTO "languageNames" VALUES(NULL,"en","nno_e","East Norwegian");
 INSERT INTO "languageNames" VALUES(NULL,"en","oci_aran","Aranese");
+INSERT INTO "languageNames" VALUES(NULL,"en","oci_gascon","Gascon");
 INSERT INTO "languageNames" VALUES(NULL,"en","por_BR","Brazilian Portuguese");
 INSERT INTO "languageNames" VALUES(NULL,"en","tgk_translit","Tajik Transliterated");
 INSERT INTO "languageNames" VALUES(NULL,"es","cat_valencia","valenciano");
