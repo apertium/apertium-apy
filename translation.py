@@ -195,7 +195,8 @@ def hardbreakFn(string, n_users):
     if n_users > 2:
         return 1000
     else:
-        return upToBytes(string, PIPE_BUF)
+        # return upToBytes(string, PIPE_BUF)
+        return upToBytes(string, 4096)
 
 
 def preferPunctBreak(string, last, hardbreak):
