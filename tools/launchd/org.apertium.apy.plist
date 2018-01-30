@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version='1.0'>
+<dict>
+<key>Label</key><string>org.apertium.apy</string>
+<key>ProgramArguments</key>
+<array>
+	<string>/usr/bin/python3</string>
+	<string>/usr/share/apertium-apy/servlet.py</string>
+	<string>/usr/share/apertium/modes</string>
+	<string>--max-idle-secs</string>
+	<string>3600</string>
+	<string>--restart-pipe-after</string>
+	<string>200</string>
+        <string>--max-pipes-per-pair</string>
+        <string>2</string>
+        <string>--max-users-per-pipe</string>
+        <string>1</string>
+</array>
+<key>UserName</key><string>apy</string>
+<key>Debug</key><false/>
+<key>Disabled</key><false/>
+<key>KeepAlive</key><true/>
+<key>RunAtLoad</key><true/>
+<key>EnvironmentVariables</key>
+    <dict>
+        <key>LC_ALL</key> <string>en_US.UTF-8</string>
+        <key>PATH</key>   <string>/usr/bin:/opt/local/bin:/opt/local/sbin:/usr/local/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+</dict>
+</plist>
