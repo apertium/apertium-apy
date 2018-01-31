@@ -1020,6 +1020,10 @@ Not async yet; would have to shell out for that (and keep hunspell pipeline open
         lang = toAlpha3Code(self.get_argument('lang'))
         if lang in self.hunspellers:
             s = self.hunspellers[lang]
+            if type(s) == tuple:
+                logging.info("Loading hunspell dictionary {} for lang {}".format(s, lang))
+                self.hunspellers[lang] = hunspell.HunSpell(*s)
+                s = self.hunspellers[lang]
             wordms = re.finditer(r'[^\W\d]+', text)
             result = [[wf, u16e.encode(m.start(0)), u16e.encode(m.end(0)),
                        "typo", "Spelling error", [b.decode('utf-8')
@@ -1514,7 +1518,18 @@ def setupHandler(
         Handler.taggers[lang_pair] = (dirpath, modename)
 
     if hunspell is not None:
-        Handler.hunspellers[toAlpha3Code('se_NO')] = hunspell.HunSpell('/usr/share/hunspell/se_NO.dic', '/usr/share/hunspell/se_NO.aff')
+        dirs = ['/usr/share/hunspell', '/usr/share/myspell']
+        dics = [(e.path, aff)
+                for d in dirs
+                if os.path.isdir(d)
+                for e in os.scandir(d)
+                for aff in [re.sub(r'[.]dic$', '.aff', e.path)]
+                if e.name.endswith('.dic')
+                and os.path.isfile(aff)]
+        logging.info("Found hunspellers: {}".format(dics))
+        for (dic, aff) in dics:
+            code = os.path.splitext(os.path.basename(dic))[0]
+            Handler.hunspellers[toAlpha3Code(code)] = (dic, aff)
 
     Handler.initPairsGraph()
     Handler.initPaths()
