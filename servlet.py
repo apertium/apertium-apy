@@ -55,6 +55,13 @@ if sys.version_info.minor < 3:
 else:
     import translation
 
+from select import PIPE_BUF
+try:
+    import hunspell
+except:
+    logging.warning("WARNING: Couldn't import hunspell, disabling /hunspell backend.")
+    hunspell = None
+
 try:
     from corpustools import pdfconverter
     assert(pdfconverter)        # silence flake8
@@ -121,6 +128,7 @@ class BaseHandler(tornado.web.RequestHandler):
     timeout = None
     scaleMtLogs = False
     verbosity = 0
+    hunspellers = {}
 
     # dict representing a graph of translation pairs; keys are source languages
     # e.g. pairs_graph['eng'] = ['fra', 'spa']
@@ -995,6 +1003,74 @@ class TranslateRawHandler(TranslateHandler):
                                            reformat=False)
 
 
+class HunspellHandler(BaseHandler):
+    """Look up with Hunspell, returning structure as in divvun-suggest.
+Not async yet; would have to shell out for that (and keep hunspell pipeline open)."""
+
+    @tornado.web.asynchronous
+    @gen.coroutine
+    def get(self):
+        text = self.get_argument('q')
+        if len(text) > PIPE_BUF:  # Since we're blocking, don't accept very long texts
+            logging.info("/hunspell called with text of length {}! Ignoring everything after {} ...".format(
+                len(text), PIPE_BUF))
+            # strip until last full word before the max
+            text = re.sub(r'[^\W\d]+$', '', text[:PIPE_BUF])
+        u16e = Utf16IndexEncoder(text)
+        lang = toAlpha3Code(self.get_argument('lang'))
+        if lang in self.hunspellers:
+            s = self.hunspellers[lang]
+            wordms = re.finditer(r'[^\W\d]+', text)
+            result = [[wf, u16e.encode(m.start(0)), u16e.encode(m.end(0)),
+                       "typo", "Spelling error", [b.decode('utf-8')
+                                                  for b in s.suggest(wf)]]
+                      for m in wordms
+                      for wf in [m.group(0)]
+                      if not s.spell(wf)]
+            self.sendResponse({"errs": result})
+        else:
+            self.send_error(400,
+                            explanation='The hunspell language {} is not installed, available languages: {}'.format(
+                                lang, ", ".join(self.hunspellers.keys())))
+
+
+class Utf16IndexEncoder(object):
+    """Used to find corresponding index in self.utext if it were
+UTF16LE-encoded. This means JavaScript can use the number to index
+into the JavaScript string.
+
+As an example: If input is unicode object 'a𝌇b', where b has index 2,
+then encoding it will give b index 3 since there was one
+surrogate-pair code-point before it.
+
+Python:
+>>> ue = Utf16IndexEncoder('a𝌇b🇳c')
+>>> [(i, ue.UTEXT[i], ue.encode(i)) for i in range(len(ue.UTEXT))]
+[(0, 'a', 0), (1, '𝌇', 1), (2, 'b', 3), (3, '🇳', 4), (4, 'c', 6)]
+
+JavaScript:
+> 'a𝌇b🇳c'.substr(3, 1)
+"b"
+> 'a𝌇b🇳c'.substr(4, 2)
+"🇳"
+> 'a𝌇b🇳c'.substr(6, 1)
+"c"
+
+    """
+    def __init__(self, utext):
+        self.UTEXT = utext
+        # Assumption: UTF-16 always uses either 2 or 4 bytes on a code point.
+        # surr is the list of indices in utext that take 4 bytes if encoded in UTF-16
+        self.SURR = [i
+                     for (c, i) in zip(utext,
+                                       range(0, len(utext)))
+                     if len(c.encode('utf-16le')) > 3]
+
+    def encode(self, index):
+        return index + len([s_i for s_i in self.SURR
+                            if s_i < index])
+
+
 class AnalyzeHandler(BaseHandler):
 
     def postproc_text(self, in_text, result):
@@ -1437,6 +1513,9 @@ def setupHandler(
     for dirpath, modename, lang_pair in modes['tagger']:
         Handler.taggers[lang_pair] = (dirpath, modename)
 
+    if hunspell is not None:
+        Handler.hunspellers[toAlpha3Code('se_NO')] = hunspell.HunSpell('/usr/share/hunspell/se_NO.dic', '/usr/share/hunspell/se_NO.aff')
+
     Handler.initPairsGraph()
     Handler.initPaths()
 
@@ -1547,6 +1626,7 @@ if __name__ == '__main__':
         (r'/translateDoc', TranslateDocHandler),
         (r'/translatePage', TranslatePageHandler),
         (r'/translateRaw', TranslateRawHandler),
+        (r'/hunspell', HunspellHandler),
         (r'/analy[sz]e', AnalyzeHandler),
         (r'/generate', GenerateHandler),
         (r'/listLanguageNames', ListLanguageNamesHandler),
