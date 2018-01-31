@@ -1003,6 +1003,28 @@ class TranslateRawHandler(TranslateHandler):
                                            reformat=False)
 
 
+class CachingHunSpell(object):
+    def __init__(self, dic, aff):
+        self.S = hunspell.HunSpell(dic, aff)
+        self.cache = {}         # type: Dict[str, List[bytes]]
+
+    def spell(self, w):
+        if w in self.cache:
+            return False  # we only cache misspellings, so if not here, it's correct
+        else:
+            return self.S.spell(w)
+
+    def suggest(self, w):
+        if w in self.cache:
+            return self.cache[w]
+        else:
+            # KISS cache eviction policy
+            if len(self.cache.keys()) > 10000:  # TODO some number just low enough we don't run out of memory
+                self.cache = {}
+            self.cache[w] = self.S.suggest(w)
+            return self.cache[w]
+
+
 class HunspellHandler(BaseHandler):
     """Look up with Hunspell, returning structure as in divvun-suggest.
 Not async yet; would have to shell out for that (and keep hunspell pipeline open)."""
@@ -1022,7 +1044,7 @@ Not async yet; would have to shell out for that (and keep hunspell pipeline open
             s = self.hunspellers[lang]
             if type(s) == tuple:
                 logging.info("Loading hunspell dictionary {} for lang {}".format(s, lang))
-                self.hunspellers[lang] = hunspell.HunSpell(*s)
+                self.hunspellers[lang] = CachingHunSpell(*s)
                 s = self.hunspellers[lang]
             wordms = re.finditer(r'[^\W\d]+', text)
             result = [[wf, u16e.encode(m.start(0)), u16e.encode(m.end(0)),
