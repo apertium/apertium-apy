@@ -49,16 +49,16 @@ from util import getLocalizedLanguages, stripTags, processPerWord, getCoverage, 
 import systemd
 import missingdb
 # from typing import Optional, Tuple
+from select import PIPE_BUF
 
 if sys.version_info.minor < 3:
     import translation_py32 as translation
 else:
     import translation
 
-from select import PIPE_BUF
 try:
     import hunspell
-except:
+except ImportError:
     logging.warning("WARNING: Couldn't import hunspell, disabling /hunspell backend.")
     hunspell = None
 
@@ -69,13 +69,13 @@ try:
     if find_executable("pdftohtml") is None:
         logging.warning("WARNING: Found corpustools but not pdftohtml, disabling pdf translation")
         pdfconverter = None
-except:
+except ImportError as _e:
     logging.warning("WARNING: Couldn't import corpustools, disabling pdf translation")
     pdfconverter = None
 
 try:
     import cld2full as cld2
-except ImportError as _e:
+except ImportError:
     cld2 = None
 
 RECAPTCHA_VERIFICATION_URL = 'https://www.google.com/recaptcha/api/siteverify'
