@@ -5,7 +5,6 @@ sudo: required
 dist: trusty
 
 python:
-    - "3.3"
     - "3.4"
     - "3.5"
     - "3.5-dev"
@@ -22,11 +21,7 @@ before_script:
     - svn co https://svn.code.sf.net/p/apertium/svn/languages/apertium-nno /tmp/languages/apertium-nno
     - ( cd /tmp/languages/apertium-nno && ./autogen.sh && make -j2 )
     - flake8
-    - lines="$(mypy --config-file mypy.ini **/*.py)";
-      echo "$lines";
-      count="$(echo "$lines" | grep -cv 'note:\|No library stub file')";
-      echo "mypy reported $count critical errors";
-      exit "$count";
+    - mypy --config-file mypy.ini **/*.py
 
 script:
     - NONPAIRS=/tmp/languages t/run-tests
