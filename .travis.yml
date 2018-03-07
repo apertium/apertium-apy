@@ -7,7 +7,7 @@ dist: trusty
 python:
     - "3.4"
     - "3.5"
-    - "3.5-dev"
+    - "3.6"
     - "nightly"
 
 install:
