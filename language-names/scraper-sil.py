@@ -22,14 +22,17 @@ if __name__ == '__main__':
     for tsv_line in tsv_contents[1:]:  # skip the header
         matches = tsv_format.match(tsv_line)
 
-        iso639_3 = matches.group('Id')
-        iso639_1 = matches.group('Part1')
-        iso639 = iso639_1 or iso639_3
+        if matches:
+            iso639_3 = matches.group('Id')
+            iso639_1 = matches.group('Part1')
+            iso639 = iso639_1 or iso639_3
 
-        name = matches.group('Ref_Name')
+            name = matches.group('Ref_Name')
 
-        if iso639 and name:
-            print(insert_template % (args.table, 'en', iso639, name))
+            if iso639 and name:
+                print(insert_template % (args.table, 'en', iso639, name))
+            else:
+                sys.stdout.write('!!! Unable to parse %s !!!\n' % repr(tsv_line))
         else:
             sys.stdout.write('!!! Unable to parse %s !!!\n' % repr(tsv_line))
 
