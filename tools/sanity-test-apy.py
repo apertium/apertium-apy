@@ -12,7 +12,9 @@ unescape = html.parser.HTMLParser().unescape  # type: ignore
 
 TIMEOUT = 15
 tests = {
-    "tur-crh": ("kırım tatarı", "qırımtatar"),
+    "rus-ukr": ("меня", "мене"),
+    "ukr-rus": ("мене", "меня"),
+    "tur-crh": ("ve", "ve"),
     "crh-tur": ("qırımtatar", "kırım tatarı"),
     "bel-rus": ("мяне", "меня"),
     "rus-bel": ("меня", "мяне"),
