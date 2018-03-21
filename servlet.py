@@ -490,7 +490,7 @@ class TranslateHandler(BaseHandler):
         before = self.logBeforeTranslation()
         translated = yield pipeline.translate(toTranslate, nosplit, deformat, reformat)
         self.logAfterTranslation(before, len(toTranslate))
-        self.sendResponse({
+        self.response.append({
             'responseData': {
                 'translatedText': self.maybeStripMarks(markUnknown, pair, translated)
             },
@@ -501,17 +501,28 @@ class TranslateHandler(BaseHandler):
 
     @gen.coroutine
     def get(self):
-        pair = self.getPairOrError(self.get_argument('langpair'),
-                                   len(self.get_argument('q')))
-        if pair is not None:
-            pipeline = self.getPipeline(pair)
-            deformat, reformat = self.getFormat()
-            yield self.translateAndRespond(pair,
-                                           pipeline,
-                                           self.get_argument('q'),
-                                           self.get_argument('markUnknown', default='yes'),
-                                           nosplit=False,
-                                           deformat=deformat, reformat=reformat)
+        self.response = []
+        query_list = self.get_arguments('q')
+        langpair = self.get_argument('langpair')
+        
+        for query in query_list:
+            pair = self.getPairOrError(langpair, len(query))
+            if pair is not None:
+                pipeline = self.getPipeline(pair)
+                deformat, reformat = self.getFormat()
+                yield self.translateAndRespond(pair,
+                                               pipeline,
+                                               query,
+                                               self.get_argument('markUnknown', default='yes'),
+                                               nosplit=False,
+                                               deformat=deformat, reformat=reformat)
+        if len(self.response) == 1:
+            self.response = self.response[0]
+        self.sendResponse({
+            'responseData': self.response,
+            'responseDetails': None,
+            'responseStatus': 200
+        })
 
 
 class TranslateChainHandler(TranslateHandler):
