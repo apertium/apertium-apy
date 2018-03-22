@@ -97,6 +97,9 @@ class SimplePipeline(Pipeline):
 
 class CatPipeline(Pipeline):
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     @gen.coroutine
     def translate(self, output, nosplit="ignored", deformat="ignored", reformat="ignored"):
         return output
