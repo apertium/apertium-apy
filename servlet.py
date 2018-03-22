@@ -504,7 +504,6 @@ class TranslateHandler(BaseHandler):
         self.response = []
         query_list = self.get_arguments('q')
         langpair = self.get_argument('langpair')
-        
         for query in query_list:
             pair = self.getPairOrError(langpair, len(query))
             if pair is not None:
