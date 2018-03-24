@@ -34,8 +34,5 @@ setup(
         'lang_detect': ['cld2'],
         'website_encoding_detect': ['chardet'],
     },
-    package_data={
-        '': ['langNames.db'],
-    },
-    py_modules=['apertium_apy'],
+    packages=['apertium_apy'],
 )
