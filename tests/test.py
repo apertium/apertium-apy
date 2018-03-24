@@ -83,20 +83,22 @@ class TestListHandler(BaseTestCase):
         self.assertTrue('responseData' in response)
         self.assertTrue('responseDetails' in response)
         self.assertEqual(response['responseStatus'], 200)
-        # TODO: validate more
+        print(response)  # TODO: validate more
 
     def test_list_generators(self):
         response = self.fetch_json('/list?q=generators')
-        print(response)  # TODO: validate it
+        expect = {'nno': 'nno-gener'}
+        self.assertTrue(response.items() >= expect.items(), '{} is missing {}'.format(response, expect))
 
     def test_list_analyzers(self):
         response = self.fetch_json('/list?q=analysers')
-        print(response)  # TODO: validate it
+        expect = {'nno': 'nno-morph'}
+        self.assertTrue(response.items() >= expect.items(), '{} is missing {}'.format(response, expect))
 
 
 class TestTranslateHandler(BaseTestCase):
     def fetch_translation(self, query, pair, **kwargs):
-        expect_success = kwargs.get('expected_success', True)
+        expect_success = kwargs.get('expect_success', True)
         response = self.fetch_json('/translate?q={}&langpair={}'.format(query, pair), **kwargs)
         if expect_success:
             self.assertEqual(response['responseStatus'], 200)
@@ -111,7 +113,16 @@ class TestTranslateHandler(BaseTestCase):
         self.assertEqual(response['responseData']['translatedText'], 'og')
 
     def test_invalid_pair(self):
-        response = self.fetch_translation('ja', 'non|mod', expect_success=False)
+        response = self.fetch_translation('ignored', 'typomode', expect_success=False)
+        self.assertDictEqual(response, {
+            'status': 'error',
+            'code': 400,
+            'message': 'Bad Request',
+            'explanation': 'That pair is invalid, use e.g. eng|spa',
+        })
+
+    def test_missing_pair(self):
+        response = self.fetch_translation('ignored', 'non|mod', expect_success=False)
         self.assertDictEqual(response, {
             'status': 'error',
             'code': 400,
@@ -129,11 +140,11 @@ class TestAnalyzeHandler(BaseTestCase):
 class TestGenerateHandler(BaseTestCase):
     def test_generate(self):
         response = self.fetch_json('/generate?q=ja<ij>&lang=nno')
-        print(response)  # TODO: validate it
+        self.assertEqual(response, [['ja', '^ja<ij>$']])
 
     def test_generate_2(self):  # TODO: a better name
         response = self.fetch_json('/generate?q=^ja<ij>$&lang=nno')
-        print(response)  # TODO: validate it
+        self.assertEqual(response, [['ja', '^ja<ij>$']])
 
 
 if __name__ == '__main__':
