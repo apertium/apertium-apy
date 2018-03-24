@@ -1,4 +1,5 @@
 apertium-streamparser==5.0.0
+chardet==3.0.4
 flake8==3.5.0
 mccabe==0.6.1
 mypy==0.580

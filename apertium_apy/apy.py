@@ -2,65 +2,65 @@
 # -*- indent-tabs-mode: nil -*-
 # coding=utf-8
 
-from typing import Dict, List, Optional, Tuple  # noqa: F401
-
 import argparse
 import configparser
-from datetime import datetime, timedelta
-from functools import wraps
-from hashlib import sha1
 import heapq
 import html
 import logging
-from logging import handlers as logging_handlers  # type: ignore
-from multiprocessing import Pool
-from multiprocessing import TimeoutError  # type: ignore
 import os
 import random
 import re
 import signal
 import string
-from subprocess import Popen, PIPE
 import sys
 import tempfile
-from threading import Thread
 import time
-from urllib.parse import urlparse, urlunsplit
 import zipfile
+from datetime import datetime, timedelta
+from functools import wraps
+from hashlib import sha1
+from logging import handlers as logging_handlers  # type: ignore
+from multiprocessing import Pool
+from multiprocessing import TimeoutError  # type: ignore
+from subprocess import Popen, PIPE
+from threading import Thread
+from typing import Dict, List, Optional, Tuple  # noqa: F401
+from urllib.parse import urlparse, urlunsplit
 
+from streamparser import parse, known
 import tornado
+import tornado.httpserver
+import tornado.httputil
+import tornado.iostream
+import tornado.process
+import tornado.web
 from tornado import escape
 from tornado import gen
 from tornado import httpclient
 from tornado.escape import utf8
-import tornado.httpserver
-import tornado.httputil
-import tornado.iostream
 from tornado.locks import Semaphore
-import tornado.process
-import tornado.web
 from tornado.log import enable_pretty_logging
+
 try:
     import cld2full as cld2  # type: ignore
 except ImportError as _e:
     cld2 = None
 
-from modeSearch import searchPath
-from keys import getKey
-from util import (getLocalizedLanguages, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code,
-                  toAlpha2Code, scaleMtLog, TranslationInfo, removeDotFromDeformat)
-import systemd
-import missingdb
-import translation  # type: ignore
-from streamparser.streamparser import parse, known
-
-RECAPTCHA_VERIFICATION_URL = 'https://www.google.com/recaptcha/api/siteverify'
-bypassToken = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(24))
-
 try:
     import chardet
 except ImportError as _e:
     chardet = None
+
+from keys import getKey
+from modeSearch import searchPath
+from util import (getLocalizedLanguages, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code,
+                  toAlpha2Code, scaleMtLog, TranslationInfo, removeDotFromDeformat)
+import missingdb
+import systemd
+import translation  # type: ignore
+
+RECAPTCHA_VERIFICATION_URL = 'https://www.google.com/recaptcha/api/siteverify'
+bypassToken = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(24))
 
 __version__ = "0.10.0"
 
