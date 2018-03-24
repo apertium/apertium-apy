@@ -35,14 +35,14 @@ class MissingDb(object):
                 self.conn = sqlite3.connect(self.db_path)
 
             with closing(self.conn.cursor()) as c:
-                c.execute("PRAGMA synchronous = NORMAL")
+                c.execute('PRAGMA synchronous = NORMAL')
                 c.execute('CREATE TABLE IF NOT EXISTS missingFreqs (pair TEXT, token TEXT, frequency INTEGER, UNIQUE(pair, token))')
                 c.executemany(
-                    '''INSERT OR REPLACE INTO missingFreqs VALUES (
+                    """INSERT OR REPLACE INTO missingFreqs VALUES (
                         :pair,
                         :token,
                         COALESCE((SELECT frequency FROM missingFreqs WHERE pair=:pair AND token=:token), 0) + :amount
-                    )''',
+                    )""",
                     ({'pair': pair,
                       'token': token,
                       'amount': self.words[pair][token]}
@@ -50,7 +50,7 @@ class MissingDb(object):
                         for token in self.words[pair]))
             self.conn.commit()
         ms = timedelta_to_milliseconds(datetime.now() - time_before)
-        logging.info("\tSaving %s unknown words to the DB (%s ms)", self.wordcount, ms)
+        logging.info('\tSaving %s unknown words to the DB (%s ms)', self.wordcount, ms)
 
     def close_db(self):
         if not self.conn:

@@ -25,7 +25,7 @@ global verify_ssl_cert
 
 
 def gen_server_name(server, port):
-    if len(server.split('/')) > 3:  # true if there's a separate "path" element
+    if len(server.split('/')) > 3:  # true if there's a separate 'path' element
         server = server.rsplit('/', 1)
         server_port = '%s:%s/%s' % (server[0], port, server[1])
     else:
@@ -34,7 +34,7 @@ def gen_server_name(server, port):
 
 
 class RedirectRequestHandler(RequestHandler):
-    '''Handler for non-list requests -- all requests that must be redirected.'''
+    """Handler for non-list requests -- all requests that must be redirected."""
 
     def initialize(self, balancer):
         self.balancer = balancer
@@ -83,7 +83,7 @@ class RedirectRequestHandler(RequestHandler):
 
         http = tornado.httpclient.AsyncHTTPClient()
         http.fetch(
-            server_port + path + "?" + query,
+            server_port + path + '?' + query,
             functools.partial(self._on_download, (server, port), lang_pair),
             validate_cert=verify_ssl_cert, headers=headers)
         self.balancer.inform('start', (server, port), url=path)
@@ -109,7 +109,7 @@ class RedirectRequestHandler(RequestHandler):
 
 
 class ListRequestHandler(apy.BaseHandler):
-    '''Handler for list requests. Takes a language-pair-server map and aggregates the language-pairs of all of the servers.'''
+    """Handler for list requests. Takes a language-pair-server map and aggregates the language-pairs of all of the servers."""
 
     def initialize(self, server_lang_pair_map):
         self.server_lang_pair_map = server_lang_pair_map
@@ -119,7 +119,7 @@ class ListRequestHandler(apy.BaseHandler):
 
     @tornado.web.asynchronous
     def get(self):
-        logging.info("Overriding list call: %s %s" % (self.request.path, self.get_arguments('q')))
+        logging.info('Overriding list call: %s %s' % (self.request.path, self.get_arguments('q')))
         if self.request.path != '/listPairs' and self.request.path != '/list':
             self.send_error(400)
         else:
@@ -127,7 +127,7 @@ class ListRequestHandler(apy.BaseHandler):
             if query:
                 query = query[0]
             if self.request.path == '/listPairs' or query == 'pairs':
-                logging.info("Responding to request for pairs")
+                logging.info('Responding to request for pairs')
                 response_data = []
                 for pair in self.server_lang_pair_map['pairs']:
                     (l1, l2) = pair
@@ -168,21 +168,21 @@ class Random(Balancer):
 
 
 class RoundRobin(Balancer):
-    '''Contains the list of the server / ports / their capabilities
-        and cycles between the available/possible ones.'''
+    """Contains the list of the server / ports / their capabilities
+        and cycles between the available/possible ones."""
 
     def __init__(self, servers, langpairmap):
         super(RoundRobin, self).__init__(servers)
         self.langpairmap = langpairmap
         self.generator = itertools.cycle(self.serverlist)
 
-    def get_server(self, lang_pair, mode="pairs", *args, **kwargs):
+    def get_server(self, lang_pair, mode='pairs', *args, **kwargs):
         # when we get a /perWord request, we have multiple modes, all of which have to be on the server
-        # the modes will not be "pairs"
+        # the modes will not be 'pairs'
         if 'per_word_modes' in kwargs and kwargs['per_word_modes'] is not None:
             per_word_modes = {'morph': 'analyzers', 'biltrans': 'analyzers', 'tagger': 'taggers', 'translate': 'taggers'}
             modes = set(map(lambda _: per_word_modes[_], kwargs['per_word_modes']))
-            logging.info("Handling a /perWord request with modes %s for langpair %s" % (modes, lang_pair))
+            logging.info('Handling a /perWord request with modes %s for langpair %s' % (modes, lang_pair))
 
             def is_in(modes, server):
                 for mode in modes:
@@ -191,7 +191,7 @@ class RoundRobin(Balancer):
                 else:
                     return True
             if not any(is_in(modes, server) for server in self.serverlist):
-                logging.error("Language pair %s not found for modes %s" % (lang_pair, modes))
+                logging.error('Language pair %s not found for modes %s' % (lang_pair, modes))
                 return next(self.generator)
             else:
                 server = next(self.generator)
@@ -199,13 +199,13 @@ class RoundRobin(Balancer):
                     server = next(self.generator)
                 return server
         # for everything that isn't a /perWord call
-        if lang_pair is not None and mode == "pairs":  # for mode "pairs", the key is ('lang', 'pair') rather than 'lang-pair'
+        if lang_pair is not None and mode == 'pairs':  # for mode 'pairs', the key is ('lang', 'pair') rather than 'lang-pair'
             lang_pair = tuple(lang_pair.split('-'))
         if lang_pair is None or lang_pair not in self.langpairmap[mode]:
-            logging.error("Language pair %s for mode %s not found" % (lang_pair, mode))
+            logging.error('Language pair %s for mode %s not found' % (lang_pair, mode))
             return next(self.generator)
         server = next(self.generator)
-        if mode == "pairs":
+        if mode == 'pairs':
             serverlist = self.langpairmap[mode][lang_pair]
         else:
             serverlist = self.langpairmap[mode][lang_pair][1]
@@ -413,54 +413,54 @@ def test_server_pool(server_list):
 
 
 def determine_server_capabilities(serverlist):
-    '''Find which APYs can do what.
+    """Find which APYs can do what.
 
     The return data from this function is a little complex, better illustrated than described:
     capabilities = {
-        "pairs": {  #note that pairs is a special mode compared to taggers/generators/analyzers
-            ("lang", "pair"): [(server1, port1), (server2, port2)]
+        'pairs': {  #note that pairs is a special mode compared to taggers/generators/analyzers
+            ('lang', 'pair'): [(server1, port1), (server2, port2)]
             }
-        "taggers|generators|analyzers": {
-            "lang-pair": ("lang-pair-moreinfo", [(server1, port1), (server2, port2)])
-            #"moreinfo" tends to be "anmor" or "generador" or "tagger"
+        'taggers|generators|analyzers': {
+            'lang-pair': ('lang-pair-moreinfo', [(server1, port1), (server2, port2)])
+            #'moreinfo' tends to be 'anmor' or 'generador' or 'tagger'
             }
          }
-            '''
+            """
     # TODO: scaleMT doesn't support /list?q=mode calls. Find a way to figure out which language-pairs each mode supports
     # on scaleMT survers.
     # You will probably need to batch-translate or batch-analyze with the language pairs from /listPairs and
     # look at the return codes in order to do this.
     http = tornado.httpclient.HTTPClient()
-    modes = ("pairs", "taggers", "generators", "analyzers")
+    modes = ('pairs', 'taggers', 'generators', 'analyzers')
     capabilities = {}  # type: Dict[str, Dict]
     for (domain, port) in serverlist:
         server = (domain, port)
         for mode in modes:
             if mode not in capabilities:
                 capabilities[mode] = {}
-            if mode == "pairs":  # for compatibility with scaleMT, we request /listPairs
-                request_url = "%s/listPairs" % gen_server_name(domain, port)
+            if mode == 'pairs':  # for compatibility with scaleMT, we request /listPairs
+                request_url = '%s/listPairs' % gen_server_name(domain, port)
             else:
-                request_url = "%s/list?q=%s" % (gen_server_name(domain, port), mode)
-            logging.info("Getting information from %s" % request_url)
+                request_url = '%s/list?q=%s' % (gen_server_name(domain, port), mode)
+            logging.info('Getting information from %s' % request_url)
             # make the request
             try:
                 result = http.fetch(request_url, request_timeout=15, validate_cert=verify_ssl_cert)
             except Exception as e:
-                logging.error("Fetch for data from %s for %s failed with %s, dropping server" % (gen_server_name(domain, port), mode, e))
+                logging.error('Fetch for data from %s for %s failed with %s, dropping server' % (gen_server_name(domain, port), mode, e))
                 continue
             # parse the return
             try:
                 response = json.loads(result.body.decode('utf-8'))
             except ValueError:  # Not valid JSON, we stop using the server
-                logging.error("Received invalid JSON from %s on query for %s, dropping server" % (gen_server_name(domain, port), mode))
+                logging.error('Received invalid JSON from %s on query for %s, dropping server' % (gen_server_name(domain, port), mode))
                 continue
-            if mode == "pairs":  # pairs has a slightly different response format
-                if "responseStatus" not in response or response["responseStatus"] != 200 or "responseData" not in response:
-                    logging.error("JSON return format unexpected from %s:%s on query for %s, dropping server" % (domain, port, mode))
+            if mode == 'pairs':  # pairs has a slightly different response format
+                if 'responseStatus' not in response or response['responseStatus'] != 200 or 'responseData' not in response:
+                    logging.error('JSON return format unexpected from %s:%s on query for %s, dropping server' % (domain, port, mode))
                     continue
                 for lang_pair in response['responseData']:
-                    lang_pair_tuple = (lang_pair["sourceLanguage"], lang_pair["targetLanguage"])
+                    lang_pair_tuple = (lang_pair['sourceLanguage'], lang_pair['targetLanguage'])
                     if lang_pair_tuple in capabilities[mode]:
                         capabilities[mode][lang_pair_tuple].append(server)
                     else:
@@ -475,15 +475,15 @@ def determine_server_capabilities(serverlist):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Start Apertium APY Gateway")
-    parser.add_argument('serverlist', help="path to file with list of servers and ports available")
-    parser.add_argument('-t', '--tests', help="perform tests on server pool", action='store_true', default=False)
-    parser.add_argument('-p', '--port', help="port to run gateway on (default = 2738)", type=int, default=2738)
+    parser = argparse.ArgumentParser(description='Start Apertium APY Gateway')
+    parser.add_argument('serverlist', help='path to file with list of servers and ports available')
+    parser.add_argument('-t', '--tests', help='perform tests on server pool', action='store_true', default=False)
+    parser.add_argument('-p', '--port', help='port to run gateway on (default = 2738)', type=int, default=2738)
     parser.add_argument('-c', '--ssl-cert', help='path to SSL Certificate', default=None)
     parser.add_argument('-k', '--ssl-key', help='path to SSL Key File', default=None)
     parser.add_argument('-d', '--debug', help='debug mode (do not verify SSL certs)', action='store_false', default=True)
     parser.add_argument('-j', '--num-processes', help='number of processes to run (default = number of cores)', type=int, default=0)
-    parser.add_argument('-i', '--test-interval', help="interval to perform tests in ms (default = 3600000)", type=int, default=3600000)
+    parser.add_argument('-i', '--test-interval', help='interval to perform tests in ms (default = 3600000)', type=int, default=3600000)
     args = parser.parse_args()
 
     global verify_ssl_cert
@@ -501,7 +501,7 @@ if __name__ == '__main__':
                     srv, port = server_port_pair.rsplit(':', 1)
                     server_port_list.append((srv, int(port)))
     except IOError:
-        logging.critical("Could not open serverlist: %s" % args.serverlist)
+        logging.critical('Could not open serverlist: %s' % args.serverlist)
         sys.exit(-1)
 
     if len(server_port_list) == 0:
@@ -518,18 +518,18 @@ if __name__ == '__main__':
             args.port += 1
         sock.close()
 
-    logging.info("Server/port list used: " + str(server_port_list))
+    logging.info('Server/port list used: ' + str(server_port_list))
     server_lang_pair_map = determine_server_capabilities(server_port_list)
-    logging.info("Using server language-pair mapping: %s" % str(server_lang_pair_map))
+    logging.info('Using server language-pair mapping: %s' % str(server_lang_pair_map))
     # balancer = RoundRobin(server_port_list, server_lang_pair_map)
     # balancer = LeastConnections(server_port_list)
     # balancer = WeightedRandom(server_port_list)
     balancer = Fastest(server_port_list, server_lang_pair_map, 5)
 
     application = tornado.web.Application([
-        (r'/list', ListRequestHandler, {"serverLangPairMap": server_lang_pair_map}),
-        (r'/listPairs', ListRequestHandler, {"serverLangPairMap": server_lang_pair_map}),
-        (r'/.*', RedirectRequestHandler, {"balancer": balancer}),
+        (r'/list', ListRequestHandler, {'serverLangPairMap': server_lang_pair_map}),
+        (r'/listPairs', ListRequestHandler, {'serverLangPairMap': server_lang_pair_map}),
+        (r'/.*', RedirectRequestHandler, {'balancer': balancer}),
     ])
 
     if args.ssl_cert and args.ssl_key:

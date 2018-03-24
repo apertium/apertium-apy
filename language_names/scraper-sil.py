@@ -7,7 +7,7 @@ import sys
 
 sil_names = 'http://www-01.sil.org/iso639-3/iso-639-3.tab'
 tsv_format = re.compile(r'(?P<Id>.*?)\t(?P<Part2B>.*?)\t(?P<Part2T>.*?)\t(?P<Part1>.*?)\t(?P<tcope>.*?)\t(?P<Language_Type>.*?)\t(?P<Ref_Name>.*?)\t(?P<Comment>.*?)')  # noqa: E501
-insert_template = '''INSERT OR IGNORE INTO "%s" VALUES(NULL,"%s","%s","%s");'''
+insert_template = 'INSERT OR IGNORE INTO "%s" VALUES(NULL,"%s","%s","%s");'
 
 
 if __name__ == '__main__':

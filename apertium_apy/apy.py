@@ -63,12 +63,12 @@ import missingdb
 import systemd
 import translation
 
-__author__ = "Kevin Brubeck Unhammer, Sushain K. Cherivirala"
-__copyright__ = "Copyright 2013--2018, Kevin Brubeck Unhammer, Sushain K. Cherivirala"
-__credits__ = ["Kevin Brubeck Unhammer", "Sushain K. Cherivirala", "Jonathan North Washington", "Xavi Ivars", "Shardul Chiplunkar"]
-__license__ = "GPLv3"
-__status__ = "Beta"
-__version__ = "0.10.0"
+__author__ = 'Kevin Brubeck Unhammer, Sushain K. Cherivirala'
+__copyright__ = 'Copyright 2013--2018, Kevin Brubeck Unhammer, Sushain K. Cherivirala'
+__credits__ = ['Kevin Brubeck Unhammer', 'Sushain K. Cherivirala', 'Jonathan North Washington', 'Xavi Ivars', 'Shardul Chiplunkar']
+__license__ = 'GPLv3'
+__status__ = 'Beta'
+__version__ = '0.10.0'
 
 RECAPTCHA_VERIFICATION_URL = 'https://www.google.com/recaptcha/api/siteverify'
 BYPASS_TOKEN = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(24))
@@ -204,7 +204,7 @@ class BaseHandler(tornado.web.RequestHandler):
                     break
             vmsize = int(num) * scale[unit]
             if vmsize > self.stats['vmsize']:
-                logging.warning("VmSize of %s from %d to %d" % (os.getpid(), self.stats['vmsize'], vmsize))
+                logging.warning('VmSize of %s from %d to %d' % (os.getpid(), self.stats['vmsize'], vmsize))
                 self.stats['vmsize'] = vmsize
         except Exception as e:
             # Don't fail just because we couldn't log:
@@ -357,7 +357,7 @@ class StatsHandler(BaseHandler):
 class RootHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
-        self.redirect("http://wiki.apertium.org/wiki/Apertium-apy")
+        self.redirect('http://wiki.apertium.org/wiki/Apertium-apy')
 
 
 class TranslateHandler(BaseHandler):
@@ -367,7 +367,7 @@ class TranslateHandler(BaseHandler):
     unknown_mark_re = re.compile(r'[*]([^.,;:\t\* ]+)')
 
     def maybe_strip_marks(self, mark_unknown, pair, translated):
-        self.note_unknown_tokens("%s-%s" % pair, translated)
+        self.note_unknown_tokens('%s-%s' % pair, translated)
         if mark_unknown:
             return translated
         else:
@@ -408,7 +408,7 @@ class TranslateHandler(BaseHandler):
         self.pipelines_holding[:] = [p for p in self.pipelines_holding
                                      if p.users > 0]
         if self.pipelines_holding:
-            logging.info("%d pipelines still scheduled for shutdown", len(self.pipelines_holding))
+            logging.info('%d pipelines still scheduled for shutdown', len(self.pipelines_holding))
 
     def get_pipe_cmds(self, l1, l2):
         if (l1, l2) not in self.pipeline_cmds:
@@ -419,13 +419,13 @@ class TranslateHandler(BaseHandler):
     def should_start_pipe(self, l1, l2):
         pipes = self.pipelines.get((l1, l2), [])
         if pipes == []:
-            logging.info("%s-%s not in pipelines of this process",
+            logging.info('%s-%s not in pipelines of this process',
                          l1, l2)
             return True
         else:
             min_p = pipes[0]
             if len(pipes) < self.max_pipes_per_pair and min_p.users > self.max_users_per_pipe:
-                logging.info("%s-%s has ≥%d users per pipe but only %d pipes",
+                logging.info('%s-%s has ≥%d users per pipe but only %d pipes',
                              l1, l2, min_p.users, len(pipes))
                 return True
             else:
@@ -434,7 +434,7 @@ class TranslateHandler(BaseHandler):
     def get_pipeline(self, pair):
         (l1, l2) = pair
         if self.should_start_pipe(l1, l2):
-            logging.info("Starting up a new pipeline for %s-%s …", l1, l2)
+            logging.info('Starting up a new pipeline for %s-%s …', l1, l2)
             if pair not in self.pipelines:
                 self.pipelines[pair] = []
             p = translation.make_pipeline(self.get_pipe_cmds(l1, l2))
@@ -623,9 +623,9 @@ class TranslatePageHandler(TranslateHandler):
         return page
 
     def html_to_text(self, page, url):
-        encoding = "utf-8"
+        encoding = 'utf-8'
         if chardet:
-            encoding = chardet.detect(page).get("encoding", "utf-8") or encoding
+            encoding = chardet.detect(page).get('encoding', 'utf-8') or encoding
         base = urlparse(url)
         text = self.clean_html(page.decode(encoding), base)  # type: str
         return re.sub(r' (href|src)=([\'"])(..*?)\2',
@@ -642,13 +642,13 @@ class TranslatePageHandler(TranslateHandler):
         ts = time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(time.time()))
         self.url_cache[pair][url] = (ts, translated)
         if self.url_cache_path is None:
-            logging.info("No --url-cache-path, not storing cached url to disk")
+            logging.info('No --url-cache-path, not storing cached url to disk')
             return
         dirname, basename = self.cache_path(pair, url)
         os.makedirs(dirname, exist_ok=True)
         statvfs = os.statvfs(dirname)
         if (statvfs.f_frsize * statvfs.f_bavail) < self.min_free_space_disk_url_cache:
-            logging.warn("Disk of --url-cache-path has < {} free, not storing cached url to disk".format(
+            logging.warn('Disk of --url-cache-path has < {} free, not storing cached url to disk'.format(
                 self.min_free_space_disk_url_cache))
             return
         # Note: If we make this a @gen.coroutine, we will need to lock
@@ -669,7 +669,7 @@ class TranslatePageHandler(TranslateHandler):
         dirname = os.path.join(self.url_cache_path,
                                # split it to avoid too many files in one dir:
                                hsh[:1], hsh[1:2], hsh[2:])
-        return (dirname, "{}-{}".format(*pair))
+        return (dirname, '{}-{}'.format(*pair))
 
     def get_cached(self, pair, url):
         if not self.url_cache_path:
@@ -677,12 +677,12 @@ class TranslatePageHandler(TranslateHandler):
         if pair not in self.url_cache:
             self.url_cache[pair] = {}
         if url in self.url_cache[pair]:
-            logging.info("Got cache from memory")
+            logging.info('Got cache from memory')
             return self.url_cache[pair][url]
         dirname, basename = self.cache_path(pair, url)
         path = os.path.join(dirname, basename)
         if os.path.exists(path):
-            logging.info("Got cache on disk, we want to retranslate in background …")
+            logging.info('Got cache on disk, we want to retranslate in background …')
             with open(path, 'r') as f:
                 return (f.readline().strip(), f.read())
 
@@ -691,7 +691,6 @@ class TranslatePageHandler(TranslateHandler):
         it was from disk. We want to retranslate anything we found on
         disk, since it's probably using older versions of the language
         pair.
-
         """
         mem_cached = self.url_cache.get(pair, {}).get(url)
         if mem_cached is None and cached is not None:
@@ -706,7 +705,7 @@ class TranslatePageHandler(TranslateHandler):
         elif response.code == 304:  # means we can use cache, so don't fail on this
             return
         else:
-            self.send_error(503, explanation="{} on fetching url: {}".format(response.code, response.error))
+            self.send_error(503, explanation='{} on fetching url: {}'.format(response.code, response.error))
 
     @gen.coroutine
     def get(self):
@@ -732,14 +731,14 @@ class TranslatePageHandler(TranslateHandler):
             response = yield httpclient.AsyncHTTPClient().fetch(request)
         except Exception as e:
             logging.info('%s exception has occurred' % e)
-            self.send_error(404, explanation="{} on fetching url: {}".format('Error 404', e))
+            self.send_error(404, explanation='{} on fetching url: {}'.format('Error 404', e))
             return
         try:
             response = yield httpclient.AsyncHTTPClient().fetch(request, self.handle_fetch)
         except httpclient.HTTPError as e:
             if e.code == 304:
                 got304 = True
-                logging.info("304, can use cache")
+                logging.info('304, can use cache')
             else:
                 logging.error(e)
                 return
@@ -748,7 +747,7 @@ class TranslatePageHandler(TranslateHandler):
             translated = yield translation_catpipeline().translate(cached[1])
         else:
             if response.body is None:
-                self.send_error(503, explanation="got an empty file on fetching url: {}".format(url))
+                self.send_error(503, explanation='got an empty file on fetching url: {}'.format(url))
                 return
             page = response.body  # type: bytes
             try:
@@ -770,9 +769,9 @@ class TranslatePageHandler(TranslateHandler):
         })
         retranslate = self.retranslate_cache(pair, url, cached)
         if got304 and retranslate is not None:
-            logging.info("Retranslating {}".format(url))
+            logging.info('Retranslating {}'.format(url))
             translated = yield translation.translate_html_mark_headings(retranslate, mode_path)
-            logging.info("Done retranslating {}".format(url))
+            logging.info('Done retranslating {}'.format(url))
             self.set_cached(pair, url, translated, retranslate)
 
 
@@ -1035,7 +1034,7 @@ class PerWordHandler(BaseHandler):
             return
 
         def handle_output(output):
-            '''to_return = {}
+            """to_return = {}
             for mode in modes:
                 to_return[mode] = outputs[mode]
             for mode in modes:
@@ -1044,7 +1043,7 @@ class PerWordHandler(BaseHandler):
                 to_return[mode] = [(outputs[mode + '_inputs'][index], output) for (index, output) in enumerate(outputs[mode])]
             for mode in modes:
                 to_return[mode] = {'outputs': outputs[mode], 'inputs': outputs[mode + '_inputs']}
-            self.send_response(to_return)'''
+            self.send_response(to_return)"""
 
             if output is None:
                 self.send_error(400, explanation='No output')
@@ -1196,7 +1195,7 @@ class SuggestionHandler(BaseHandler):
             self.send_error(400, explanation='All arguments were not provided')
             return
 
-        logging.info("Suggestion (%s): Context is %s \n Word: %s ; New Word: %s " % (langpair, context, word, new_word))
+        logging.info('Suggestion (%s): Context is %s \n Word: %s ; New Word: %s ' % (langpair, context, word, new_word))
         logging.info('Now verifying ReCAPTCHA.')
 
         if not self.recaptcha_secret:
@@ -1208,7 +1207,7 @@ class SuggestionHandler(BaseHandler):
             logging.info('Adding data to wiki with bypass token')
         else:
             # for nginx or when behind a proxy
-            x_real_ip = self.request.headers.get("X-Real-IP")
+            x_real_ip = self.request.headers.get('X-Real-IP')
             user_ip = x_real_ip or self.request.remote_ip
             payload = {
                 'secret': self.recaptcha_secret,
@@ -1374,7 +1373,7 @@ def apply_config(args, apy_section):
                 else:
                     res = fn(apy_section[name])
             except ValueError:
-                print("Warning: Unable to cast {} to expected type".format(apy_section[name]))
+                print('Warning: Unable to cast {} to expected type'.format(apy_section[name]))
 
             # only override is value (argument) is default
             if res is not None and value == default:
@@ -1415,20 +1414,20 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--restart-pipe-after',
                         help='restart a pipeline if it has had this many requests (default = 1000)', type=int, default=1000)
     parser.add_argument('-v', '--verbosity', help='logging verbosity', type=int, default=0)
-    parser.add_argument('-V', '--version', help='show APY version', action='version', version="%(prog)s version " + __version__)
+    parser.add_argument('-V', '--version', help='show APY version', action='version', version='%(prog)s version ' + __version__)
     parser.add_argument('-S', '--scalemt-logs', help='generates ScaleMT-like logs; use with --log-path; disables', action='store_true')
     parser.add_argument('-M', '--unknown-memory-limit',
                         help='keeps unknown words in memory until a limit is reached; use with --missing-freqs (default = 1000)',
                         type=int, default=1000)
     parser.add_argument('-T', '--stat-period-max-age',
                         help='How many seconds back to keep track request timing stats (default = 3600)', type=int, default=3600)
-    parser.add_argument('-wp', '--wiki-password', help="Apertium Wiki account password for SuggestionHandler", default=None)
-    parser.add_argument('-wu', '--wiki-username', help="Apertium Wiki account username for SuggestionHandler", default=None)
-    parser.add_argument('-b', '--bypass-token', help="ReCAPTCHA bypass token", action='store_true')
-    parser.add_argument('-rs', '--recaptcha-secret', help="ReCAPTCHA secret for suggestion validation", default=None)
+    parser.add_argument('-wp', '--wiki-password', help='Apertium Wiki account password for SuggestionHandler', default=None)
+    parser.add_argument('-wu', '--wiki-username', help='Apertium Wiki account username for SuggestionHandler', default=None)
+    parser.add_argument('-b', '--bypass-token', help='ReCAPTCHA bypass token', action='store_true')
+    parser.add_argument('-rs', '--recaptcha-secret', help='ReCAPTCHA secret for suggestion validation', default=None)
     parser.add_argument('-md', '--max-doc-pipes',
                         help='how many concurrent document translation pipelines we allow (default = 3)', type=int, default=3)
-    parser.add_argument('-C', '--config', help="Configuration file to load options from", default=None)
+    parser.add_argument('-C', '--config', help='Configuration file to load options from', default=None)
     args = parser.parse_args()
 
     logging.getLogger().setLevel(logging.INFO)
@@ -1464,24 +1463,24 @@ if __name__ == '__main__':
         smtlog = os.path.join(args.log_path, 'ScaleMTRequests.log')
         logging_handler = logging_handlers.TimedRotatingFileHandler(smtlog, 'midnight', 0)
         # internal attribute, should not use
-        logging_handler.suffix = "%Y-%m-%d"  # type: ignore
+        logging_handler.suffix = '%Y-%m-%d'  # type: ignore
         logger.addHandler(logging_handler)
 
         # if scalemt_logs is enabled, disable tornado.access logs
         if(args.daemon):
-            logging.getLogger("tornado.access").propagate = False
+            logging.getLogger('tornado.access').propagate = False
 
     if args.stat_period_max_age:
         BaseHandler.STAT_PERIOD_MAX_AGE = timedelta(0, args.stat_period_max_age, 0)
 
     if not cld2:
-        logging.warning("Unable to import CLD2, continuing using naive method of language detection")
+        logging.warning('Unable to import CLD2, continuing using naive method of language detection')
 
     if not chardet:
-        logging.warning("Unable to import chardet, assuming utf-8 encoding for all websites")
+        logging.warning('Unable to import chardet, assuming utf-8 encoding for all websites')
 
     if not streamparser:
-        logging.warning("Apertium streamparser not installed, spelling handler disabled")
+        logging.warning('Apertium streamparser not installed, spelling handler disabled')
 
     setup_handler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
                   args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs,
@@ -1557,6 +1556,6 @@ if __name__ == '__main__':
     wd = systemd.setup_watchdog()
     if wd is not None:
         wd.systemd_ready()
-        logging.info("Initialised systemd watchdog, pinging every {}s".format(1000 * wd.period))
+        logging.info('Initialised systemd watchdog, pinging every {}s'.format(1000 * wd.period))
         tornado.ioloop.PeriodicCallback(wd.watchdog_ping, 1000 * wd.period, loop).start()
     loop.start()
