@@ -18,7 +18,7 @@ declare -ar EXTRACTS=( ""           ""          ""                 ""         ""
 
 ### Paths to apertium test data:
 ### The tests assume you have apertium-sme-nob and apertium-en-es
-### installed, and apertium-nno checked out from SVN and compiled and
+### installed, and apertium-nno checked out from Git and compiled and
 ### available from INSTALLEDPAIRS and NONPAIRS directories
 ### respectively:
 declare -r INSTALLEDPAIRS=${INSTALLEDPAIRS:-/usr/share/apertium}

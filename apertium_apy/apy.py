@@ -1380,7 +1380,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Apertium APY -- API server for machine translation and language analysis')
     parser.add_argument('pairs_path', help='path to Apertium installed pairs (all modes files in this path are included)')
-    parser.add_argument('-s', '--nonpairs-path', help='path to Apertium SVN (only non-translator debug modes are included from this path)')
+    parser.add_argument('-s', '--nonpairs-path', help='path to Apertium tree (only non-translator debug modes are included from this path)')
     parser.add_argument('-l', '--lang-names',
                         help='path to localised language names sqlite database (default = langNames.db)', default='langNames.db')
     parser.add_argument('-f', '--missing-freqs', help='path to missing word frequency sqlite database (default = None)', default=None)
