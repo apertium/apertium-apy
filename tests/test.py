@@ -21,8 +21,8 @@ from apy import check_utf8, parse_args, setup_application  # noqa: E402
 logging.getLogger().setLevel(logging.DEBUG)
 
 PORT = int(os.environ.get('APY_PORT', '2737'))  # TODO: consider tornado.testing.bind_unused_port and/or validating input
-NONPAIRS = os.environ.get('NONPAIRS', '/usr/share/apertium')
-INSTALLEDPAIRS = os.environ.get('INSTALLEDPAIRS', '/l/a/languages')
+NONPAIRS = os.environ.get('NONPAIRS', '/l/a/languages')
+INSTALLEDPAIRS = os.environ.get('INSTALLEDPAIRS', '/usr/share/apertium')
 
 MAX_STARTUP_SECONDS = 10
 
@@ -68,8 +68,10 @@ class BaseTestCase(AsyncHTTPTestCase):
         return PORT
 
     def fetch_json(self, *args, **kwargs):
+        expect_success = kwargs.pop('expect_success', True)
         response = self.fetch(*args, **kwargs)
-        self.assertEqual(response.code, 200)
+        if expect_success:
+            self.assertEqual(response.code, 200)
         return json.loads(response.body.decode('utf-8'))
 
 # TODO: split the handler tests into another file
@@ -93,8 +95,8 @@ class TestListHandler(BaseTestCase):
 
 
 class TestTranslateHandler(BaseTestCase):
-    def fetch_translation(self, query, pair):
-        return self.fetch_json('/translate?q={}&langpair={}'.format(query, pair))
+    def fetch_translation(self, query, pair, **kwargs):
+        return self.fetch_json('/translate?q={}&langpair={}'.format(query, pair), **kwargs)
 
     def test_valid_pair(self):
         response = self.fetch_translation('government', 'eng|spa')
@@ -103,6 +105,15 @@ class TestTranslateHandler(BaseTestCase):
     def test_valid_pair_2(self):  # TODO: a better name (why are we testing both?)
         response = self.fetch_translation('ja', 'sme|nob')
         print(response)  # TODO: validate it
+
+    def test_invalid_pair(self):  # TODO: a better name (why are we testing both?)
+        response = self.fetch_translation('ja', 'non|mod', expect_success=False)
+        self.assertDictEqual(response, {
+            'status': 'error',
+            'code': 400,
+            'message': 'Bad Request',
+            'explanation': 'That pair is not installed'
+        })
 
 
 class TestAnalyzeHandler(BaseTestCase):
