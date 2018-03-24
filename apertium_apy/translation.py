@@ -26,19 +26,19 @@ class Pipeline(object):
         # pipeline for translation. If this is 0, we can safely shut
         # down the pipeline.
         self.users = 0
-        self.lastUsage = 0
-        self.useCount = 0
+        self.last_usage = 0
+        self.use_count = 0
 
     @contextmanager
     def use(self):
-        self.lastUsage = time()
+        self.last_usage = time()
         self.users += 1
         try:
             yield
         finally:
             self.users -= 1
-            self.lastUsage = time()
-            self.useCount += 1
+            self.last_usage = time()
+            self.use_count += 1
 
     def __lt__(self, other):
         return self.users < other.users
@@ -54,7 +54,7 @@ class FlushingPipeline(Pipeline):
         super().__init__(*args, **kwargs)
 
     def __del__(self):
-        logging.debug("shutting down FlushingPipeline that was used %d times", self.useCount)
+        logging.debug("shutting down FlushingPipeline that was used %d times", self.use_count)
         self.inpipe.stdin.close()
         self.inpipe.stdout.close()
         # TODO: It seems the process immediately becomes <defunct>,

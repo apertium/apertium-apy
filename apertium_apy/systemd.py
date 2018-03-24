@@ -24,7 +24,7 @@ import socket
 import os
 
 # All singletons are prefixed "the"
-theLog = logging.getLogger(__name__)
+the_log = logging.getLogger(__name__)
 
 
 def watchdog_period():
@@ -84,7 +84,7 @@ class Watchdog(object):
         message is expected to be bytes.
         """
         if not (self.address and self.sock and message):
-            theLog.info("Couldn't message! {} {} {}".format(self.address, self.sock, message))
+            the_log.info("Couldn't message! {} {} {}".format(self.address, self.sock, message))
             return False
         assert isinstance(message, bytes)
 
@@ -113,10 +113,10 @@ def setup_watchdog():
     period = watchdog_period()
     # Validate some in-data
     if not notify[0]:
-        theLog.info("No notification socket, not launched via systemd?")
+        the_log.info("No notification socket, not launched via systemd?")
         return None
     if not period:
-        theLog.warning("Found systemd notification socket, but no watchdog period set in the unit file!")
+        the_log.warning("Found systemd notification socket, but no watchdog period set in the unit file!")
         return None
     wd = Watchdog(period, *notify)
     return wd

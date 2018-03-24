@@ -8,7 +8,6 @@ import json
 import logging
 import pprint
 import random
-import servlet
 import socket
 import sys
 from collections import OrderedDict
@@ -20,6 +19,8 @@ import tornado
 import tornado.httpclient
 import tornado.httpserver
 import tornado.web
+
+import apy
 
 global verify_ssl_cert
 
@@ -106,7 +107,7 @@ class RedirectRequestHandler(RequestHandler):
         self.get()
 
 
-class ListRequestHandler(servlet.BaseHandler):
+class ListRequestHandler(apy.BaseHandler):
     '''Handler for list requests. Takes a language-pair-server map and aggregates the language-pairs of all of the servers.'''
 
     def initialize(self, server_lang_pair_map):
@@ -130,13 +131,13 @@ class ListRequestHandler(servlet.BaseHandler):
                 for pair in self.server_lang_pair_map['pairs']:
                     (l1, l2) = pair
                     response_data.append({'sourceLanguage': l1, 'targetLanguage': l2})
-                self.sendResponse({'responseData': response_data, 'responseDetails': None, 'responseStatus': 200})
+                self.send_response({'responseData': response_data, 'responseDetails': None, 'responseStatus': 200})
             elif query == 'analyzers' or query == 'analysers':
-                self.sendResponse({pair: self.server_lang_pair_map['analyzers'][pair][0] for pair in self.server_lang_pair_map['analyzers']})
+                self.send_response({pair: self.server_lang_pair_map['analyzers'][pair][0] for pair in self.server_lang_pair_map['analyzers']})
             elif query == 'generators':
-                self.sendResponse({pair: self.server_lang_pair_map['generators'][pair][0] for pair in self.server_lang_pair_map['generators']})
+                self.send_response({pair: self.server_lang_pair_map['generators'][pair][0] for pair in self.server_lang_pair_map['generators']})
             elif query == 'taggers' or query == 'disambiguators':
-                self.sendResponse({pair: self.server_lang_pair_map['taggers'][pair][0] for pair in self.server_lang_pair_map['taggers']})
+                self.send_response({pair: self.server_lang_pair_map['taggers'][pair][0] for pair in self.server_lang_pair_map['taggers']})
             else:
                 self.send_error(400)
 
@@ -266,8 +267,8 @@ class Fastest(Balancer):
 
     def __init__(self, servers, server_capabilities, num_responses):
         self.servers = servers
-        self.originalServers = servers
-        self.serverCycle = itertools.cycle(self.servers)
+        self.original_servers = servers
+        self.server_cycle = itertools.cycle(self.servers)
         self.num_responses = num_responses
         self.init_server_list(server_capabilities=server_capabilities)
 
@@ -280,7 +281,7 @@ class Fastest(Balancer):
                     if len(possible_servers_list):
                         return possible_servers_list[0]
             elif mode == 'languageNames' or mode == 'identifyLang' or mode == 'getLocale':
-                return next(self.serverCycle)
+                return next(self.server_cycle)
             elif mode == 'perWord':
                 modes = kwargs['per_word_modes']
                 possible_servers_set = set()  # type: Set
@@ -322,7 +323,7 @@ class Fastest(Balancer):
                 elif action == 'drop':
                     logging.error('Dropping server: %s', repr(server))
                     self.servers.remove(server)
-                    self.serverCycle = itertools.cycle(self.servers)
+                    self.server_cycle = itertools.cycle(self.servers)
                     del self.serverlist[mode][server]
 
                 pprint.pprint(self.serverlist[mode])
@@ -330,7 +331,7 @@ class Fastest(Balancer):
 
     def init_server_list(self, server_capabilities=None):
         if server_capabilities is None:
-            server_capabilities = determine_server_capabilities(self.originalServers)
+            server_capabilities = determine_server_capabilities(self.original_servers)
         self.serverlist = {}
 
         mode_to_url = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag'}
