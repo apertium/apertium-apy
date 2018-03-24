@@ -96,17 +96,21 @@ class TestListHandler(BaseTestCase):
 
 class TestTranslateHandler(BaseTestCase):
     def fetch_translation(self, query, pair, **kwargs):
-        return self.fetch_json('/translate?q={}&langpair={}'.format(query, pair), **kwargs)
+        expect_success = kwargs.get('expected_success', True)
+        response = self.fetch_json('/translate?q={}&langpair={}'.format(query, pair), **kwargs)
+        if expect_success:
+            self.assertEqual(response['responseStatus'], 200)
+        return response
 
     def test_valid_pair(self):
         response = self.fetch_translation('government', 'eng|spa')
-        print(response)  # TODO: validate it
+        self.assertEqual(response['responseData']['translatedText'], 'Gobierno')
 
     def test_valid_pair_2(self):  # TODO: a better name (why are we testing both?)
         response = self.fetch_translation('ja', 'sme|nob')
-        print(response)  # TODO: validate it
+        self.assertEqual(response['responseData']['translatedText'], 'og')
 
-    def test_invalid_pair(self):  # TODO: a better name (why are we testing both?)
+    def test_invalid_pair(self):
         response = self.fetch_translation('ja', 'non|mod', expect_success=False)
         self.assertDictEqual(response, {
             'status': 'error',
@@ -119,12 +123,16 @@ class TestTranslateHandler(BaseTestCase):
 class TestAnalyzeHandler(BaseTestCase):
     def test_analyze(self):
         response = self.fetch_json('/analyze?q=ikkje&lang=nno')
-        print(response)  # TODO: validate it
+        self.assertEqual(response, [['ikkje/ikkje<adv>', 'ikkje']])
 
 
 class TestGenerateHandler(BaseTestCase):
-    def test_analyze(self):
-        response = self.fetch_json('/analyze?q=ikkje&lang=nno')
+    def test_generate(self):
+        response = self.fetch_json('/generate?q=ja<ij>&lang=nno')
+        print(response)  # TODO: validate it
+
+    def test_generate_2(self):  # TODO: a better name
+        response = self.fetch_json('/generate?q=^ja<ij>$&lang=nno')
         print(response)  # TODO: validate it
 
 
