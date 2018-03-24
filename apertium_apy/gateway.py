@@ -1,32 +1,30 @@
 #!/usr/bin/env python3
 
-from typing import Any, Dict, List, Set, Tuple  # noqa: F401
 
 import argparse
-import logging
-import sys
-import json
-import itertools
 import functools
-import random
-import socket
-import servlet
+import itertools
+import json
+import logging
 import pprint
+import random
+import servlet
+import socket
+import sys
 from collections import OrderedDict
+from typing import Any, Dict, List, Set, Tuple  # noqa: F401
+
+from tornado.options import enable_pretty_logging  # type: ignore
+from tornado.web import RequestHandler
 import tornado
+import tornado.httpclient
 import tornado.httpserver
 import tornado.web
-import tornado.httpclient
-from tornado.web import RequestHandler
-try:  # 3.1
-    from tornado.log import enable_pretty_logging
-except ImportError:  # 2.1
-    from tornado.options import enable_pretty_logging  # type: ignore
 
-global verifySSLCert
+global verify_ssl_cert
 
 
-def genServerName(server, port):
+def gen_server_name(server, port):
     if len(server.split('/')) > 3:  # true if there's a separate "path" element
         server = server.rsplit('/', 1)
         server_port = '%s:%s/%s' % (server[0], port, server[1])
@@ -35,7 +33,7 @@ def genServerName(server, port):
     return server_port
 
 
-class requestHandler(RequestHandler):
+class RedirectRequestHandler(RequestHandler):
     '''Handler for non-list requests -- all requests that must be redirected.'''
 
     def initialize(self, balancer):
@@ -44,59 +42,59 @@ class requestHandler(RequestHandler):
     @tornado.web.asynchronous
     def get(self):
         path = self.request.path
-        mode, langPair, perWordModes = [None] * 3
-        pathToMode = {
+        mode, lang_pair, per_word_modes = [None] * 3
+        path_to_mode = {
             '/translate': 'pairs', '/analyze': 'analyzers',
             '/analyse': 'analyzers', '/generate': 'generators',
             '/perWord': 'perWord', '/coverage': 'coverage',
             '/listLanguageNames': 'languageNames', '/identifyLang': 'identifyLang',
-            '/getLocale': 'getLocale'
+            '/getLocale': 'getLocale',
         }
 
-        if path not in pathToMode:
+        if path not in path_to_mode:
             return self.send_error(400)
 
-        mode = pathToMode[path]
+        mode = path_to_mode[path]
 
         if path == '/translate':
-            langPair = self.get_argument('langpair')
-            langPair = langPair.replace('|', '-')  # langpair=lang|pair only in /translate
+            lang_pair = self.get_argument('langpair')
+            lang_pair = lang_pair.replace('|', '-')  # lang_pair=lang|pair only in /translate
         elif path == '/analyze' or path == '/analyse':
-            langPair = self.get_argument('mode')
+            lang_pair = self.get_argument('mode')
         elif path == '/generate':
-            langPair = self.get_argument('mode')
+            lang_pair = self.get_argument('mode')
         elif path == '/perWord':
-            langPair = self.get_argument('lang')
-            perWordModes = self.get_argument('modes').split()
+            lang_pair = self.get_argument('lang')
+            per_word_modes = self.get_argument('modes').split()
         elif path == '/coverage':
-            langPair = self.get_argument('mode')
+            lang_pair = self.get_argument('mode')
 
         query = self.request.query
         headers = self.request.headers
 
-        serverTuple = self.balancer.get_server(langPair, mode, perWordModes=perWordModes)
-        if serverTuple:
-            server, port = serverTuple
+        server_tuple = self.balancer.get_server(lang_pair, mode, per_word_modes=per_word_modes)
+        if server_tuple:
+            server, port = server_tuple
         else:
             logging.warning('No server available for request: %s' % self.request.uri)
             return self.send_error(400)
-        server_port = genServerName(server, port)
+        server_port = gen_server_name(server, port)
         logging.info('Redirecting %s?%s to %s%s?%s' % (path, query, server_port, path, query))
 
         http = tornado.httpclient.AsyncHTTPClient()
         http.fetch(server_port + path + "?" + query, functools.partial(self._on_download,
-                                                                       (server, port), langPair), validate_cert=verifySSLCert, headers=headers)
+                                                                       (server, port), lang_pair), validate_cert=verify_ssl_cert, headers=headers)
         self.balancer.inform('start', (server, port), url=path)
 
-    def _on_download(self, server, langPair, response):
-        responseBody = response.body
+    def _on_download(self, server, lang_pair, response):
+        response_body = response.body
         if response.error is not None and response.error.code == 599:
-            self.balancer.inform('drop', server, response=response, lang=langPair)
+            self.balancer.inform('drop', server, response=response, lang=lang_pair)
             logging.info('Request failed with code %d, trying next server after %s' % (response.error.code, str(server)))
             return self.get()
         if response.error is None:
-            self.balancer.inform('complete', server, response=response, lang=langPair)
-            self.write(responseBody)
+            self.balancer.inform('complete', server, response=response, lang=lang_pair)
+            self.write(response_body)
         else:
             self.set_status(response.code)
         for (hname, hvalue) in response.headers.get_all():
@@ -108,11 +106,11 @@ class requestHandler(RequestHandler):
         self.get()
 
 
-class listRequestHandler(servlet.BaseHandler):
+class ListRequestHandler(servlet.BaseHandler):
     '''Handler for list requests. Takes a language-pair-server map and aggregates the language-pairs of all of the servers.'''
 
-    def initialize(self, serverLangPairMap):
-        self.serverLangPairMap = serverLangPairMap
+    def initialize(self, server_lang_pair_map):
+        self.server_lang_pair_map = server_lang_pair_map
         callbacks = self.get_arguments('callback')
         if callbacks:
             self.callback = callbacks[0]
@@ -128,17 +126,17 @@ class listRequestHandler(servlet.BaseHandler):
                 query = query[0]
             if self.request.path == '/listPairs' or query == 'pairs':
                 logging.info("Responding to request for pairs")
-                responseData = []
-                for pair in self.serverLangPairMap['pairs']:
+                response_data = []
+                for pair in self.server_lang_pair_map['pairs']:
                     (l1, l2) = pair
-                    responseData.append({'sourceLanguage': l1, 'targetLanguage': l2})
-                self.sendResponse({'responseData': responseData, 'responseDetails': None, 'responseStatus': 200})
+                    response_data.append({'sourceLanguage': l1, 'targetLanguage': l2})
+                self.sendResponse({'responseData': response_data, 'responseDetails': None, 'responseStatus': 200})
             elif query == 'analyzers' or query == 'analysers':
-                self.sendResponse({pair: self.serverLangPairMap['analyzers'][pair][0] for pair in self.serverLangPairMap['analyzers']})
+                self.sendResponse({pair: self.server_lang_pair_map['analyzers'][pair][0] for pair in self.server_lang_pair_map['analyzers']})
             elif query == 'generators':
-                self.sendResponse({pair: self.serverLangPairMap['generators'][pair][0] for pair in self.serverLangPairMap['generators']})
+                self.sendResponse({pair: self.server_lang_pair_map['generators'][pair][0] for pair in self.server_lang_pair_map['generators']})
             elif query == 'taggers' or query == 'disambiguators':
-                self.sendResponse({pair: self.serverLangPairMap['taggers'][pair][0] for pair in self.serverLangPairMap['taggers']})
+                self.sendResponse({pair: self.server_lang_pair_map['taggers'][pair][0] for pair in self.server_lang_pair_map['taggers']})
             else:
                 self.send_error(400)
 
@@ -170,39 +168,39 @@ class RoundRobin(Balancer):
         self.langpairmap = langpairmap
         self.generator = itertools.cycle(self.serverlist)
 
-    def get_server(self, langPair, mode="pairs", *args, **kwargs):
+    def get_server(self, lang_pair, mode="pairs", *args, **kwargs):
         # when we get a /perWord request, we have multiple modes, all of which have to be on the server
         # the modes will not be "pairs"
-        if 'perWordModes' in kwargs and kwargs['perWordModes'] is not None:
-            perWordModes = {'morph': 'analyzers', 'biltrans': 'analyzers', 'tagger': 'taggers', 'translate': 'taggers'}
-            modes = set(map(lambda _: perWordModes[_], kwargs['perWordModes']))
-            logging.info("Handling a /perWord request with modes %s for langpair %s" % (modes, langPair))
+        if 'per_word_modes' in kwargs and kwargs['per_word_modes'] is not None:
+            per_word_modes = {'morph': 'analyzers', 'biltrans': 'analyzers', 'tagger': 'taggers', 'translate': 'taggers'}
+            modes = set(map(lambda _: per_word_modes[_], kwargs['per_word_modes']))
+            logging.info("Handling a /perWord request with modes %s for langpair %s" % (modes, lang_pair))
 
-            def isIn(modes, server):
+            def is_in(modes, server):
                 for mode in modes:
-                    if langPair not in self.langpairmap[mode] or server not in self.langpairmap[mode][langPair][1]:
+                    if lang_pair not in self.langpairmap[mode] or server not in self.langpairmap[mode][lang_pair][1]:
                         return False
                 else:
                     return True
-            if not any(isIn(modes, server) for server in self.serverlist):
-                logging.error("Language pair %s not found for modes %s" % (langPair, modes))
+            if not any(is_in(modes, server) for server in self.serverlist):
+                logging.error("Language pair %s not found for modes %s" % (lang_pair, modes))
                 return next(self.generator)
             else:
                 server = next(self.generator)
-                while not isIn(modes, server):
+                while not is_in(modes, server):
                     server = next(self.generator)
                 return server
         # for everything that isn't a /perWord call
-        if langPair is not None and mode == "pairs":  # for mode "pairs", the key is ('lang', 'pair') rather than 'lang-pair'
-            langPair = tuple(langPair.split('-'))
-        if langPair is None or langPair not in self.langpairmap[mode]:
-            logging.error("Language pair %s for mode %s not found" % (langPair, mode))
+        if lang_pair is not None and mode == "pairs":  # for mode "pairs", the key is ('lang', 'pair') rather than 'lang-pair'
+            lang_pair = tuple(lang_pair.split('-'))
+        if lang_pair is None or lang_pair not in self.langpairmap[mode]:
+            logging.error("Language pair %s for mode %s not found" % (lang_pair, mode))
             return next(self.generator)
         server = next(self.generator)
         if mode == "pairs":
-            serverlist = self.langpairmap[mode][langPair]
+            serverlist = self.langpairmap[mode][lang_pair]
         else:
-            serverlist = self.langpairmap[mode][langPair][1]
+            serverlist = self.langpairmap[mode][lang_pair][1]
         while server not in serverlist:
             server = next(self.generator)
         return server
@@ -234,68 +232,67 @@ class LeastConnections(Balancer):
 
 
 class WeightedRandom(Balancer):
-
     def __init__(self, servers):
         self.serverlist = OrderedDict([(server, 0) for server in servers])
-        allTestResults = [testServerPool([server[0] for server in self.serverlist.items()]) for _ in range(0, 5)]
+        all_test_results = [test_server_pool([server[0] for server in self.serverlist.items()]) for _ in range(0, 5)]
 
-        for testResults in allTestResults:
-            for testResult in testResults.items():
-                server = testResult[0]
-                results = testResult[1]
-                testScore = sum([result[1] for testPath, result in results.items()])
-                self.serverlist[server] += testScore / 5
+        for test_results in all_test_results:
+            for test_result in test_results.items():
+                server = test_result[0]
+                results = test_result[1]
+                test_score = sum([result[1] for testPath, result in results.items()])
+                self.serverlist[server] += test_score / 5
         self.serverlist = OrderedDict(sorted(self.serverlist.items(), key=lambda x: x[1]))
 
     def get_server(self, *args, **kwargs):
         servers = list(filter(lambda x: not x[1] == float('inf'), list(self.serverlist.items())))
         total = sum(weight for (server, weight) in servers)
         r = random.uniform(0, total)
-        currentPos = 0
+        current_pos = 0
         for (server, weight) in servers:
-            if currentPos + weight >= r:
+            if current_pos + weight >= r:
                 return server
-            currentPos += weight
+            current_pos += weight
         assert False, 'failed to get server'
 
     def inform(self, action, server, *args, **kwargs):
         raise NotImplementedError
 
-    def updateWeights(self):
+    def update_weights(self):
         raise NotImplementedError
 
 
 class Fastest(Balancer):
 
-    def __init__(self, servers, serverCapabilities, numResponses):
+    def __init__(self, servers, server_capabilities, num_responses):
         self.servers = servers
         self.originalServers = servers
         self.serverCycle = itertools.cycle(self.servers)
-        self.numResponses = numResponses
-        self.initServerList(serverCapabilities=serverCapabilities)
+        self.num_responses = num_responses
+        self.init_server_list(server_capabilities=server_capabilities)
 
-    def get_server(self, langPair, mode, *args, **kwargs):
+    def get_server(self, lang_pair, mode, *args, **kwargs):
         if len(self.serverlist):
-            modeToURL = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag', 'coverage': 'analyze'}
-            if mode in modeToURL:
-                if (modeToURL[mode], langPair) in self.serverlist:
-                    possibleServersList = list(self.serverlist[(modeToURL[mode], langPair)])
-                    if len(possibleServersList):
-                        return possibleServersList[0]
+            mode_to_url = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag', 'coverage': 'analyze'}
+            if mode in mode_to_url:
+                if (mode_to_url[mode], lang_pair) in self.serverlist:
+                    possible_servers_list = list(self.serverlist[(mode_to_url[mode], lang_pair)])
+                    if len(possible_servers_list):
+                        return possible_servers_list[0]
             elif mode == 'languageNames' or mode == 'identifyLang' or mode == 'getLocale':
                 return next(self.serverCycle)
             elif mode == 'perWord':
-                modes = kwargs['perWordModes']
-                possibleServersSet = set()  # type: Set
-                if ('morph' in modes or 'biltrans' in modes) and ('analyze', langPair) in self.serverlist:
-                    possibleServersSet.update(self.serverlist[('analyze', langPair)])
-                elif ('tagger' in modes or 'disambig' in modes or 'translate' in modes) and ('tag', langPair) in self.serverlist:
-                    if possibleServersSet:
-                        possibleServersSet &= self.serverlist[('tag', langPair)]
+                modes = kwargs['per_word_modes']
+                possible_servers_set = set()  # type: Set
+                if ('morph' in modes or 'biltrans' in modes) and ('analyze', lang_pair) in self.serverlist:
+                    possible_servers_set.update(self.serverlist[('analyze', lang_pair)])
+                elif ('tagger' in modes or 'disambig' in modes or 'translate' in modes) and ('tag', lang_pair) in self.serverlist:
+                    if possible_servers_set:
+                        possible_servers_set &= self.serverlist[('tag', lang_pair)]
                     else:
-                        possibleServersSet.update(self.serverlist[('tag', langPair)])
-                if len(possibleServersSet):
-                    return list(possibleServersSet)[0]
+                        possible_servers_set.update(self.serverlist[('tag', lang_pair)])
+                if len(possible_servers_set):
+                    return list(possible_servers_set)[0]
         else:
             logging.critical('Empty serverlist')
             sys.exit(-1)
@@ -309,19 +306,19 @@ class Fastest(Balancer):
         elif action == 'complete' or action == 'drop':
             response = kwargs['response']
             url = response.request.url
-            requestTime = response.request_time
+            request_time = response.request_time
             if response.body:
-                responseLen = len(response.body)
+                response_len = len(response.body)
             path = url.rsplit('/', 1)[1] if '?' not in url else url.rsplit('/', 1)[1].split('?')[0]
             mode = (path, kwargs['lang'])
 
             if mode in self.serverlist:
                 if action == 'complete':
                     if self.serverlist[mode][server]:
-                        self.serverlist[mode][server] = (self.serverlist[mode][server] * (self.numResponses -
-                                                                                          1) + requestTime / responseLen) / self.numResponses
+                        self.serverlist[mode][server] = (self.serverlist[mode][server] * (self.num_responses -
+                                                                                          1) + request_time / response_len) / self.num_responses
                     else:
-                        self.serverlist[mode][server] = requestTime / responseLen / self.numResponses
+                        self.serverlist[mode][server] = request_time / response_len / self.num_responses
                 elif action == 'drop':
                     logging.error('Dropping server: %s', repr(server))
                     self.servers.remove(server)
@@ -331,83 +328,83 @@ class Fastest(Balancer):
                 pprint.pprint(self.serverlist[mode])
                 self.serverlist[mode] = OrderedDict(sorted(self.serverlist[mode].items(), key=lambda x: x[1]))
 
-    def initServerList(self, serverCapabilities=None):
-        if serverCapabilities is None:
-            serverCapabilities = determineServerCapabilities(self.originalServers)
+    def init_server_list(self, server_capabilities=None):
+        if server_capabilities is None:
+            server_capabilities = determine_server_capabilities(self.originalServers)
         self.serverlist = {}
 
-        modeToURL = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag'}
-        for lang, servers in serverCapabilities['pairs'].items():
-            self.serverlist[(modeToURL['pairs'], '%s-%s' % lang)] = OrderedDict([(server, 0) for server in servers])
+        mode_to_url = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag'}
+        for lang, servers in server_capabilities['pairs'].items():
+            self.serverlist[(mode_to_url['pairs'], '%s-%s' % lang)] = OrderedDict([(server, 0) for server in servers])
 
-        for mode, capabiltities in serverCapabilities.items():
+        for mode, capabiltities in server_capabilities.items():
             if mode != 'pairs':
-                for lang, servers in serverCapabilities[mode].items():
-                    self.serverlist[(modeToURL[mode], lang)] = OrderedDict([(server, 0) for server in servers[1]])
+                for lang, servers in server_capabilities[mode].items():
+                    self.serverlist[(mode_to_url[mode], lang)] = OrderedDict([(server, 0) for server in servers[1]])
 
         pprint.pprint(self.serverlist)
 
-    def initWeights(self):
+    def init_weights(self):
         self.serverlist = OrderedDict([(server, [0, {}]) for server in self.servers])
-        allTestResults = [testServerPool([server[0] for server in self.serverlist.items()]) for _ in range(0, self.numResponses)]
-        for testResults in allTestResults:
-            for testResult in testResults.items():
-                server = testResult[0]
-                results = testResult[1]
-                testSum = sum([result[1] for testPath, result in results.items()])
+        all_test_results = [test_server_pool([server[0] for server in self.serverlist.items()]) for _ in range(0, self.num_responses)]
+        for test_results in all_test_results:
+            for test_result in test_results.items():
+                server = test_result[0]
+                results = test_result[1]
+                test_sum = sum([result[1] for testPath, result in results.items()])
                 if '/list' not in self.serverlist[server][1]:
                     self.serverlist[server][1]['list'] = 0
-                self.serverlist[server][1]['list'] += testSum / (self.numResponses * len(results.items()))
+                self.serverlist[server][1]['list'] += test_sum / (self.num_responses * len(results.items()))
         self.calcAggregateScores()
         self.serverlist = OrderedDict(filter(lambda x: x[1][0] != float('inf'), self.serverlist.items()))
         self.sortServerList()
 
 
-def testServerPool(serverList):
+def test_server_pool(server_list):
     tests = {
         '/list?q=pairs': lambda x:
             isinstance(x, dict) and
             set(x.keys()) == {'responseStatus', 'responseData', 'responseDetails'} and
             isinstance(x['responseStatus'], int) and
             isinstance(x['responseData'], list) and
-            all([isinstance(langPair, dict) for langPair in x['responseData']]) and
-            all([set(langPair.keys()) == {'sourceLanguage', 'targetLanguage'} for langPair in x['responseData']]),
+            all([isinstance(lang_pair, dict) for lang_pair in x['responseData']]) and
+            all([set(lang_pair.keys()) == {'sourceLanguage', 'targetLanguage'} for lang_pair in x['responseData']]),
         '/list?q=analyzers': lambda x: isinstance(x, dict) and all(map(lambda y: isinstance(y, str), list(x.keys()) + list(x.values()))),
         '/list?q=taggers': lambda x: isinstance(x, dict) and all(map(lambda y: isinstance(y, str), list(x.keys()) + list(x.values()))),
-        '/list?q=generators': lambda x: isinstance(x, dict) and all(map(lambda y: isinstance(y, str), list(x.keys()) + list(x.values())))
+        '/list?q=generators': lambda x: isinstance(x, dict) and all(map(lambda y: isinstance(y, str), list(x.keys()) + list(x.values()))),
     }
-    testResults = {server: {} for server in serverList}  # type: Dict[Any, Dict[str, Tuple[bool, float]]]
+    test_results = {server: {} for server in server_list}  # type: Dict[Any, Dict[str, Tuple[bool, float]]]
     http = tornado.httpclient.HTTPClient()
 
-    def handleResult(result, test, server):
-        testPath, testFn = test
+    def handle_result(result, test, server):
+        test_path, test_fn = test
         if not result:
-            testResults[server][testPath] = (False, float('inf'))
+            test_results[server][test_path] = (False, float('inf'))
         elif not result.code == 200:
-            testResults[server][testPath] = (result.code, float('inf'))
+            test_results[server][test_path] = (result.code, float('inf'))
         else:
             try:
-                if testFn(json.loads(result.body.decode('utf-8'))):
-                    testResults[server][testPath] = (True, result.request_time)
+                if test_fn(json.loads(result.body.decode('utf-8'))):
+                    test_results[server][test_path] = (True, result.request_time)
                 else:
-                    testResults[server][testPath] = (False, float('inf'))
+                    test_results[server][test_path] = (False, float('inf'))
             except ValueError:  # Not valid JSON
-                testResults[server][testPath] = (False, float('inf'))
+                test_results[server][test_path] = (False, float('inf'))
 
-    for (domain, port) in serverList:
-        for (testPath, testFn) in tests.items():
-            requestURL = '%s%s' % (genServerName(domain, port), testPath)
+    for (domain, port) in server_list:
+        for (test_path, test_fn) in tests.items():
+            request_url = '%s%s' % (gen_server_name(domain, port), test_path)
             try:
-                result = http.fetch(requestURL, request_timeout=15, validate_cert=verifySSLCert)
-                handleResult(result, (testPath, testFn), (domain, port))
+                result = http.fetch(request_url, request_timeout=15, validate_cert=verify_ssl_cert)
+                handle_result(result, (test_path, test_fn), (domain, port))
             except Exception as e:
-                logging.warning('Exception in testServerPool: %s', e)
-                handleResult(None, (testPath, testFn), (domain, port))
+                logging.warning('Exception in test_server_pool: %s', e)
+                handle_result(None, (test_path, test_fn), (domain, port))
 
-    return testResults
+    return test_results
 
 
-def determineServerCapabilities(serverlist):
+def determine_server_capabilities(serverlist):
     '''Find which APYs can do what.
 
     The return data from this function is a little complex, better illustrated than described:
@@ -434,21 +431,21 @@ def determineServerCapabilities(serverlist):
             if mode not in capabilities:
                 capabilities[mode] = {}
             if mode == "pairs":  # for compatibility with scaleMT, we request /listPairs
-                requestURL = "%s/listPairs" % genServerName(domain, port)
+                request_url = "%s/listPairs" % gen_server_name(domain, port)
             else:
-                requestURL = "%s/list?q=%s" % (genServerName(domain, port), mode)
-            logging.info("Getting information from %s" % requestURL)
+                request_url = "%s/list?q=%s" % (gen_server_name(domain, port), mode)
+            logging.info("Getting information from %s" % request_url)
             # make the request
             try:
-                result = http.fetch(requestURL, request_timeout=15, validate_cert=verifySSLCert)
+                result = http.fetch(request_url, request_timeout=15, validate_cert=verify_ssl_cert)
             except Exception as e:
-                logging.error("Fetch for data from %s for %s failed with %s, dropping server" % (genServerName(domain, port), mode, e))
+                logging.error("Fetch for data from %s for %s failed with %s, dropping server" % (gen_server_name(domain, port), mode, e))
                 continue
             # parse the return
             try:
                 response = json.loads(result.body.decode('utf-8'))
             except ValueError:  # Not valid JSON, we stop using the server
-                logging.error("Received invalid JSON from %s on query for %s, dropping server" % (genServerName(domain, port), mode))
+                logging.error("Received invalid JSON from %s on query for %s, dropping server" % (gen_server_name(domain, port), mode))
                 continue
             if mode == "pairs":  # pairs has a slightly different response format
                 if "responseStatus" not in response or response["responseStatus"] != 200 or "responseData" not in response:
@@ -481,8 +478,8 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--test-interval', help="interval to perform tests in ms (default = 3600000)", type=int, default=3600000)
     args = parser.parse_args()
 
-    global verifySSLCert
-    verifySSLCert = args.debug
+    global verify_ssl_cert
+    verify_ssl_cert = args.debug
 
     logging.getLogger().setLevel(logging.INFO)
     enable_pretty_logging()
@@ -491,9 +488,9 @@ if __name__ == '__main__':
     try:
         with open(args.serverlist) as serverlist:
             server_port_list = []
-            for serverPortPair in serverlist:
-                if serverPortPair[0] != '#':  # filter out the commented lines
-                    srv, port = serverPortPair.rsplit(':', 1)
+            for server_port_pair in serverlist:
+                if server_port_pair[0] != '#':  # filter out the commented lines
+                    srv, port = server_port_pair.rsplit(':', 1)
                     server_port_list.append((srv, int(port)))
     except IOError:
         logging.critical("Could not open serverlist: %s" % args.serverlist)
@@ -514,7 +511,7 @@ if __name__ == '__main__':
         sock.close()
 
     logging.info("Server/port list used: " + str(server_port_list))
-    server_lang_pair_map = determineServerCapabilities(server_port_list)
+    server_lang_pair_map = determine_server_capabilities(server_port_list)
     logging.info("Using server language-pair mapping: %s" % str(server_lang_pair_map))
     # balancer = RoundRobin(server_port_list, server_lang_pair_map)
     # balancer = LeastConnections(server_port_list)
@@ -522,9 +519,9 @@ if __name__ == '__main__':
     balancer = Fastest(server_port_list, server_lang_pair_map, 5)
 
     application = tornado.web.Application([
-        (r'/list', listRequestHandler, {"serverLangPairMap": server_lang_pair_map}),
-        (r'/listPairs', listRequestHandler, {"serverLangPairMap": server_lang_pair_map}),
-        (r'/.*', requestHandler, {"balancer": balancer}),
+        (r'/list', ListRequestHandler, {"serverLangPairMap": server_lang_pair_map}),
+        (r'/listPairs', ListRequestHandler, {"serverLangPairMap": server_lang_pair_map}),
+        (r'/.*', RedirectRequestHandler, {"balancer": balancer}),
     ])
 
     if args.ssl_cert and args.ssl_key:
@@ -541,5 +538,5 @@ if __name__ == '__main__':
     http_server.start(args.num_processes)
     main_loop = tornado.ioloop.IOLoop.instance()
     if isinstance(balancer, Fastest):
-        tornado.ioloop.PeriodicCallback(lambda: balancer.initServerList(), args.test_interval, io_loop=main_loop).start()
+        tornado.ioloop.PeriodicCallback(lambda: balancer.init_server_list(), args.test_interval, io_loop=main_loop).start()
     main_loop.start()

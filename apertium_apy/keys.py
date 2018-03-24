@@ -5,7 +5,7 @@ from typing import Dict  # noqa: F401
 from collections import defaultdict
 
 
-def getKey(key):
+def get_key(key):
     return keys[key]
 
 

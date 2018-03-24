@@ -7,72 +7,72 @@ WIKI_API_URL = 'http://wiki.apertium.org/w/api.php'
 
 
 # Apertium Wiki utility functions
-def wikiLogin(s, loginName, password):
+def wiki_login(s, login_name, password):
     try:
-        payload = {'action': 'login', 'format': 'json', 'lgname': loginName, 'lgpassword': password}
-        authResult = s.post(WIKI_API_URL, params=payload)
-        authToken = json.loads(authResult.text)['login']['token']
-        logging.debug('Auth token: {}'.format(authToken))
+        payload = {'action': 'login', 'format': 'json', 'lgname': login_name, 'lgpassword': password}
+        auth_result = s.post(WIKI_API_URL, params=payload)
+        auth_token = json.loads(auth_result.text)['login']['token']
+        logging.debug('Auth token: {}'.format(auth_token))
 
-        payload = {'action': 'login', 'format': 'json', 'lgname': loginName, 'lgpassword': password, 'lgtoken': authToken}
-        authResult = s.post(WIKI_API_URL, params=payload)
-        if not json.loads(authResult.text)['login']['result'] == 'Success':
-            logging.critical('Failed to login as {}: {}'.format(loginName, json.loads(authResult.text)['login']['result']))
+        payload = {'action': 'login', 'format': 'json', 'lgname': login_name, 'lgpassword': password, 'lgtoken': auth_token}
+        auth_result = s.post(WIKI_API_URL, params=payload)
+        if not json.loads(auth_result.text)['login']['result'] == 'Success':
+            logging.critical('Failed to login as {}: {}'.format(login_name, json.loads(auth_result.text)['login']['result']))
         else:
-            logging.info('Login as {} succeeded'.format(loginName))
-            return authToken
+            logging.info('Login as {} succeeded'.format(login_name))
+            return auth_token
     except Exception as e:
         logging.critical('Failed to login: {}'.format(e))
 
 
-def wikiGetPage(s, pageTitle):
+def wiki_get_page(s, page_title):
     payload = {
         'action': 'query',
         'format': 'json',
-        'titles': pageTitle,
+        'titles': page_title,
         'prop': 'revisions',
-        'rvprop': 'content'
+        'rvprop': 'content',
     }
-    viewResult = s.get(WIKI_API_URL, params=payload)
-    jsonResult = json.loads(viewResult.text)
+    view_result = s.get(WIKI_API_URL, params=payload)
+    json_result = json.loads(view_result.text)
 
-    if 'missing' not in list(jsonResult['query']['pages'].values())[0]:
-        return list(jsonResult['query']['pages'].values())[0]['revisions'][0]['*']
+    if 'missing' not in list(json_result['query']['pages'].values())[0]:
+        return list(json_result['query']['pages'].values())[0]['revisions'][0]['*']
 
 
-def wikiEditPage(s, pageTitle, pageContents, editToken):
+def wiki_edit_page(s, page_title, page_contents, edit_token):
     payload = {
         'action': 'edit',
         'format': 'json',
-        'title': pageTitle,
-        'text': pageContents,
+        'title': page_title,
+        'text': page_contents,
         'bot': 'True',
         'contentmodel': 'wikitext',
-        'token': editToken
+        'token': edit_token,
     }
-    editResult = s.post(WIKI_API_URL, data=payload)
-    jsonResult = json.loads(editResult.text)
-    return jsonResult
+    edit_result = s.post(WIKI_API_URL, data=payload)
+    json_result = json.loads(edit_result.text)
+    return json_result
 
 
-def wikiGetToken(s, tokenType, props):
+def wiki_get_token(s, token_type, props):
     try:
         payload = {
             'action': 'query',
             'format': 'json',
             'prop': props,
-            'intoken': tokenType,
-            'titles': 'Main Page'
+            'intoken': token_type,
+            'titles': 'Main Page',
         }
-        tokenResult = s.get(WIKI_API_URL, params=payload)
-        token = json.loads(tokenResult.text)['query']['pages']['1']['%stoken' % tokenType]
-        logging.debug('%s token: %s' % (tokenType, token))
+        token_result = s.get(WIKI_API_URL, params=payload)
+        token = json.loads(token_result.text)['query']['pages']['1']['%stoken' % token_type]
+        logging.debug('%s token: %s' % (token_type, token))
         return token
     except Exception as e:
-        logging.error('Failed to obtain %s token: %s' % (tokenType, e))
+        logging.error('Failed to obtain %s token: %s' % (token_type, e))
 
 
-def wikiAddText(content, data):
+def wiki_add_text(content, data):
     if not content:
         content = ''
 
@@ -80,6 +80,6 @@ def wikiAddText(content, data):
     content += '\n* {{suggest|%s|%s|%s|%s|%s}}' % (src, dst,
                                                    data['word'],
                                                    data['newWord'],
-                                                   data['context'],)
+                                                   data['context'])
 
     return content

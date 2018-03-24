@@ -1,26 +1,25 @@
 #!/usr/bin/env python3
 # vim: set ts=4 sw=4 sts=4 et :
 
-from collections import defaultdict
-from contextlib import closing
-from datetime import datetime
 import logging
 import sqlite3
 import threading
-
+from collections import defaultdict
+from contextlib import closing
+from datetime import datetime
 from typing import Dict  # noqa: F401
 
 
 class MissingDb(object):
-    def __init__(self, dbPath, wordmemlimit):
+    def __init__(self, db_path, wordmemlimit):
         self.lock = threading.RLock()
         self.conn = None
-        self.dbPath = dbPath
+        self.db_path = db_path
         self.words = defaultdict(lambda: defaultdict(lambda: 0))  # type: Dict[str, Dict[str, int]]
         self.wordcount = 0
         self.wordmemlimit = wordmemlimit
 
-    def noteUnknown(self, token, pair):
+    def note_unknown(self, token, pair):
         self.words[pair][token] += 1
         self.wordcount += 1
         # so if wordmemlimit is 0, we commit on each word
@@ -30,10 +29,10 @@ class MissingDb(object):
             self.wordcount = 0
 
     def commit(self):
-        timeBefore = datetime.now()
+        time_before = datetime.now()
         with self.lock:
             if not self.conn:
-                self.conn = sqlite3.connect(self.dbPath)
+                self.conn = sqlite3.connect(self.db_path)
 
             with closing(self.conn.cursor()) as c:
                 c.execute("PRAGMA synchronous = NORMAL")
@@ -50,10 +49,10 @@ class MissingDb(object):
                         for pair in self.words
                         for token in self.words[pair]))
             self.conn.commit()
-        ms = timedeltaToMilliseconds(datetime.now() - timeBefore)
+        ms = timedelta_to_milliseconds(datetime.now() - time_before)
         logging.info("\tSaving %s unknown words to the DB (%s ms)", self.wordcount, ms)
 
-    def closeDb(self):
+    def close_db(self):
         if not self.conn:
             logging.warning('no connection on closeDb')
             return
@@ -63,5 +62,5 @@ class MissingDb(object):
         self.conn = None
 
 
-def timedeltaToMilliseconds(td):
+def timedelta_to_milliseconds(td):
     return td.days * 86400000 + td.seconds * 1000 + int(td.microseconds / 1000)
