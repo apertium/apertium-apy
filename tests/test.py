@@ -112,7 +112,7 @@ class TestTranslateHandler(BaseTestCase):
             'status': 'error',
             'code': 400,
             'message': 'Bad Request',
-            'explanation': 'That pair is not installed'
+            'explanation': 'That pair is not installed',
         })
 
 
