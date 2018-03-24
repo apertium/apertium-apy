@@ -46,17 +46,18 @@ def setUpModule():  # noqa: N802
             urllib.request.urlopen('http://localhost:{}'.format(PORT))  # TODO: consider using sockets instead
             started = True
             logging.info('APy started on port {} with PID {}'.format(PORT, server_handle.pid))
-        except urllib.error.URLError:
+        except urllib.error.URLError:  # type: ignore
             print('.', end='')
             waited += 1
             time.sleep(1)
 
     if not started:
-        raise Exception('Starting APy failed after waiting for {} seconds'.foramt(MAX_STARTUP_SECONDS))
+        raise Exception('Starting APy failed after waiting for {} seconds'.format(MAX_STARTUP_SECONDS))
 
 
 def tearDownModule():  # noqa: N802
-    server_handle.kill()
+    if server_handle:
+        server_handle.kill()
 
 
 class BaseTestCase(AsyncHTTPTestCase):
@@ -70,6 +71,8 @@ class BaseTestCase(AsyncHTTPTestCase):
         response = self.fetch(*args, **kwargs)
         self.assertEqual(response.code, 200)
         return json.loads(response.body.decode('utf-8'))
+
+# TODO: split the handler tests into another file
 
 
 class TestListHandler(BaseTestCase):
@@ -90,12 +93,28 @@ class TestListHandler(BaseTestCase):
 
 
 class TestTranslateHandler(BaseTestCase):
-    def get_url(self, path):
-        return super().get_url('/translate{}'.format(path))
+    def fetch_translation(self, query, pair):
+        return self.fetch_json('/translate?q={}&langpair={}'.format(query, pair))
 
-    # def test_valid_pair(self):
-    #     response = self.fetch_json('?q=house&langpair=en|es')
-    #     print(response)
+    def test_valid_pair(self):
+        response = self.fetch_translation('government', 'eng|spa')
+        print(response)  # TODO: validate it
+
+    def test_valid_pair_2(self):  # TODO: a better name (why are we testing both?)
+        response = self.fetch_translation('ja', 'sme|nob')
+        print(response)  # TODO: validate it
+
+
+class TestAnalyzeHandler(BaseTestCase):
+    def test_analyze(self):
+        response = self.fetch_json('/analyze?q=ikkje&lang=nno')
+        print(response)  # TODO: validate it
+
+
+class TestGenerateHandler(BaseTestCase):
+    def test_analyze(self):
+        response = self.fetch_json('/analyze?q=ikkje&lang=nno')
+        print(response)  # TODO: validate it
 
 
 if __name__ == '__main__':

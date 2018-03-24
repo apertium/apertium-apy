@@ -24,8 +24,8 @@ before_script:
 script:
     - flake8 **/*.py
     - mypy --config-file mypy.ini **/*.py
-    - coverage run -m unittest tests/test*.py
-    - coverage report --fail-under 15
+    - coverage run --source apertium_apy -m unittest tests/test*.py
+    - coverage report --fail-under 20
 
 after_success:
     - coveralls
