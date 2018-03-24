@@ -50,14 +50,14 @@ def convert_iso_code(code):
 def populate_database(args):
     conn = sqlite3.connect(args.database)
     c = conn.cursor()
-    c.execute(textwrap.dedent('''
+    c.execute(textwrap.dedent("""
         CREATE TABLE IF NOT EXISTS languageNames (
             id INTEGER PRIMARY KEY,
             lg TEXT,
             inLg TEXT,
             name TEXT,
             UNIQUE(lg, inLg) ON CONFLICT REPLACE
-        )'''))
+        )"""))
     for locale in args.languages:
         locale = convert_iso_code(locale)
         try:
@@ -67,7 +67,7 @@ def populate_database(args):
             for language in languages:
                 if language.text:
                     if not args.apertium_names or (args.apertium_names and language.get('type') in apertium_languages):
-                        c.execute('''INSERT INTO languageNames VALUES (?, ?, ?, ?)''',
+                        c.execute('INSERT INTO languageNames VALUES (?, ?, ?, ?)',
                                   (None, locale[1], language.get('type'), language.text))
                         scraped.add(language.get('type'))
 

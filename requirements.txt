@@ -3,6 +3,7 @@ chardet==3.0.4
 flake8==3.5.0
 flake8-commas==2.0.0
 flake8-polyfill==1.0.2
+flake8-quotes==0.14.0
 mccabe==0.6.1
 mypy==0.580
 pep8-naming==0.5.0
