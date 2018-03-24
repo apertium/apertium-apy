@@ -80,10 +80,16 @@ class BaseTestCase(AsyncHTTPTestCase):
 class TestListHandler(BaseTestCase):
     def test_list_pairs(self):
         response = self.fetch_json('/list?q=pairs')
-        self.assertTrue('responseData' in response)
-        self.assertTrue('responseDetails' in response)
+        self.assertIsNone(response['responseDetails'])
         self.assertEqual(response['responseStatus'], 200)
-        print(response)  # TODO: validate more
+        expect = set(map(lambda x: frozenset(x.items()), [
+            {'sourceLanguage': 'sme', 'targetLanguage': 'nob'},
+            {'sourceLanguage': 'eng', 'targetLanguage': 'spa'},
+            {'sourceLanguage': 'spa', 'targetLanguage': 'eng_US'},
+            {'sourceLanguage': 'spa', 'targetLanguage': 'eng'},
+        ]))
+        response_data = set(map(lambda x: frozenset(x.items()), response['responseData']))
+        self.assertTrue(response_data >= expect, '{} is missing one of {}'.format(response_data, expect))
 
     def test_list_generators(self):
         response = self.fetch_json('/list?q=generators')
