@@ -958,7 +958,8 @@ class SpellerHandler(BaseHandler):
 
             self.send_response(units)
         else:
-            self.send_error(404, explanation="{} on spellchecker mode: {}".format('Error 404', 'Spelling mode for ' + in_mode + ' is not installed'))
+            error_explanation = '{} on spellchecker mode: {}'.format('Error 404', 'Spelling mode for ' + in_mode + ' is not installed')
+            self.send_error(404, explanation=error_explanation)
 
 
 class GenerateHandler(BaseHandler):
@@ -1394,17 +1395,21 @@ if __name__ == '__main__':
     parser.add_argument('-k', '--ssl-key', help='path to SSL Key File', default=None)
     parser.add_argument('-t', '--timeout', help='timeout for requests (default = 10)', type=int, default=10)
     parser.add_argument('-j', '--num-processes',
-                        help='number of processes to run (default = 1; use 0 to run one http server per core, where each http server runs all available language pairs)',
+                        help='number of processes to run (default = 1; use 0 to run one http server per core, '
+                             'where each http server runs all available language pairs)',
                         nargs='?', type=int, default=1)
-    parser.add_argument(
-        '-d', '--daemon', help='daemon mode: redirects stdout and stderr to files apertium-apy.log and apertium-apy.err ; use with --log-path', action='store_true')
+    parser.add_argument('-d', '--daemon',
+                        help='daemon mode: redirects stdout and stderr to files apertium-apy.log and apertium-apy.err; use with --log-path',
+                        action='store_true')
     parser.add_argument('-P', '--log-path', help='path to log output files to in daemon mode; defaults to local directory', default='./')
     parser.add_argument('-i', '--max-pipes-per-pair',
                         help='how many pipelines we can spin up per language pair (default = 1)', type=int, default=1)
     parser.add_argument('-n', '--min-pipes-per-pair',
-                        help='when shutting down pipelines, keep at least this many open per language pair (default = 0)', type=int, default=0)
+                        help='when shutting down pipelines, keep at least this many open per language pair (default = 0)',
+                        type=int, default=0)
     parser.add_argument('-u', '--max-users-per-pipe',
-                        help='how many concurrent requests per pipeline before we consider spinning up a new one (default = 5)', type=int, default=5)
+                        help='how many concurrent requests per pipeline before we consider spinning up a new one (default = 5)',
+                        type=int, default=5)
     parser.add_argument('-m', '--max-idle-secs',
                         help='if specified, shut down pipelines that have not been used in this many seconds', type=int, default=0)
     parser.add_argument('-r', '--restart-pipe-after',
@@ -1413,7 +1418,8 @@ if __name__ == '__main__':
     parser.add_argument('-V', '--version', help='show APY version', action='version', version="%(prog)s version " + __version__)
     parser.add_argument('-S', '--scalemt-logs', help='generates ScaleMT-like logs; use with --log-path; disables', action='store_true')
     parser.add_argument('-M', '--unknown-memory-limit',
-                        help='keeps unknown words in memory until a limit is reached; use with --missing-freqs (default = 1000)', type=int, default=1000)
+                        help='keeps unknown words in memory until a limit is reached; use with --missing-freqs (default = 1000)',
+                        type=int, default=1000)
     parser.add_argument('-T', '--stat-period-max-age',
                         help='How many seconds back to keep track request timing stats (default = 3600)', type=int, default=3600)
     parser.add_argument('-wp', '--wiki-password', help="Apertium Wiki account password for SuggestionHandler", default=None)

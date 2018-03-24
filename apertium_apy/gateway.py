@@ -82,8 +82,10 @@ class RedirectRequestHandler(RequestHandler):
         logging.info('Redirecting %s?%s to %s%s?%s' % (path, query, server_port, path, query))
 
         http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch(server_port + path + "?" + query, functools.partial(self._on_download,
-                                                                       (server, port), lang_pair), validate_cert=verify_ssl_cert, headers=headers)
+        http.fetch(
+            server_port + path + "?" + query,
+            functools.partial(self._on_download, (server, port), lang_pair),
+            validate_cert=verify_ssl_cert, headers=headers)
         self.balancer.inform('start', (server, port), url=path)
 
     def _on_download(self, server, lang_pair, response):
@@ -132,11 +134,17 @@ class ListRequestHandler(apy.BaseHandler):
                     response_data.append({'sourceLanguage': l1, 'targetLanguage': l2})
                 self.send_response({'responseData': response_data, 'responseDetails': None, 'responseStatus': 200})
             elif query == 'analyzers' or query == 'analysers':
-                self.send_response({pair: self.server_lang_pair_map['analyzers'][pair][0] for pair in self.server_lang_pair_map['analyzers']})
+                self.send_response({
+                    pair: self.server_lang_pair_map['analyzers'][pair][0] for pair in self.server_lang_pair_map['analyzers']
+                })
             elif query == 'generators':
-                self.send_response({pair: self.server_lang_pair_map['generators'][pair][0] for pair in self.server_lang_pair_map['generators']})
+                self.send_response({
+                    pair: self.server_lang_pair_map['generators'][pair][0] for pair in self.server_lang_pair_map['generators']
+                })
             elif query == 'taggers' or query == 'disambiguators':
-                self.send_response({pair: self.server_lang_pair_map['taggers'][pair][0] for pair in self.server_lang_pair_map['taggers']})
+                self.send_response({
+                    pair: self.server_lang_pair_map['taggers'][pair][0] for pair in self.server_lang_pair_map['taggers']
+                })
             else:
                 self.send_error(400)
 
@@ -315,8 +323,8 @@ class Fastest(Balancer):
             if mode in self.serverlist:
                 if action == 'complete':
                     if self.serverlist[mode][server]:
-                        self.serverlist[mode][server] = (self.serverlist[mode][server] * (self.num_responses -
-                                                                                          1) + request_time / response_len) / self.num_responses
+                        self.serverlist[mode][server] = (self.serverlist[mode][server] *
+                                                         (self.num_responses - 1) + request_time / response_len) / self.num_responses
                     else:
                         self.serverlist[mode][server] = request_time / response_len / self.num_responses
                 elif action == 'drop':

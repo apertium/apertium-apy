@@ -35,7 +35,9 @@ def get_apertium_languages():
         svn_data = str(subprocess.check_output('svn list --xml https://github.com/apertium/apertium-%s.git/trunk' %
                                                dir_path, stderr=subprocess.STDOUT, shell=True), 'utf-8')
         for lang_codes in re.findall(dir_regex, svn_data, re.DOTALL):
-            apertium_languages.update(convert_iso_code(lang_code)[1] for lang_code in lang_codes if lang_code and not lang_code == 'apertium')
+            apertium_languages.update(
+                convert_iso_code(lang_code)[1] for lang_code in lang_codes if lang_code and not lang_code == 'apertium'
+            )
 
     print('Found %s apertium languages: %s.' % (len(apertium_languages), ', '.join(apertium_languages)))
     return apertium_languages
