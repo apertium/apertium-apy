@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-from typing import Dict  # noqa: F401
-
 from collections import defaultdict
+
+if False:
+    from typing import Dict  # noqa: F401
 
 
 def get_key(key):

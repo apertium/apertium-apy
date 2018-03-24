@@ -7,7 +7,9 @@ import threading
 from collections import defaultdict
 from contextlib import closing
 from datetime import datetime
-from typing import Dict  # noqa: F401
+
+if False:
+    from typing import Dict  # noqa: F401
 
 
 class MissingDb(object):

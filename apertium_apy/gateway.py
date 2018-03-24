@@ -10,16 +10,19 @@ import random
 import socket
 import sys
 from collections import OrderedDict
-from typing import Any, Dict, List, Set, Tuple  # noqa: F401
 
-from tornado.options import enable_pretty_logging  # type: ignore
-from tornado.web import RequestHandler
 import tornado
 import tornado.httpclient
 import tornado.httpserver
 import tornado.web
+from tornado.options import enable_pretty_logging  # type: ignore
+from tornado.web import RequestHandler
 
 import apy
+
+if False:
+    from typing import Any, Dict, List, Set, Tuple  # noqa: F401
+
 
 global verify_ssl_cert
 
