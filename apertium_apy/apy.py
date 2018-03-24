@@ -51,6 +51,11 @@ except ImportError:
     chardet = None
 
 try:
+    import requests
+except ImportError:
+    requests = None
+
+try:
     import streamparser
 except ImportError:
     streamparser = None
@@ -59,6 +64,7 @@ from keys import get_key
 from mode_search import search_path
 from util import (get_localized_languages, strip_tags, process_per_word, get_coverage, get_coverages, to_alpha3_code,
                   to_alpha2_code, scale_mt_log, TranslationInfo, remove_dot_from_deformat)
+from wiki_util import wiki_login, wiki_get_token
 import missingdb
 import systemd
 import translation
@@ -1345,7 +1351,7 @@ def check_utf8():
         sys.exit(1)
 
 
-def apply_config(args, apy_section):
+def apply_config(args, parser, apy_section):
     for (name, value) in vars(args).items():
         if name in apy_section:
             # Get default from private variables of argparse
@@ -1380,7 +1386,7 @@ def apply_config(args, apy_section):
                 setattr(args, name, res)
 
 
-if __name__ == '__main__':
+def main():
     check_utf8()
 
     parser = argparse.ArgumentParser(description='Apertium APY -- API server for machine translation and language analysis')
@@ -1448,7 +1454,7 @@ if __name__ == '__main__':
         else:
             logging.info('Using configuration file ' + args.config)
             apy_section = conf['APY']
-            apply_config(args, apy_section)
+            apply_config(args, parser, apy_section)
 
     if args.daemon:
         # regular content logs are output stderr
@@ -1482,6 +1488,9 @@ if __name__ == '__main__':
     if not streamparser:
         logging.warning('Apertium streamparser not installed, spelling handler disabled')
 
+    if not requests:
+        logging.warning('requests not installed, suggestions disabled')
+
     setup_handler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
                   args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs,
                   args.restart_pipe_after, args.max_doc_pipes, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
@@ -1504,36 +1513,30 @@ if __name__ == '__main__':
         (r'/identifyLang', IdentifyLangHandler),
         (r'/getLocale', GetLocaleHandler),
         (r'/pipedebug', PipeDebugHandler),
-        (r'/suggest', SuggestionHandler),
     ]
 
     if streamparser:
         handlers.append((r'/speller', SpellerHandler))
 
-    application = tornado.web.Application(handlers)
-
     if args.bypass_token:
         logging.info('reCaptcha bypass for testing: %s' % BYPASS_TOKEN)
 
-    if all([args.wiki_username, args.wiki_password]):
+    if all([args.wiki_username, args.wiki_password]) and requests:
         logging.info('Logging into Apertium Wiki with username %s' % args.wiki_username)
 
-        try:
-            import requests
-        except ImportError:
-            logging.error('requests module is required for SuggestionHandler')
+        SuggestionHandler.SUGGEST_URL = 'User:' + args.wiki_username
+        SuggestionHandler.recaptcha_secret = args.recaptcha_secret
+        SuggestionHandler.wiki_session = requests.Session()
+        SuggestionHandler.auth_token = wiki_login(
+            SuggestionHandler.wiki_session,
+            args.wiki_username,
+            args.wiki_password)
+        SuggestionHandler.wiki_edit_token = wiki_get_token(
+            SuggestionHandler.wiki_session, 'edit', 'info|revisions')
 
-        if requests:
-            from wiki_util import wiki_login, wiki_get_token
-            SuggestionHandler.SUGGEST_URL = 'User:' + args.wiki_username
-            SuggestionHandler.recaptcha_secret = args.recaptcha_secret
-            SuggestionHandler.wiki_session = requests.Session()
-            SuggestionHandler.auth_token = wiki_login(
-                SuggestionHandler.wiki_session,
-                args.wiki_username,
-                args.wiki_password)
-            SuggestionHandler.wiki_edit_token = wiki_get_token(
-                SuggestionHandler.wiki_session, 'edit', 'info|revisions')
+        handlers.append((r'/suggest', SuggestionHandler))
+
+    application = tornado.web.Application(handlers)
 
     global http_server
     if args.ssl_cert and args.ssl_key:
@@ -1559,3 +1562,7 @@ if __name__ == '__main__':
         logging.info('Initialised systemd watchdog, pinging every {}s'.format(1000 * wd.period))
         tornado.ioloop.PeriodicCallback(wd.watchdog_ping, 1000 * wd.period, loop).start()
     loop.start()
+
+
+if __name__ == '__main__':
+    main()
