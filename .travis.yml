@@ -11,8 +11,8 @@ python:
     - "nightly"
 
 install:
-    - pip3 install tornado mypy
-    - pip3 install flake8
+    - travis_retry pip install tornado mypy
+    - travis_retry pip install flake8
 
 before_script:
     - wget http://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
@@ -20,11 +20,11 @@ before_script:
     - sudo apt-get -f --allow-unauthenticated install apertium-sme-nob apertium-es-en
     - svn co https://svn.code.sf.net/p/apertium/svn/languages/apertium-nno /tmp/languages/apertium-nno
     - ( cd /tmp/languages/apertium-nno && ./autogen.sh && make -j2 )
-    - flake8
+    - flake8 **/*.py
     - mypy --config-file mypy.ini **/*.py
 
 script:
-    - NONPAIRS=/tmp/languages t/run-tests
+    - NONPAIRS=/tmp/languages tests/run-tests
 
 
 notifications:
@@ -32,7 +32,7 @@ notifications:
         channels:
             - secure: "jMRqT7lndd2vTXON34HHdNQ6v+DSOSUQZwKXsJytw9F55pPPS4z+76vTChHKdNcp4nV5nWhCarZR2X4bK7qWO5i25XIXsffFm4TK/XWDdZgLKHCS431mzcSVrYYASC0nn15HgGAl/H6dMksNThuV5gaItSPcKNXC9amBYLbTeSt/H+rxDBuPs+m7yy049EySTWjUoFacel7HDoTEXQyl82Ks5I0oJM+ErgS1VAe6RPiXIH+eBGbPT0YoVYUS1WoKSZYaLhLZ/jOLDnnTiFhTn/f8+uZrbAfLGWzkp9/NbyMCByQFH48HFzjudOD6BgxRumJaDFhImrKrDvPpMulXB1MLl+JD9mK+lioLaqUiUu+2wkBJ90bvOCNqhKLR94upev7Skg52n96Wc91EfiVxuwiLDJOzwFAbZ9VaziNI/Ld3y1qHO84spV7R7AWFhI34xGNkAOCJ1sZZWcH2rGFjsldLNPHeyhNBaZhxGdGdVvrbTm0jbR4G0iD54BLK1IPuJt/eaETWrAnE2XgDnJ3PE9JKtFOe5tpuhF/R9s8qFYGEVmG9SnSxqJax7K6XcQ6utla10qFX0mR5Ub8S+Ryu9fN5+g+U2fCrfJrH44RhDCz961SGcRYVaWDITtDTeAtBGP6G0jOkNv8yi21ha50y4uDxvXq1ETfoHLeYwzzCHmU="
     on_failure: always
-    on_success: never
+    on_success: change
     # The irc channel is encrypted for goavki/apertium-apy, so build notifications from forks won't show up on the IRC channel
     # Encrypt with:
     # $ gem install --user-install travis
