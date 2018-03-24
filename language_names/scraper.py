@@ -31,10 +31,10 @@ def get_apertium_languages():
         ('languages', r'<name>(apertium)-(\w{3})</name>'),
         ('incubator', r'<name>(apertium)-(\w{3})</name>'),
     ]
-    for (dirPath, dirRegex) in dirs:
-        svn_data = str(subprocess.check_output('svn list --xml https://svn.code.sf.net/p/apertium/svn/%s/' %
-                                               dirPath, stderr=subprocess.STDOUT, shell=True), 'utf-8')
-        for lang_codes in re.findall(dirRegex, svn_data, re.DOTALL):
+    for (dir_path, dir_regex) in dirs:
+        svn_data = str(subprocess.check_output('svn list --xml https://github.com/apertium/apertium-%s.git/trunk' %
+                                               dir_path, stderr=subprocess.STDOUT, shell=True), 'utf-8')
+        for lang_codes in re.findall(dir_regex, svn_data, re.DOTALL):
             apertium_languages.update(convert_iso_code(lang_code)[1] for lang_code in lang_codes if lang_code and not lang_code == 'apertium')
 
     print('Found %s apertium languages: %s.' % (len(apertium_languages), ', '.join(apertium_languages)))
@@ -64,7 +64,7 @@ def populate_database(args):
             scraped = set()
             for language in languages:
                 if language.text:
-                    if not args.apertiumNames or (args.apertiumNames and language.get('type') in apertium_languages):
+                    if not args.apertium_names or (args.apertium_names and language.get('type') in apertium_languages):
                         c.execute('''INSERT INTO languageNames VALUES (?, ?, ?, ?)''',
                                   (None, locale[1], language.get('type'), language.text))
                         scraped.add(language.get('type'))
@@ -72,8 +72,8 @@ def populate_database(args):
             print('Scraped %d localized language names for %s, missing %d (%s).' % (
                 len(scraped),
                 locale[1] if locale[0] == locale[1] else '%s -> %s' % locale,
-                len(apertium_languages) - len(scraped) if args.apertiumNames else 0,
-                ', '.join(apertium_languages - scraped if args.apertiumNames else set()),
+                len(apertium_languages) - len(scraped) if args.apertium_names else 0,
+                ', '.join(apertium_languages - scraped if args.apertium_names else set()),
             ))
         except (KeyboardInterrupt, SystemExit):
             raise
@@ -88,19 +88,19 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Scrape Unicode.org for language names in different locales.')
     parser.add_argument('languages', nargs='*', help='list of languages to add to DB')
     parser.add_argument('-d', '--database', help='name of database file', default='../langNames.db')
-    parser.add_argument('-n', '--apertiumNames', help='only save names of Apertium languages to database',
+    parser.add_argument('-n', '--apertium-names', help='only save names of Apertium languages to database',
                         action='store_true', default=False)
-    parser.add_argument('-l', '--apertiumLangs', help='scrape localized names in all Apertium languages',
+    parser.add_argument('-l', '--apertium-langs', help='scrape localized names in all Apertium languages',
                         action='store_true', default=False)
     args = parser.parse_args()
 
-    if not (len(args.languages) or args.apertiumNames or args.apertiumLangs):
+    if not (len(args.languages) or args.apertium_names or args.apertium_langs):
         parser.print_help()
 
-    if args.apertiumNames or args.apertiumLangs:
+    if args.apertium_names or args.apertium_langs:
         get_apertium_languages()
 
-    if args.apertiumLangs:
+    if args.apertium_langs:
         args.languages = apertium_languages
 
     populate_database(args)
