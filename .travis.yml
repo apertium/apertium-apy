@@ -1,41 +1,36 @@
 language: python
 cache: pip
-
-# let linux be Ubuntu 14.04 Trusty
 sudo: required
 dist: trusty
-
 python:
-    - "3.4"
-    - "3.5"
-    - "3.6"
-    - "nightly"
-
+    - '3.4'
+    - '3.5'
+    - '3.6'
+    - 'nightly'
 install:
     - travis_retry pip install -r requirements-dev.txt
-
 before_script:
     - wget http://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
     - sudo apt-get -f --allow-unauthenticated install apertium-all-dev
     - sudo apt-get -f --allow-unauthenticated install apertium-sme-nob apertium-es-en
     - git clone --depth 1 https://github.com/apertium/apertium-nno /tmp/languages/apertium-nno
     - ( cd /tmp/languages/apertium-nno && ./autogen.sh && make -j2 )
-
 script:
     - flake8 **/*.py
-    - mypy --config-file mypy.ini **/*.py
+    - if [[ $TRAVIS_PYTHON_VERSION != 3.4 ]];
+        mypy --config-file mypy.ini **/*.py
+      fi
     - NONPAIRS=/tmp/languages coverage run --source apertium_apy -m unittest tests/test*.py
     - coverage report --fail-under 20
-
 after_success:
     - coveralls
-
 notifications:
     irc:
         channels:
-            - secure: "jMRqT7lndd2vTXON34HHdNQ6v+DSOSUQZwKXsJytw9F55pPPS4z+76vTChHKdNcp4nV5nWhCarZR2X4bK7qWO5i25XIXsffFm4TK/XWDdZgLKHCS431mzcSVrYYASC0nn15HgGAl/H6dMksNThuV5gaItSPcKNXC9amBYLbTeSt/H+rxDBuPs+m7yy049EySTWjUoFacel7HDoTEXQyl82Ks5I0oJM+ErgS1VAe6RPiXIH+eBGbPT0YoVYUS1WoKSZYaLhLZ/jOLDnnTiFhTn/f8+uZrbAfLGWzkp9/NbyMCByQFH48HFzjudOD6BgxRumJaDFhImrKrDvPpMulXB1MLl+JD9mK+lioLaqUiUu+2wkBJ90bvOCNqhKLR94upev7Skg52n96Wc91EfiVxuwiLDJOzwFAbZ9VaziNI/Ld3y1qHO84spV7R7AWFhI34xGNkAOCJ1sZZWcH2rGFjsldLNPHeyhNBaZhxGdGdVvrbTm0jbR4G0iD54BLK1IPuJt/eaETWrAnE2XgDnJ3PE9JKtFOe5tpuhF/R9s8qFYGEVmG9SnSxqJax7K6XcQ6utla10qFX0mR5Ub8S+Ryu9fN5+g+U2fCrfJrH44RhDCz961SGcRYVaWDITtDTeAtBGP6G0jOkNv8yi21ha50y4uDxvXq1ETfoHLeYwzzCHmU="
+            - secure: 'jMRqT7lndd2vTXON34HHdNQ6v+DSOSUQZwKXsJytw9F55pPPS4z+76vTChHKdNcp4nV5nWhCarZR2X4bK7qWO5i25XIXsffFm4TK/XWDdZgLKHCS431mzcSVrYYASC0nn15HgGAl/H6dMksNThuV5gaItSPcKNXC9amBYLbTeSt/H+rxDBuPs+m7yy049EySTWjUoFacel7HDoTEXQyl82Ks5I0oJM+ErgS1VAe6RPiXIH+eBGbPT0YoVYUS1WoKSZYaLhLZ/jOLDnnTiFhTn/f8+uZrbAfLGWzkp9/NbyMCByQFH48HFzjudOD6BgxRumJaDFhImrKrDvPpMulXB1MLl+JD9mK+lioLaqUiUu+2wkBJ90bvOCNqhKLR94upev7Skg52n96Wc91EfiVxuwiLDJOzwFAbZ9VaziNI/Ld3y1qHO84spV7R7AWFhI34xGNkAOCJ1sZZWcH2rGFjsldLNPHeyhNBaZhxGdGdVvrbTm0jbR4G0iD54BLK1IPuJt/eaETWrAnE2XgDnJ3PE9JKtFOe5tpuhF/R9s8qFYGEVmG9SnSxqJax7K6XcQ6utla10qFX0mR5Ub8S+Ryu9fN5+g+U2fCrfJrH44RhDCz961SGcRYVaWDITtDTeAtBGP6G0jOkNv8yi21ha50y4uDxvXq1ETfoHLeYwzzCHmU='
     on_failure: change
     on_success: change
+
     # The irc channel is encrypted for goavki/apertium-apy, so build notifications from forks won't show up on the IRC channel
     # Encrypt with:
     # $ gem install --user-install travis
