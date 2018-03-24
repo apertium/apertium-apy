@@ -25,7 +25,7 @@ script:
     - flake8 **/*.py
     - mypy --config-file mypy.ini **/*.py
     - NONPAIRS=/tmp/languages tests/run-tests
-
+    - coverage report --fail-under 10
 
 notifications:
     irc:
