@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# -*- indent-tabs-mode: nil -*-
 # coding=utf-8
+# -*- indent-tabs-mode: nil -*-
 
 import argparse
 import configparser
@@ -61,12 +61,17 @@ from util import (get_localized_languages, strip_tags, process_per_word, get_cov
                   to_alpha2_code, scale_mt_log, TranslationInfo, remove_dot_from_deformat)
 import missingdb
 import systemd
-import translation  # type: ignore
+import translation
+
+__author__ = "Kevin Brubeck Unhammer, Sushain K. Cherivirala"
+__copyright__ = "Copyright 2013--2018, Kevin Brubeck Unhammer, Sushain K. Cherivirala"
+__credits__ = ["Kevin Brubeck Unhammer", "Sushain K. Cherivirala", "Jonathan North Washington", "Xavi Ivars", "Shardul Chiplunkar"]
+__license__ = "GPLv3"
+__status__ = "Beta"
+__version__ = "0.10.0"
 
 RECAPTCHA_VERIFICATION_URL = 'https://www.google.com/recaptcha/api/siteverify'
 BYPASS_TOKEN = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(24))
-
-__version__ = "0.10.0"
 
 
 def run_async_thread(func):
