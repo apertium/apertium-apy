@@ -176,7 +176,7 @@ fi
 
 cd "$(dirname "$0")"
 rm -f apertium-apy.log apertium-apy.err
-../servlet.py -p "${PORT}" -d -j1 -i3 -u1 -n1 -m3 -s "${NONPAIRS}"  -- "${INSTALLEDPAIRS}" & APYPID=$!
+coverage run --branch ../servlet.py -p "${PORT}" -d -j1 -i3 -u1 -n1 -m3 -s "${NONPAIRS}"  -- "${INSTALLEDPAIRS}" & APYPID=$!
 wait_for_startup
 if run_tests; then
     exit $?

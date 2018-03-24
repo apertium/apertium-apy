@@ -53,7 +53,7 @@ except ImportError:
 try:
     import requests
 except ImportError:
-    requests = None
+    requests = None  # type: ignore
 
 try:
     import streamparser
@@ -1538,7 +1538,6 @@ def main():
 
     application = tornado.web.Application(handlers)
 
-    global http_server
     if args.ssl_cert and args.ssl_key:
         http_server = tornado.httpserver.HTTPServer(application, ssl_options={
             'certfile': args.ssl_cert,
