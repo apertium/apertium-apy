@@ -1,3 +1,0 @@
-[submodule "streamparser"]
-	path = streamparser
-	url = https://github.com/apertium/streamparser.git
