@@ -27,6 +27,9 @@ script:
     - coverage run -m unittest tests/test*.py
     - coverage report --fail-under 15
 
+after_success:
+    - coveralls
+
 notifications:
     irc:
         channels:
