@@ -24,7 +24,7 @@ before_script:
 script:
     - flake8 **/*.py
     - mypy --config-file mypy.ini **/*.py
-    - coverage run --source apertium_apy -m unittest tests/test*.py
+    - NONPAIRS=/tmp/languages coverage run --source apertium_apy -m unittest tests/test*.py
     - coverage report --fail-under 20
 
 after_success:
