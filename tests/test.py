@@ -14,9 +14,9 @@ import urllib.request
 from tornado.log import enable_pretty_logging
 from tornado.testing import AsyncHTTPTestCase
 
-apy_folder = os.path.join(os.path.abspath(os.path.dirname(__file__)), '../apertium_apy')
-sys.path.append(apy_folder)
-from apy import check_utf8, parse_args, setup_application  # noqa: E402
+base_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..')
+sys.path.append(base_path)
+from apertium_apy.apy import check_utf8, parse_args, setup_application  # noqa: E402
 
 logging.getLogger().setLevel(logging.DEBUG)
 
@@ -37,7 +37,7 @@ server_handle = None
 
 def setUpModule():  # noqa: N802
     global server_handle
-    server_handle = subprocess.Popen([os.path.join(apy_folder, 'apy.py')] + cli_args)  # TODO: swallow output and print on error?
+    server_handle = subprocess.Popen([os.path.join(base_path, 'servlet.py')] + cli_args)  # TODO: swallow output and print on error?
 
     started = False
     waited = 0

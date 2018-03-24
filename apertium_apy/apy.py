@@ -66,14 +66,14 @@ try:
 except ImportError:
     streamparser = None
 
-from keys import get_key
-from mode_search import search_path
-from util import (get_localized_languages, strip_tags, process_per_word, get_coverage, get_coverages, to_alpha3_code,
-                  to_alpha2_code, scale_mt_log, TranslationInfo, remove_dot_from_deformat)
-from wiki_util import wiki_login, wiki_get_token
-import missingdb
-import systemd
-import translation
+from .keys import get_key
+from .mode_search import search_path
+from .util import (get_localized_languages, strip_tags, process_per_word, get_coverage, get_coverages, to_alpha3_code,
+                   to_alpha2_code, scale_mt_log, TranslationInfo, remove_dot_from_deformat)
+from .wiki_util import wiki_login, wiki_get_token
+from . import missingdb
+from . import systemd
+from . import translation
 
 if False:
     from typing import Dict, List, Optional, Tuple  # noqa: F401
