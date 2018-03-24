@@ -64,7 +64,7 @@ import systemd
 import translation  # type: ignore
 
 RECAPTCHA_VERIFICATION_URL = 'https://www.google.com/recaptcha/api/siteverify'
-bypassToken = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(24))
+BYPASS_TOKEN = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(24))
 
 __version__ = "0.10.0"
 
@@ -375,14 +375,14 @@ class TranslateHandler(BaseHandler):
                 missing_freqs_db.note_unknown(token, pair)
 
     def cleanable(self, i, pair, pipe):
-        if pipe.useCount > self.restart_pipe_after:
+        if pipe.use_count > self.restart_pipe_after:
             # Not affected by min_pipes_per_pair
             logging.info('A pipe for pair %s-%s has handled %d requests, scheduling restart',
                          pair[0], pair[1], self.restart_pipe_after)
             return True
         elif (i >= self.min_pipes_per_pair and
                 self.max_idle_secs != 0 and
-                time.time() - pipe.lastUsage > self.max_idle_secs):
+                time.time() - pipe.last_usage > self.max_idle_secs):
             logging.info("A pipe for pair %s-%s hasn't been used in %d secs, scheduling shutdown",
                          pair[0], pair[1], self.max_idle_secs)
             return True
@@ -629,7 +629,7 @@ class TranslatePageHandler(TranslateHandler):
 
     def set_cached(self, pair, url, translated, origtext):
         """Cache translated text for a pair and url to memory, and disk.
-        Also caches origtext to disk; see cachePath."""
+        Also caches origtext to disk; see cache_path."""
         if pair not in self.url_cache:
             self.url_cache[pair] = {}
         elif len(self.url_cache[pair]) > self.max_inmemory_url_cache:
@@ -639,7 +639,7 @@ class TranslatePageHandler(TranslateHandler):
         if self.url_cache_path is None:
             logging.info("No --url-cache-path, not storing cached url to disk")
             return
-        dirname, basename = self.cachePath(pair, url)
+        dirname, basename = self.cache_path(pair, url)
         os.makedirs(dirname, exist_ok=True)
         statvfs = os.statvfs(dirname)
         if (statvfs.f_frsize * statvfs.f_bavail) < self.min_free_space_disk_url_cache:
@@ -690,7 +690,7 @@ class TranslatePageHandler(TranslateHandler):
         """
         mem_cached = self.url_cache.get(pair, {}).get(url)
         if mem_cached is None and cached is not None:
-            dirname, _ = self.cachePath(pair, url)
+            dirname, _ = self.cache_path(pair, url)
             origpath = os.path.join(dirname, pair[0])
             if os.path.exists(origpath):
                 return open(origpath, 'r').read()
@@ -844,18 +844,18 @@ class TranslateDocHandler(TranslateHandler):
             self.send_error(413, explanation='That file is too large')
             return
 
-        with tempfile.NamedTemporaryFile() as tempFile:
-            tempFile.write(body)
-            tempFile.seek(0)
+        with tempfile.NamedTemporaryFile() as temp_file:
+            temp_file.write(body)
+            temp_file.seek(0)
 
-            mtype = self.get_mime_type(tempFile.name)
+            mtype = self.get_mime_type(temp_file.name)
             if mtype not in allowed_mime_types:
                 self.send_error(400, explanation='Invalid file type %s' % mtype)
                 return
             self.request.headers['Content-Type'] = 'application/octet-stream'
             self.request.headers['Content-Disposition'] = 'attachment'
             with (yield self.doc_pipe_sem.acquire()):
-                t = yield translation.translate_doc(tempFile,
+                t = yield translation.translate_doc(temp_file,
                                                     allowed_mime_types[mtype],
                                                     self.pairs['%s-%s' % (l1, l2)],
                                                     mark_unknown)
@@ -990,15 +990,15 @@ class ListLanguageNamesHandler(BaseHandler):
         locale_arg = self.get_argument('locale')
         languages_arg = self.get_argument('languages', default=None)
 
-        if not self.langNames:
+        if not self.lang_names:
             self.send_response({})
             return
 
         if locale_arg:
             if languages_arg:
-                result = yield get_localized_languages(locale_arg, self.langNames, languages=languages_arg.split(' '))
+                result = yield get_localized_languages(locale_arg, self.lang_names, languages=languages_arg.split(' '))
             else:
-                result = yield get_localized_languages(locale_arg, self.langNames)
+                result = yield get_localized_languages(locale_arg, self.lang_names)
 
             self.send_response(result)
             return
@@ -1007,7 +1007,7 @@ class ListLanguageNamesHandler(BaseHandler):
             locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
 
             for locale in locales:
-                result = yield get_localized_languages(locale, self.langNames)
+                result = yield get_localized_languages(locale, self.lang_names)
 
                 if result:
                     self.send_response(result)
@@ -1198,7 +1198,7 @@ class SuggestionHandler(BaseHandler):
             self.send_error(400, explanation='Server not configured correctly for suggestions')
             return
 
-        if recap == bypassToken:
+        if recap == BYPASS_TOKEN:
             logging.info('Adding data to wiki with bypass token')
         else:
             # for nginx or when behind a proxy
@@ -1217,14 +1217,14 @@ class SuggestionHandler(BaseHandler):
                 self.send_error(400, explanation='ReCAPTCHA verification failed')
                 return
 
-        from util import addSuggestion
+        from util import add_suggestion
         data = {
             'context': context, 'langpair': langpair,
             'word': word, 'newWord': new_word,
         }
-        result = addSuggestion(self.wiki_session,
-                               self.SUGGEST_URL, self.wiki_edit_token,
-                               data)
+        result = add_suggestion(self.wiki_session,
+                                self.SUGGEST_URL, self.wiki_edit_token,
+                                data)
 
         if result:
             self.send_response({
@@ -1236,12 +1236,12 @@ class SuggestionHandler(BaseHandler):
             })
         else:
             logging.info('Page update failed, trying to get new edit token')
-            self.wiki_edit_token = wikiGetToken(
+            self.wiki_edit_token = wiki_get_token(
                 SuggestionHandler.wiki_session, 'edit', 'info|revisions')
             logging.info('Obtained new edit token. Trying page update again.')
-            result = addSuggestion(self.wiki_session,
-                                   self.SUGGEST_URL, self.wiki_edit_token,
-                                   data)
+            result = add_suggestion(self.wiki_session,
+                                    self.SUGGEST_URL, self.wiki_edit_token,
+                                    data)
             if result:
                 self.send_response({
                     'responseData': {
@@ -1503,7 +1503,7 @@ if __name__ == '__main__':
     application = tornado.web.Application(handlers)
 
     if args.bypass_token:
-        logging.info('reCaptcha bypass for testing: %s' % bypassToken)
+        logging.info('reCaptcha bypass for testing: %s' % BYPASS_TOKEN)
 
     if all([args.wiki_username, args.wiki_password]):
         logging.info('Logging into Apertium Wiki with username %s' % args.wiki_username)
@@ -1514,15 +1514,15 @@ if __name__ == '__main__':
             logging.error('requests module is required for SuggestionHandler')
 
         if requests:
-            from wiki_util import wikiLogin, wikiGetToken
+            from wiki_util import wiki_login, wiki_get_token
             SuggestionHandler.SUGGEST_URL = 'User:' + args.wiki_username
             SuggestionHandler.recaptcha_secret = args.recaptcha_secret
             SuggestionHandler.wiki_session = requests.Session()
-            SuggestionHandler.auth_token = wikiLogin(
+            SuggestionHandler.auth_token = wiki_login(
                 SuggestionHandler.wiki_session,
                 args.wiki_username,
                 args.wiki_password)
-            SuggestionHandler.wiki_edit_token = wikiGetToken(
+            SuggestionHandler.wiki_edit_token = wiki_get_token(
                 SuggestionHandler.wiki_session, 'edit', 'info|revisions')
 
     global http_server
