@@ -3,9 +3,11 @@
 import re
 import os
 import logging
-from typing import Dict, List, Tuple  # noqa: F401
 
 from util import to_alpha3_code
+
+if False:
+    from typing import Dict, List, Tuple  # noqa: F401
 
 
 def is_loop(dirpath, rootpath, real_root=None):

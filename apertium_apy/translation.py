@@ -9,11 +9,13 @@ from select import PIPE_BUF
 from subprocess import Popen, PIPE
 from time import time
 
-from tornado import gen
-from typing import List  # noqa: F401
 import tornado.iostream
 import tornado.locks as locks
 import tornado.process
+from tornado import gen
+
+if False:
+    from typing import List  # noqa: F401
 
 
 class Pipeline(object):

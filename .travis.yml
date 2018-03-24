@@ -17,8 +17,8 @@ before_script:
     - ( cd /tmp/languages/apertium-nno && ./autogen.sh && make -j2 )
 script:
     - flake8 **/*.py
-    - if [[ $TRAVIS_PYTHON_VERSION != 3.4 ]];
-        mypy --config-file mypy.ini **/*.py
+    - if [[ $TRAVIS_PYTHON_VERSION != 3.4 ]]; then
+        mypy --config-file mypy.ini **/*.py;
       fi
     - NONPAIRS=/tmp/languages coverage run --source apertium_apy -m unittest tests/test*.py
     - coverage report --fail-under 20

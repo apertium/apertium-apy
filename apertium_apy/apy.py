@@ -2,6 +2,13 @@
 # coding=utf-8
 # -*- indent-tabs-mode: nil -*-
 
+__author__ = 'Kevin Brubeck Unhammer, Sushain K. Cherivirala'
+__copyright__ = 'Copyright 2013--2018, Kevin Brubeck Unhammer, Sushain K. Cherivirala'
+__credits__ = ['Kevin Brubeck Unhammer', 'Sushain K. Cherivirala', 'Jonathan North Washington', 'Xavi Ivars', 'Shardul Chiplunkar']
+__license__ = 'GPLv3'
+__status__ = 'Beta'
+__version__ = '0.10.0'
+
 import argparse
 import configparser
 import heapq
@@ -24,7 +31,6 @@ from multiprocessing import Pool
 from multiprocessing import TimeoutError  # type: ignore
 from subprocess import Popen, PIPE
 from threading import Thread
-from typing import Dict, List, Optional, Tuple  # noqa: F401
 from urllib.parse import urlparse, urlunsplit
 
 import tornado
@@ -69,12 +75,8 @@ import missingdb
 import systemd
 import translation
 
-__author__ = 'Kevin Brubeck Unhammer, Sushain K. Cherivirala'
-__copyright__ = 'Copyright 2013--2018, Kevin Brubeck Unhammer, Sushain K. Cherivirala'
-__credits__ = ['Kevin Brubeck Unhammer', 'Sushain K. Cherivirala', 'Jonathan North Washington', 'Xavi Ivars', 'Shardul Chiplunkar']
-__license__ = 'GPLv3'
-__status__ = 'Beta'
-__version__ = '0.10.0'
+if False:
+    from typing import Dict, List, Optional, Tuple  # noqa: F401
 
 RECAPTCHA_VERIFICATION_URL = 'https://www.google.com/recaptcha/api/siteverify'
 BYPASS_TOKEN = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(24))
