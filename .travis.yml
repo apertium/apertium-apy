@@ -12,7 +12,7 @@ python:
     - "nightly"
 
 install:
-    - travis_retry pip install requirements.txt
+    - travis_retry pip install -r requirements.txt
 
 before_script:
     - wget http://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
