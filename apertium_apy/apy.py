@@ -1386,9 +1386,7 @@ def apply_config(args, parser, apy_section):
                 setattr(args, name, res)
 
 
-def main():
-    check_utf8()
-
+def parse_args(cli_args=sys.argv[1:]):
     parser = argparse.ArgumentParser(description='Apertium APY -- API server for machine translation and language analysis')
     parser.add_argument('pairs_path', help='path to Apertium installed pairs (all modes files in this path are included)')
     parser.add_argument('-s', '--nonpairs-path', help='path to Apertium tree (only non-translator debug modes are included from this path)')
@@ -1434,10 +1432,8 @@ def main():
     parser.add_argument('-md', '--max-doc-pipes',
                         help='how many concurrent document translation pipelines we allow (default = 3)', type=int, default=3)
     parser.add_argument('-C', '--config', help='Configuration file to load options from', default=None)
-    args = parser.parse_args()
 
-    logging.getLogger().setLevel(logging.INFO)
-    enable_pretty_logging()
+    args = parser.parse_args(cli_args)
 
     if args.config:
         conf = configparser.ConfigParser()
@@ -1456,41 +1452,10 @@ def main():
             apy_section = conf['APY']
             apply_config(args, parser, apy_section)
 
-    if args.daemon:
-        # regular content logs are output stderr
-        # python messages are mostly output to stdout
-        # hence swapping the filenames?
-        sys.stderr = open(os.path.join(args.log_path, 'apertium-apy.log'), 'a+')
-        sys.stdout = open(os.path.join(args.log_path, 'apertium-apy.err'), 'a+')
+    return args
 
-    if args.scalemt_logs:
-        logger = logging.getLogger('scale-mt')
-        logger.propagate = False
-        smtlog = os.path.join(args.log_path, 'ScaleMTRequests.log')
-        logging_handler = logging_handlers.TimedRotatingFileHandler(smtlog, 'midnight', 0)
-        # internal attribute, should not use
-        logging_handler.suffix = '%Y-%m-%d'  # type: ignore
-        logger.addHandler(logging_handler)
 
-        # if scalemt_logs is enabled, disable tornado.access logs
-        if(args.daemon):
-            logging.getLogger('tornado.access').propagate = False
-
-    if args.stat_period_max_age:
-        BaseHandler.STAT_PERIOD_MAX_AGE = timedelta(0, args.stat_period_max_age, 0)
-
-    if not cld2:
-        logging.warning('Unable to import CLD2, continuing using naive method of language detection')
-
-    if not chardet:
-        logging.warning('Unable to import chardet, assuming utf-8 encoding for all websites')
-
-    if not streamparser:
-        logging.warning('Apertium streamparser not installed, spelling handler disabled')
-
-    if not requests:
-        logging.warning('requests not installed, suggestions disabled')
-
+def setup_application(args):
     setup_handler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
                   args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs,
                   args.restart_pipe_after, args.max_doc_pipes, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
@@ -1518,9 +1483,6 @@ def main():
     if streamparser:
         handlers.append((r'/speller', SpellerHandler))
 
-    if args.bypass_token:
-        logging.info('reCaptcha bypass for testing: %s' % BYPASS_TOKEN)
-
     if all([args.wiki_username, args.wiki_password]) and requests:
         logging.info('Logging into Apertium Wiki with username %s' % args.wiki_username)
 
@@ -1536,7 +1498,54 @@ def main():
 
         handlers.append((r'/suggest', SuggestionHandler))
 
-    application = tornado.web.Application(handlers)
+    return tornado.web.Application(handlers)
+
+
+def main():
+    check_utf8()
+    logging.getLogger().setLevel(logging.INFO)
+    args = parse_args()
+    enable_pretty_logging()
+
+    if args.daemon:
+        # regular content logs are output stderr
+        # python messages are mostly output to stdout
+        # hence swapping the filenames?
+        sys.stderr = open(os.path.join(args.log_path, 'apertium-apy.log'), 'a+')
+        sys.stdout = open(os.path.join(args.log_path, 'apertium-apy.err'), 'a+')
+
+    if args.scalemt_logs:
+        logger = logging.getLogger('scale-mt')
+        logger.propagate = False
+        smtlog = os.path.join(args.log_path, 'ScaleMTRequests.log')
+        logging_handler = logging_handlers.TimedRotatingFileHandler(smtlog, 'midnight', 0)
+        # internal attribute, should not use
+        logging_handler.suffix = '%Y-%m-%d'  # type: ignore
+        logger.addHandler(logging_handler)
+
+        # if scalemt_logs is enabled, disable tornado.access logs
+        if args.daemon:
+            logging.getLogger('tornado.access').propagate = False
+
+    if args.stat_period_max_age:
+        BaseHandler.STAT_PERIOD_MAX_AGE = timedelta(0, args.stat_period_max_age, 0)
+
+    if not cld2:
+        logging.warning('Unable to import CLD2, continuing using naive method of language detection')
+
+    if not chardet:
+        logging.warning('Unable to import chardet, assuming utf-8 encoding for all websites')
+
+    if not streamparser:
+        logging.warning('Apertium streamparser not installed, spelling handler disabled')
+
+    if not requests:
+        logging.warning('requests not installed, suggestions disabled')
+
+    if args.bypass_token:
+        logging.info('reCaptcha bypass for testing: %s' % BYPASS_TOKEN)
+
+    application = setup_application(args)
 
     if args.ssl_cert and args.ssl_key:
         http_server = tornado.httpserver.HTTPServer(application, ssl_options={
