@@ -12,10 +12,7 @@ import re
 from tornado import gen
 import tornado.process
 import tornado.iostream
-try:  # >=4.2
-    import tornado.locks as locks
-except ImportError:
-    import toro as locks  # type: ignore
+import tornado.locks as locks
 from typing import List  # noqa: F401
 
 

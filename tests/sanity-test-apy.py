@@ -1,13 +1,13 @@
-#!/usr/bin/python3
-
-import urllib.parse
-import urllib.request
-import urllib.error
-import socket
-import json
-import sys
+#!/usr/bin/env python3
 
 import html.parser
+import json
+import socket
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+
 unescape = html.parser.HTMLParser().unescape  # type: ignore
 
 TIMEOUT = 15
