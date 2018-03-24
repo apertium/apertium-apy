@@ -143,7 +143,7 @@ def parse_mode_file(mode_path):
                 cmd = cmd.replace('$2', '').replace('$1', '-g')
                 if(cmd_needs_z(cmd)):
                     cmd = re.sub(r'^\s*(\S*)', r'\g<1> -z', cmd)
-                commands.append([c.strip('"')
+                commands.append([c.strip("'")
                                  for c in cmd.split()])
         return ParsedModes(do_flush, commands)
     else:
