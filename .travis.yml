@@ -20,10 +20,10 @@ before_script:
     - sudo apt-get -f --allow-unauthenticated install apertium-sme-nob apertium-es-en
     - svn co https://svn.code.sf.net/p/apertium/svn/languages/apertium-nno /tmp/languages/apertium-nno
     - ( cd /tmp/languages/apertium-nno && ./autogen.sh && make -j2 )
-    - flake8 **/*.py
-    - mypy --config-file mypy.ini **/*.py
 
 script:
+    - flake8 **/*.py
+    - mypy --config-file mypy.ini **/*.py
     - NONPAIRS=/tmp/languages tests/run-tests
 
 

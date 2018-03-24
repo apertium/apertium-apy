@@ -1341,7 +1341,7 @@ def apply_config(args, apySection):
         if name in apySection:
             # Get default from private variables of argparse
             default = None
-            for action in parser._actions:
+            for action in parser._actions:  # type: ignore
                 if action.dest == name:
                     default = action.default
 
@@ -1355,16 +1355,16 @@ def apply_config(args, apySection):
                     else:
                         res = apySection[name]
                 elif fn is bool:
-                    if apySection[name] == "False":
+                    if apySection[name] == 'False':
                         res = False
-                    elif apySection[name] == "True":
+                    elif apySection[name] == 'True':
                         res = True
                     else:
                         res = bool(apySection[name])
                 else:
                     res = fn(apySection[name])
             except ValueError:
-                print("Warning: Unable to cast " + apySection[name] + " to expected type")
+                print("Warning: Unable to cast {} to expected type".format(apySection[name]))
 
             # only override is value (argument) is default
             if res is not None and value == default:
