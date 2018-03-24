@@ -1347,7 +1347,7 @@ def check_utf8():
     locale_vars = ['LANG', 'LC_ALL']
     u8 = re.compile('UTF-?8', re.IGNORECASE)
     if not any(re.search(u8, os.environ.get(key, '')) for key in locale_vars):
-        logging.fatal('servlet.py: error: APY needs a UTF-8 locale, please set LANG or LC_ALL')
+        logging.fatal('apy.py: APy needs a UTF-8 locale, please set LANG or LC_ALL')
         sys.exit(1)
 
 
@@ -1456,6 +1456,29 @@ def parse_args(cli_args=sys.argv[1:]):
 
 
 def setup_application(args):
+    if args.daemon:
+        # regular content logs are output stderr
+        # python messages are mostly output to stdout
+        # hence swapping the filenames?
+        sys.stderr = open(os.path.join(args.log_path, 'apertium-apy.log'), 'a+')
+        sys.stdout = open(os.path.join(args.log_path, 'apertium-apy.err'), 'a+')
+
+    if args.scalemt_logs:
+        logger = logging.getLogger('scale-mt')
+        logger.propagate = False
+        smtlog = os.path.join(args.log_path, 'ScaleMTRequests.log')
+        logging_handler = logging_handlers.TimedRotatingFileHandler(smtlog, 'midnight', 0)
+        # internal attribute, should not use
+        logging_handler.suffix = '%Y-%m-%d'  # type: ignore
+        logger.addHandler(logging_handler)
+
+        # if scalemt_logs is enabled, disable tornado.access logs
+        if args.daemon:
+            logging.getLogger('tornado.access').propagate = False
+
+    if args.stat_period_max_age:
+        BaseHandler.STAT_PERIOD_MAX_AGE = timedelta(0, args.stat_period_max_age, 0)
+
     setup_handler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
                   args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs,
                   args.restart_pipe_after, args.max_doc_pipes, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
@@ -1506,29 +1529,6 @@ def main():
     logging.getLogger().setLevel(logging.INFO)
     args = parse_args()
     enable_pretty_logging()
-
-    if args.daemon:
-        # regular content logs are output stderr
-        # python messages are mostly output to stdout
-        # hence swapping the filenames?
-        sys.stderr = open(os.path.join(args.log_path, 'apertium-apy.log'), 'a+')
-        sys.stdout = open(os.path.join(args.log_path, 'apertium-apy.err'), 'a+')
-
-    if args.scalemt_logs:
-        logger = logging.getLogger('scale-mt')
-        logger.propagate = False
-        smtlog = os.path.join(args.log_path, 'ScaleMTRequests.log')
-        logging_handler = logging_handlers.TimedRotatingFileHandler(smtlog, 'midnight', 0)
-        # internal attribute, should not use
-        logging_handler.suffix = '%Y-%m-%d'  # type: ignore
-        logger.addHandler(logging_handler)
-
-        # if scalemt_logs is enabled, disable tornado.access logs
-        if args.daemon:
-            logging.getLogger('tornado.access').propagate = False
-
-    if args.stat_period_max_age:
-        BaseHandler.STAT_PERIOD_MAX_AGE = timedelta(0, args.stat_period_max_age, 0)
 
     if not cld2:
         logging.warning('Unable to import CLD2, continuing using naive method of language detection')

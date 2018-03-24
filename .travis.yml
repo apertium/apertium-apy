@@ -25,7 +25,8 @@ script:
     - flake8 **/*.py
     - mypy --config-file mypy.ini **/*.py
     - NONPAIRS=/tmp/languages tests/run-tests
-    # - coverage report --fail-under 10
+    - coverage run -m unittest tests/test*.py
+    - coverage report
 
 notifications:
     irc:
