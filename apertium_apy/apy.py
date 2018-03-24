@@ -27,7 +27,6 @@ from threading import Thread
 from typing import Dict, List, Optional, Tuple  # noqa: F401
 from urllib.parse import urlparse, urlunsplit
 
-from streamparser import parse, known
 import tornado
 import tornado.httpserver
 import tornado.httputil
@@ -43,13 +42,18 @@ from tornado.log import enable_pretty_logging
 
 try:
     import cld2full as cld2  # type: ignore
-except ImportError as _e:
+except ImportError:
     cld2 = None
 
 try:
     import chardet
-except ImportError as _e:
+except ImportError:
     chardet = None
+
+try:
+    import streamparser
+except ImportError:
+    streamparser = None
 
 from keys import get_key
 from mode_search import search_path
@@ -926,10 +930,10 @@ class SpellerHandler(BaseHandler):
             commands = [['apertium', '-d', path, '-f', formatting, self.get_argument('lang') + '-tokenise']]
             result = yield translation.translate_simple(in_text, commands)
 
-            tokens = parse(result)
+            tokens = streamparser.parse(result)
             units = []
             for token in tokens:
-                if token.knownness == known:
+                if token.knownness == streamparser.known:
                     units.append({'token': token.wordform, 'known': True, 'sugg': []})
                 else:
                     suggestion = []
@@ -1461,14 +1465,18 @@ if __name__ == '__main__':
 
     if not cld2:
         logging.warning("Unable to import CLD2, continuing using naive method of language detection")
+
     if not chardet:
         logging.warning("Unable to import chardet, assuming utf-8 encoding for all websites")
+
+    if not streamparser:
+        logging.warning("Apertium streamparser not installed, spelling handler disabled")
 
     setup_handler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
                   args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs,
                   args.restart_pipe_after, args.max_doc_pipes, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
 
-    application = tornado.web.Application([
+    handlers = [
         (r'/', RootHandler),
         (r'/list', ListHandler),
         (r'/listPairs', ListHandler),
@@ -1487,8 +1495,12 @@ if __name__ == '__main__':
         (r'/getLocale', GetLocaleHandler),
         (r'/pipedebug', PipeDebugHandler),
         (r'/suggest', SuggestionHandler),
-        (r'/speller', SpellerHandler),
-    ])
+    ]
+
+    if streamparser:
+        handlers.append((r'/speller', SpellerHandler))
+
+    application = tornado.web.Application(handlers)
 
     if args.bypass_token:
         logging.info('reCaptcha bypass for testing: %s' % bypassToken)
