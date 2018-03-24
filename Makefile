@@ -4,4 +4,7 @@ langNames.db: language_names/scraped.sql language_names/scraped-sil.sql language
 	cat $^ | sqlite3 $@
 
 clean:
-	rm -f langNames.db
+	rm -rf langNames.db dist/ build/
+
+release: langNames.db
+	python3 setup.py sdist bdist_wheel

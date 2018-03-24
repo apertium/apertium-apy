@@ -4,7 +4,7 @@ import re
 import os
 import logging
 
-from util import to_alpha3_code
+from .util import to_alpha3_code
 
 if False:
     from typing import Dict, List, Tuple  # noqa: F401
