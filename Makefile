@@ -8,3 +8,6 @@ clean:
 
 release: langNames.db
 	python3 setup.py sdist bdist_wheel
+
+publish: release
+	python3 setup.py upload --repository https://test.pypi.org/legacy/ --sign
