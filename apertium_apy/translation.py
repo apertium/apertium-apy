@@ -141,7 +141,7 @@ def parse_mode_file(mode_path):
                 # modes.xml instead; this is brittle (what if a path
                 # has | or ' in it?)
                 cmd = cmd.replace('$2', '').replace('$1', '-g')
-                if(cmd_needs_z(cmd)):
+                if cmd_needs_z(cmd):
                     cmd = re.sub(r'^\s*(\S*)', r'\g<1> -z', cmd)
                 commands.append([c.strip("'")
                                  for c in cmd.split()])
@@ -187,7 +187,7 @@ def prefer_punct_break(string, last, hardbreak):
     than the hardbreak, return end of the string
     """
 
-    if(len(string[last:]) <= hardbreak):
+    if len(string[last:]) <= hardbreak:
         return last + hardbreak + 1
 
     softbreak = int(hardbreak / 2) + 1
