@@ -51,10 +51,10 @@ try:
 except ImportError as _e:
     chardet = None
 
-from keys import getKey
-from modeSearch import searchPath
-from util import (getLocalizedLanguages, stripTags, processPerWord, getCoverage, getCoverages, toAlpha3Code,
-                  toAlpha2Code, scaleMtLog, TranslationInfo, removeDotFromDeformat)
+from keys import get_key
+from mode_search import search_path
+from util import (get_localized_languages, strip_tags, process_per_word, get_coverage, get_coverages, to_alpha3_code,
+                  to_alpha2_code, scale_mt_log, TranslationInfo, remove_dot_from_deformat)
 import missingdb
 import systemd
 import translation  # type: ignore
@@ -75,20 +75,20 @@ def run_async_thread(func):
     return async_func
 
 
-missingFreqsDb = None       # has to be global for sig_handler :-/
+missing_freqs_db = None       # has to be global for sig_handler :-/
 
 
 def sig_handler(sig, frame):
-    global missingFreqsDb
-    if missingFreqsDb is not None:
+    global missing_freqs_db
+    if missing_freqs_db is not None:
         if 'children' in frame.f_locals:
             for child in frame.f_locals['children']:
                 os.kill(child, signal.SIGTERM)
-            missingFreqsDb.commit()
+            missing_freqs_db.commit()
         else:
             # we are one of the children
-            missingFreqsDb.commit()
-        missingFreqsDb.closeDb()
+            missing_freqs_db.commit()
+        missing_freqs_db.close_db()
     logging.warning('Caught signal: %s', sig)
     exit()
 
@@ -104,7 +104,7 @@ class BaseHandler(tornado.web.RequestHandler):
     pipelines_holding = []  # type: List
     callback = None
     timeout = None
-    scaleMtLogs = False
+    scale_mt_logs = False
     verbosity = 0
 
     # dict representing a graph of translation pairs; keys are source languages
@@ -119,7 +119,7 @@ class BaseHandler(tornado.web.RequestHandler):
         'startdate': datetime.now(),
         'useCount': {},
         'vmsize': 0,
-        'timing': []
+        'timing': [],
     }
 
     # (l1, l2): translation.ParsedModes
@@ -141,7 +141,7 @@ class BaseHandler(tornado.web.RequestHandler):
         self.callback = self.get_argument('callback', default=None)
 
     @classmethod
-    def initPairsGraph(cls):
+    def init_pairs_graph(cls):
         for pair in cls.pairs:
             lang1, lang2 = pair.split('-')
             if lang1 in cls.pairs_graph:
@@ -150,7 +150,7 @@ class BaseHandler(tornado.web.RequestHandler):
                 cls.pairs_graph[lang1] = [lang2]
 
     @classmethod
-    def calculatePaths(cls, start):
+    def calculate_paths(cls, start):
         nodes = set()
         for pair in map(lambda x: x.split('-'), cls.pairs):
             nodes.add(pair[0])
@@ -179,9 +179,9 @@ class BaseHandler(tornado.web.RequestHandler):
             cls.paths[start][u] = list(reversed(path))
 
     @classmethod
-    def initPaths(cls):
+    def init_paths(cls):
         for lang in cls.pairs_graph:
-            cls.calculatePaths(lang)
+            cls.calculate_paths(lang)
 
     def log_vmsize(self):
         if self.verbosity < 1:
@@ -201,7 +201,7 @@ class BaseHandler(tornado.web.RequestHandler):
             # Don't fail just because we couldn't log:
             logging.info('Exception in log_vmsize: %s' % e)
 
-    def sendResponse(self, data):
+    def send_response(self, data):
         self.log_vmsize()
         if isinstance(data, dict) or isinstance(data, list):
             data = escape.json_encode(data)
@@ -219,7 +219,7 @@ class BaseHandler(tornado.web.RequestHandler):
             400: 'Request not properly formatted or contains languages that Apertium APy does not support',
             404: 'Resource requested does not exist. URL may have been mistyped',
             408: 'Server did not receive a complete request within the time it was prepared to wait. Try again',
-            500: 'Unexpected condition on server. Request could not be fulfilled.'
+            500: 'Unexpected condition on server. Request could not be fulfilled.',
         }
         explanation = kwargs.get('explanation', http_explanations.get(status_code, ''))
         if 'exc_info' in kwargs and len(kwargs['exc_info']) > 1:
@@ -235,7 +235,7 @@ class BaseHandler(tornado.web.RequestHandler):
             'status': 'error',
             'code': status_code,
             'message': tornado.httputil.responses.get(status_code, 'Unknown'),
-            'explanation': explanation
+            'explanation': explanation,
         }
 
         data = escape.json_encode(result)
@@ -269,7 +269,7 @@ class ListHandler(BaseHandler):
 
         if query == 'pairs':
             src = self.get_argument('src', default=None)
-            responseData = []
+            response_data = []
             if src:
                 pairs_list = self.paths[src]
 
@@ -282,18 +282,18 @@ class ListHandler(BaseHandler):
                     return (foo.split('-')[0], foo.split('-')[1])
             for pair in pairs_list:
                 l1, l2 = langs(pair)
-                responseData.append({'sourceLanguage': l1, 'targetLanguage': l2})
+                response_data.append({'sourceLanguage': l1, 'targetLanguage': l2})
                 if self.get_arguments('include_deprecated_codes'):
-                    responseData.append({'sourceLanguage': toAlpha2Code(l1), 'targetLanguage': toAlpha2Code(l2)})
-            self.sendResponse({'responseData': responseData, 'responseDetails': None, 'responseStatus': 200})
+                    response_data.append({'sourceLanguage': to_alpha2_code(l1), 'targetLanguage': to_alpha2_code(l2)})
+            self.send_response({'responseData': response_data, 'responseDetails': None, 'responseStatus': 200})
         elif query == 'analyzers' or query == 'analysers':
-            self.sendResponse({pair: modename for (pair, (path, modename)) in self.analyzers.items()})
+            self.send_response({pair: modename for (pair, (path, modename)) in self.analyzers.items()})
         elif query == 'generators':
-            self.sendResponse({pair: modename for (pair, (path, modename)) in self.generators.items()})
+            self.send_response({pair: modename for (pair, (path, modename)) in self.generators.items()})
         elif query == 'taggers' or query == 'disambiguators':
-            self.sendResponse({pair: modename for (pair, (path, modename)) in self.taggers.items()})
+            self.send_response({pair: modename for (pair, (path, modename)) in self.taggers.items()})
         elif query == 'spellers':
-            self.sendResponse({lang_src: modename for (lang_src, (path, modename)) in self.spellers.items()})
+            self.send_response({lang_src: modename for (lang_src, (path, modename)) in self.spellers.items()})
         else:
             self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, spellers, disambiguators, or pairs')
 
@@ -301,47 +301,47 @@ class ListHandler(BaseHandler):
 class StatsHandler(BaseHandler):
     @tornado.web.asynchronous
     def get(self):
-        numRequests = self.get_argument('requests', 1000)
+        num_requests = self.get_argument('requests', 1000)
         try:
-            numRequests = int(numRequests)
+            num_requests = int(num_requests)
         except ValueError:
-            numRequests = 1000
+            num_requests = 1000
 
-        periodStats = self.stats['timing'][-numRequests:]
-        times = sum([x[1] - x[0] for x in periodStats],
+        period_stats = self.stats['timing'][-num_requests:]
+        times = sum([x[1] - x[0] for x in period_stats],
                     timedelta())
-        chars = sum(x[2] for x in periodStats)
+        chars = sum(x[2] for x in period_stats)
         if times.total_seconds() != 0:
-            charsPerSec = round(chars / times.total_seconds(), 2)
+            chars_per_sec = round(chars / times.total_seconds(), 2)
         else:
-            charsPerSec = 0.0
-        nrequests = len(periodStats)
-        maxAge = (datetime.now() - periodStats[0][0]).total_seconds() if periodStats else 0
+            chars_per_sec = 0.0
+        nrequests = len(period_stats)
+        max_age = (datetime.now() - period_stats[0][0]).total_seconds() if period_stats else 0
 
         uptime = int((datetime.now() - self.stats['startdate']).total_seconds())
-        useCount = {'%s-%s' % pair: useCount
-                    for pair, useCount in self.stats['useCount'].items()}
-        runningPipes = {'%s-%s' % pair: len(pipes)
-                        for pair, pipes in self.pipelines.items()
-                        if pipes != []}
-        holdingPipes = len(self.pipelines_holding)
+        use_count = {'%s-%s' % pair: use_count
+                     for pair, use_count in self.stats['useCount'].items()}
+        running_pipes = {'%s-%s' % pair: len(pipes)
+                         for pair, pipes in self.pipelines.items()
+                         if pipes != []}
+        holding_pipes = len(self.pipelines_holding)
 
-        self.sendResponse({
+        self.send_response({
             'responseData': {
                 'uptime': uptime,
-                'useCount': useCount,
-                'runningPipes': runningPipes,
-                'holdingPipes': holdingPipes,
+                'useCount': use_count,
+                'runningPipes': running_pipes,
+                'holdingPipes': holding_pipes,
                 'periodStats': {
-                    'charsPerSec': charsPerSec,
+                    'charsPerSec': chars_per_sec,
                     'totChars': chars,
                     'totTimeSpent': times.total_seconds(),
                     'requests': nrequests,
-                    'ageFirstRequest': maxAge
-                }
+                    'ageFirstRequest': max_age,
+                },
             },
             'responseDetails': None,
-            'responseStatus': 200
+            'responseStatus': 200,
         })
 
 
@@ -352,23 +352,23 @@ class RootHandler(BaseHandler):
 
 
 class TranslateHandler(BaseHandler):
-    def notePairUsage(self, pair):
+    def note_pair_usage(self, pair):
         self.stats['useCount'][pair] = 1 + self.stats['useCount'].get(pair, 0)
 
-    unknownMarkRE = re.compile(r'[*]([^.,;:\t\* ]+)')
+    unknown_mark_re = re.compile(r'[*]([^.,;:\t\* ]+)')
 
-    def maybeStripMarks(self, markUnknown, pair, translated):
-        self.noteUnknownTokens("%s-%s" % pair, translated)
-        if markUnknown:
+    def maybe_strip_marks(self, mark_unknown, pair, translated):
+        self.note_unknown_tokens("%s-%s" % pair, translated)
+        if mark_unknown:
             return translated
         else:
-            return re.sub(self.unknownMarkRE, r'\1', translated)
+            return re.sub(self.unknown_mark_re, r'\1', translated)
 
-    def noteUnknownTokens(self, pair, text):
-        global missingFreqsDb
-        if missingFreqsDb is not None:
-            for token in re.findall(self.unknownMarkRE, text):
-                missingFreqsDb.noteUnknown(token, pair)
+    def note_unknown_tokens(self, pair, text):
+        global missing_freqs_db
+        if missing_freqs_db is not None:
+            for token in re.findall(self.unknown_mark_re, text):
+                missing_freqs_db.note_unknown(token, pair)
 
     def cleanable(self, i, pair, pipe):
         if pipe.useCount > self.restart_pipe_after:
@@ -385,7 +385,7 @@ class TranslateHandler(BaseHandler):
         else:
             return False
 
-    def cleanPairs(self):
+    def clean_pairs(self):
         for pair in self.pipelines:
             pipes = self.pipelines[pair]
             to_clean = set(p for i, p in enumerate(pipes)
@@ -401,13 +401,13 @@ class TranslateHandler(BaseHandler):
         if self.pipelines_holding:
             logging.info("%d pipelines still scheduled for shutdown", len(self.pipelines_holding))
 
-    def getPipeCmds(self, l1, l2):
+    def get_pipe_cmds(self, l1, l2):
         if (l1, l2) not in self.pipeline_cmds:
             mode_path = self.pairs['%s-%s' % (l1, l2)]
-            self.pipeline_cmds[(l1, l2)] = translation.parseModeFile(mode_path)
+            self.pipeline_cmds[(l1, l2)] = translation.parse_mode_file(mode_path)
         return self.pipeline_cmds[(l1, l2)]
 
-    def shouldStartPipe(self, l1, l2):
+    def should_start_pipe(self, l1, l2):
         pipes = self.pipelines.get((l1, l2), [])
         if pipes == []:
             logging.info("%s-%s not in pipelines of this process",
@@ -422,25 +422,25 @@ class TranslateHandler(BaseHandler):
             else:
                 return False
 
-    def getPipeline(self, pair):
+    def get_pipeline(self, pair):
         (l1, l2) = pair
-        if self.shouldStartPipe(l1, l2):
+        if self.should_start_pipe(l1, l2):
             logging.info("Starting up a new pipeline for %s-%s …", l1, l2)
             if pair not in self.pipelines:
                 self.pipelines[pair] = []
-            p = translation.makePipeline(self.getPipeCmds(l1, l2))
+            p = translation.make_pipeline(self.get_pipe_cmds(l1, l2))
             heapq.heappush(self.pipelines[pair], p)
         return self.pipelines[pair][0]
 
-    def logBeforeTranslation(self):
+    def log_before_translation(self):
         return datetime.now()
 
-    def logAfterTranslation(self, before, length):
+    def log_after_translation(self, before, length):
         after = datetime.now()
-        if self.scaleMtLogs:
-            tInfo = TranslationInfo(self)
-            key = getKey(tInfo.key)
-            scaleMtLog(self.get_status(), after - before, tInfo, key, length)
+        if self.scale_mt_logs:
+            t_info = TranslationInfo(self)
+            key = get_key(t_info.key)
+            scale_mt_log(self.get_status(), after - before, t_info, key, length)
 
         if self.get_status() == 200:
             oldest = self.stats['timing'][0][0] if self.stats['timing'] else datetime.now()
@@ -449,21 +449,21 @@ class TranslateHandler(BaseHandler):
             self.stats['timing'].append(
                 (before, after, length))
 
-    def getPairOrError(self, langpair, text_length):
+    def get_pair_or_error(self, langpair, text_length):
         try:
-            l1, l2 = map(toAlpha3Code, langpair.split('|'))
+            l1, l2 = map(to_alpha3_code, langpair.split('|'))
         except ValueError:
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
-            self.logAfterTranslation(self.logBeforeTranslation(), text_length)
+            self.log_after_translation(self.log_before_translation(), text_length)
             return None
         if '%s-%s' % (l1, l2) not in self.pairs:
             self.send_error(400, explanation='That pair is not installed')
-            self.logAfterTranslation(self.logBeforeTranslation(), text_length)
+            self.log_after_translation(self.log_before_translation(), text_length)
             return None
         else:
             return (l1, l2)
 
-    def getFormat(self):
+    def get_format(self):
         dereformat = self.get_argument('format', default=None)
         deformat = ''
         reformat = ''
@@ -481,109 +481,110 @@ class TranslateHandler(BaseHandler):
         return deformat, reformat
 
     @gen.coroutine
-    def translateAndRespond(self, pair, pipeline, toTranslate, markUnknown, nosplit=False, deformat=True, reformat=True):
-        markUnknown = markUnknown in ['yes', 'true', '1']
-        self.notePairUsage(pair)
-        before = self.logBeforeTranslation()
-        translated = yield pipeline.translate(toTranslate, nosplit, deformat, reformat)
-        self.logAfterTranslation(before, len(toTranslate))
-        self.sendResponse({
+    def translate_and_respond(self, pair, pipeline, to_translate, mark_unknown, nosplit=False, deformat=True, reformat=True):
+        mark_unknown = mark_unknown in ['yes', 'true', '1']
+        self.note_pair_usage(pair)
+        before = self.log_before_translation()
+        translated = yield pipeline.translate(to_translate, nosplit, deformat, reformat)
+        self.log_after_translation(before, len(to_translate))
+        self.send_response({
             'responseData': {
-                'translatedText': self.maybeStripMarks(markUnknown, pair, translated)
+                'translatedText': self.maybe_strip_marks(mark_unknown, pair, translated),
             },
             'responseDetails': None,
-            'responseStatus': 200
+            'responseStatus': 200,
         })
-        self.cleanPairs()
+        self.clean_pairs()
 
     @gen.coroutine
     def get(self):
-        pair = self.getPairOrError(self.get_argument('langpair'),
-                                   len(self.get_argument('q')))
+        pair = self.get_pair_or_error(self.get_argument('langpair'),
+                                      len(self.get_argument('q')))
         if pair is not None:
-            pipeline = self.getPipeline(pair)
-            deformat, reformat = self.getFormat()
-            yield self.translateAndRespond(pair,
-                                           pipeline,
-                                           self.get_argument('q'),
-                                           self.get_argument('markUnknown', default='yes'),
-                                           nosplit=False,
-                                           deformat=deformat, reformat=reformat)
+            pipeline = self.get_pipeline(pair)
+            deformat, reformat = self.get_format()
+            yield self.translate_and_respond(pair,
+                                             pipeline,
+                                             self.get_argument('q'),
+                                             self.get_argument('markUnknown', default='yes'),
+                                             nosplit=False,
+                                             deformat=deformat,
+                                             reformat=reformat)
 
 
 class TranslateChainHandler(TranslateHandler):
-    def pairList(self, langs):
-        return [(langs[i], langs[i+1]) for i in range(0, len(langs)-1)]
+    def pair_list(self, langs):
+        return [(langs[i], langs[i + 1]) for i in range(0, len(langs) - 1)]
 
-    def getPairsOrError(self, langpairs, text_length):
-        langs = [toAlpha3Code(lang) for lang in langpairs.split('|')]
+    def get_pairs_or_error(self, langpairs, text_length):
+        langs = [to_alpha3_code(lang) for lang in langpairs.split('|')]
         if len(langs) < 2:
             self.send_error(400, explanation='Need at least two languages, use e.g. eng|spa')
-            self.logAfterTranslation(self.logBeforeTranslation(), text_length)
+            self.log_after_translation(self.log_before_translation(), text_length)
             return None
         if len(langs) == 2:
             if langs[0] == langs[1]:
                 self.send_error(400, explanation='Need at least two languages, use e.g. eng|spa')
-                self.logAfterTranslation(self.logBeforeTranslation(), text_length)
+                self.log_after_translation(self.log_before_translation(), text_length)
                 return None
             return self.paths.get(langs[0], {}).get(langs[1])
-        for lang1, lang2 in self.pairList(langs):
+        for lang1, lang2 in self.pair_list(langs):
             if '{:s}-{:s}'.format(lang1, lang2) not in self.pairs:
                 self.send_error(400, explanation='Pair {:s}-{:s} is not installed'.format(lang1, lang2))
-                self.logAfterTranslation(self.logBeforeTranslation(), text_length)
+                self.log_after_translation(self.log_before_translation(), text_length)
                 return None
         return langs
 
     @gen.coroutine
-    def translateAndRespond(self, pairs, pipelines, toTranslate, markUnknown, nosplit=False, deformat=True, reformat=True):
-        markUnknown = markUnknown in ['yes', 'true', '1']
-        chain, pairs = pairs, self.pairList(pairs)
+    def translate_and_respond(self, pairs, pipelines, to_translate, mark_unknown, nosplit=False, deformat=True, reformat=True):
+        mark_unknown = mark_unknown in ['yes', 'true', '1']
+        chain, pairs = pairs, self.pair_list(pairs)
         for pair in pairs:
-            self.notePairUsage(pair)
-        before = self.logBeforeTranslation()
-        translated = yield translation.coreduce(toTranslate, [p.translate for p in pipelines], nosplit, deformat, reformat)
-        self.logAfterTranslation(before, len(toTranslate))
-        self.sendResponse({
+            self.note_pair_usage(pair)
+        before = self.log_before_translation()
+        translated = yield translation.coreduce(to_translate, [p.translate for p in pipelines], nosplit, deformat, reformat)
+        self.log_after_translation(before, len(to_translate))
+        self.send_response({
             'responseData': {
-                'translatedText': self.maybeStripMarks(markUnknown, (pairs[0][0], pairs[-1][1]), translated),
-                'translationChain': chain
+                'translatedText': self.maybe_strip_marks(mark_unknown, (pairs[0][0], pairs[-1][1]), translated),
+                'translationChain': chain,
             },
             'responseDetails': None,
-            'responseStatus': 200
+            'responseStatus': 200,
         })
-        self.cleanPairs()
+        self.clean_pairs()
 
     def prepare(self):
         if not self.pairs_graph:
-            self.initPairsGraph()
+            self.init_pairs_graph()
 
     @gen.coroutine
     def get(self):
         q = self.get_argument('q', default=None)
         langpairs = self.get_argument('langpairs')
-        pairs = self.getPairsOrError(langpairs, len(q or []))
+        pairs = self.get_pairs_or_error(langpairs, len(q or []))
         if pairs:
             if not q:
-                self.sendResponse({
+                self.send_response({
                     'responseData': {
-                        'translationChain': self.getPairsOrError(self.get_argument('langpairs'), 0)
+                        'translationChain': self.get_pairs_or_error(self.get_argument('langpairs'), 0),
                     },
                     'responseDetails': None,
-                    'responseStatus': 200
+                    'responseStatus': 200,
                 })
             else:
-                pipelines = [self.getPipeline(pair) for pair in self.pairList(pairs)]
-                deformat, reformat = self.getFormat()
-                yield self.translateAndRespond(pairs, pipelines, q,
-                                               self.get_argument('markUnknown', default='yes'),
-                                               nosplit=False, deformat=deformat, reformat=reformat)
+                pipelines = [self.get_pipeline(pair) for pair in self.pair_list(pairs)]
+                deformat, reformat = self.get_format()
+                yield self.translate_and_respond(pairs, pipelines, q,
+                                                 self.get_argument('markUnknown', default='yes'),
+                                                 nosplit=False, deformat=deformat, reformat=reformat)
         else:
             self.send_error(400, explanation='No path found for {:s}-{:s}'.format(*langpairs.split('|')))
-            self.logAfterTranslation(self.logBeforeTranslation(), 0)
+            self.log_after_translation(self.log_before_translation(), 0)
 
 
 class TranslatePageHandler(TranslateHandler):
-    def urlRepl(self, base, attr, quote, aurl):
+    def url_repl(self, base, attr, quote, aurl):
         a = urlparse(aurl)
         if a.netloc == '':
             newurl = urlunsplit((base.scheme,
@@ -603,7 +604,7 @@ class TranslatePageHandler(TranslateHandler):
         # Unescape all other entities the regular way:
         return html.unescape(page)
 
-    def cleanHtml(self, page, urlbase):
+    def clean_html(self, page, urlbase):
         page = self.unescape(page)
         if urlbase.netloc in ['www.avvir.no', 'avvir.no']:
             page = re.sub(r'([a-zæøåášžđŋ])=([a-zæøåášžđŋ])',
@@ -612,17 +613,17 @@ class TranslatePageHandler(TranslateHandler):
         page = page.replace('\u00ad', '')  # soft hyphen
         return page
 
-    def htmlToText(self, page, url):
+    def html_to_text(self, page, url):
         encoding = "utf-8"
         if chardet:
             encoding = chardet.detect(page).get("encoding", "utf-8") or encoding
         base = urlparse(url)
-        text = self.cleanHtml(page.decode(encoding), base)  # type: str
+        text = self.clean_html(page.decode(encoding), base)  # type: str
         return re.sub(r' (href|src)=([\'"])(..*?)\2',
-                      lambda m: self.urlRepl(base, m.group(1), m.group(2), m.group(3)),
+                      lambda m: self.url_repl(base, m.group(1), m.group(2), m.group(3)),
                       text)
 
-    def setCached(self, pair, url, translated, origtext):
+    def set_cached(self, pair, url, translated, origtext):
         """Cache translated text for a pair and url to memory, and disk.
         Also caches origtext to disk; see cachePath."""
         if pair not in self.url_cache:
@@ -652,7 +653,7 @@ class TranslatePageHandler(TranslateHandler):
         with open(origpath, 'w') as f:
             f.write(origtext)
 
-    def cachePath(self, pair, url):
+    def cache_path(self, pair, url):
         """Give the directory for where to cache the translation of this url,
         and the file name to use for this pair."""
         hsh = sha1(url.encode('utf-8')).hexdigest()
@@ -661,7 +662,7 @@ class TranslatePageHandler(TranslateHandler):
                                hsh[:1], hsh[1:2], hsh[2:])
         return (dirname, "{}-{}".format(*pair))
 
-    def getCached(self, pair, url):
+    def get_cached(self, pair, url):
         if not self.url_cache_path:
             return None
         if pair not in self.url_cache:
@@ -669,14 +670,14 @@ class TranslatePageHandler(TranslateHandler):
         if url in self.url_cache[pair]:
             logging.info("Got cache from memory")
             return self.url_cache[pair][url]
-        dirname, basename = self.cachePath(pair, url)
+        dirname, basename = self.cache_path(pair, url)
         path = os.path.join(dirname, basename)
         if os.path.exists(path):
             logging.info("Got cache on disk, we want to retranslate in background …")
             with open(path, 'r') as f:
                 return (f.readline().strip(), f.read())
 
-    def retranslateCache(self, pair, url, cached):
+    def retranslate_cache(self, pair, url, cached):
         """If we've got something from the cache, and it isn't in memory, then
         it was from disk. We want to retranslate anything we found on
         disk, since it's probably using older versions of the language
@@ -690,7 +691,7 @@ class TranslatePageHandler(TranslateHandler):
             if os.path.exists(origpath):
                 return open(origpath, 'r').read()
 
-    def handleFetch(self, response):
+    def handle_fetch(self, response):
         if response.error is None:
             return
         elif response.code == 304:  # means we can use cache, so don't fail on this
@@ -700,19 +701,19 @@ class TranslatePageHandler(TranslateHandler):
 
     @gen.coroutine
     def get(self):
-        pair = self.getPairOrError(self.get_argument('langpair'),
-                                   # Don't yet know the size of the text, and don't want to fetch it unnecessarily:
-                                   -1)
+        pair = self.get_pair_or_error(self.get_argument('langpair'),
+                                      # Don't yet know the size of the text, and don't want to fetch it unnecessarily:
+                                      -1)
         if pair is None:
             return
-        self.notePairUsage(pair)
+        self.note_pair_usage(pair)
         mode_path = self.pairs['%s-%s' % pair]
-        markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
+        mark_unknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
         url = self.get_argument('url')
         if not url.startswith('http'):
             url = 'http://' + url
         got304 = False
-        cached = self.getCached(pair, url)
+        cached = self.get_cached(pair, url)
         request = httpclient.HTTPRequest(url=url,
                                          # TODO: tweak timeouts:
                                          connect_timeout=20.0,
@@ -725,7 +726,7 @@ class TranslatePageHandler(TranslateHandler):
             self.send_error(404, explanation="{} on fetching url: {}".format('Error 404', e))
             return
         try:
-            response = yield httpclient.AsyncHTTPClient().fetch(request, self.handleFetch)
+            response = yield httpclient.AsyncHTTPClient().fetch(request, self.handle_fetch)
         except httpclient.HTTPError as e:
             if e.code == 304:
                 got304 = True
@@ -734,74 +735,74 @@ class TranslatePageHandler(TranslateHandler):
                 logging.error(e)
                 return
         if got304 and cached is not None:
-            translation_CatPipeline = translation.CatPipeline  # type: ignore
-            translated = yield translation_CatPipeline().translate(cached[1])
+            translation_catpipeline = translation.CatPipeline  # type: ignore
+            translated = yield translation_catpipeline().translate(cached[1])
         else:
             if response.body is None:
                 self.send_error(503, explanation="got an empty file on fetching url: {}".format(url))
                 return
             page = response.body  # type: bytes
             try:
-                toTranslate = self.htmlToText(page, url)
+                to_translate = self.html_to_text(page, url)
             except UnicodeDecodeError as e:
                 logging.info("/translatePage '{}' gave UnicodeDecodeError {}".format(url, e))
                 self.send_error(503, explanation="Couldn't decode (or detect charset/encoding of) {}".format(url))
                 return
-            before = self.logBeforeTranslation()
-            translated = yield translation.translateHtmlMarkHeadings(toTranslate, mode_path)
-            self.logAfterTranslation(before, len(toTranslate))
-            self.setCached(pair, url, translated, toTranslate)
-        self.sendResponse({
+            before = self.log_before_translation()
+            translated = yield translation.translate_html_mark_headings(to_translate, mode_path)
+            self.log_after_translation(before, len(to_translate))
+            self.set_cached(pair, url, translated, to_translate)
+        self.send_response({
             'responseData': {
-                'translatedText': self.maybeStripMarks(markUnknown, pair, translated)
+                'translatedText': self.maybe_strip_marks(mark_unknown, pair, translated),
             },
             'responseDetails': None,
-            'responseStatus': 200
+            'responseStatus': 200,
         })
-        retranslate = self.retranslateCache(pair, url, cached)
+        retranslate = self.retranslate_cache(pair, url, cached)
         if got304 and retranslate is not None:
             logging.info("Retranslating {}".format(url))
-            translated = yield translation.translateHtmlMarkHeadings(retranslate, mode_path)
+            translated = yield translation.translate_html_mark_headings(retranslate, mode_path)
             logging.info("Done retranslating {}".format(url))
-            self.setCached(pair, url, translated, retranslate)
+            self.set_cached(pair, url, translated, retranslate)
 
 
 class TranslateDocHandler(TranslateHandler):
-    mimeTypeCommand = None
+    mime_type_command = None
 
-    def getMimeType(self, f):
+    def get_mime_type(self, f):
         commands = {
             'mimetype': lambda x: Popen(['mimetype', '-b', x], stdout=PIPE).communicate()[0].strip(),
             'xdg-mime': lambda x: Popen(['xdg-mime', 'query', 'filetype', x], stdout=PIPE).communicate()[0].strip(),
-            'file': lambda x: Popen(['file', '--mime-type', '-b', x], stdout=PIPE).communicate()[0].strip()
+            'file': lambda x: Popen(['file', '--mime-type', '-b', x], stdout=PIPE).communicate()[0].strip(),
         }
 
-        typeFiles = {
+        type_files = {
             'word/document.xml': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'ppt/presentation.xml': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            'xl/workbook.xml': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            'xl/workbook.xml': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         }
 
-        if not self.mimeTypeCommand:
+        if not self.mime_type_command:
             for command in ['mimetype', 'xdg-mime', 'file']:
                 if Popen(['which', command], stdout=PIPE).communicate()[0]:
-                    TranslateDocHandler.mimeTypeCommand = command
+                    TranslateDocHandler.mime_type_command = command
                     break
 
-        mimeType = commands[self.mimeTypeCommand](f).decode('utf-8')
-        if mimeType == 'application/zip':
+        mime_type = commands[self.mime_type_command](f).decode('utf-8')
+        if mime_type == 'application/zip':
             with zipfile.ZipFile(f) as zf:
-                for typeFile in typeFiles:
-                    if typeFile in zf.namelist():
-                        return typeFiles[typeFile]
+                for type_file in type_files:
+                    if type_file in zf.namelist():
+                        return type_files[type_file]
 
                 if 'mimetype' in zf.namelist():
                     return zf.read('mimetype').decode('utf-8')
 
-                return mimeType
+                return mime_type
 
         else:
-            return mimeType
+            return mime_type
 
     # TODO: Some kind of locking. Although we can't easily re-use open
     # pairs here (would have to reimplement lots of
@@ -810,13 +811,13 @@ class TranslateDocHandler(TranslateHandler):
     @gen.coroutine
     def get(self):
         try:
-            l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
+            l1, l2 = map(to_alpha3_code, self.get_argument('langpair').split('|'))
         except ValueError:
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
 
-        markUnknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
+        mark_unknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
 
-        allowedMimeTypes = {
+        allowed_mime_types = {
             'text/plain': 'txt',
             'text/html': 'html-noent',
             'text/rtf': 'rtf',
@@ -827,7 +828,7 @@ class TranslateDocHandler(TranslateHandler):
             # 'application/msword', 'application/vnd.ms-powerpoint', 'application/vnd.ms-excel'
             'application/vnd.oasis.opendocument.text': 'odt',
             'application/x-latex': 'latex',
-            'application/x-tex': 'latex'
+            'application/x-tex': 'latex',
         }
 
         if '%s-%s' % (l1, l2) not in self.pairs:
@@ -843,52 +844,52 @@ class TranslateDocHandler(TranslateHandler):
             tempFile.write(body)
             tempFile.seek(0)
 
-            mtype = self.getMimeType(tempFile.name)
-            if mtype not in allowedMimeTypes:
+            mtype = self.get_mime_type(tempFile.name)
+            if mtype not in allowed_mime_types:
                 self.send_error(400, explanation='Invalid file type %s' % mtype)
                 return
             self.request.headers['Content-Type'] = 'application/octet-stream'
             self.request.headers['Content-Disposition'] = 'attachment'
             with (yield self.doc_pipe_sem.acquire()):
-                t = yield translation.translateDoc(tempFile,
-                                                   allowedMimeTypes[mtype],
-                                                   self.pairs['%s-%s' % (l1, l2)],
-                                                   markUnknown)
+                t = yield translation.translate_doc(tempFile,
+                                                    allowed_mime_types[mtype],
+                                                    self.pairs['%s-%s' % (l1, l2)],
+                                                    mark_unknown)
             self.write(t)
             self.finish()
 
 
 class TranslateRawHandler(TranslateHandler):
     """Assumes the pipeline itself outputs as JSON"""
-    def sendResponse(self, data):
-        translatedText = data.get('responseData', {}).get('translatedText', {})
-        if translatedText == {}:
-            super().sendResponse(data)
+    def send_response(self, data):
+        translated_text = data.get('responseData', {}).get('translatedText', {})
+        if translated_text == {}:
+            super().send_response(data)
         else:
             self.log_vmsize()
-            translatedText = data.get('responseData', {}).get('translatedText', {})
+            translated_text = data.get('responseData', {}).get('translatedText', {})
             self.set_header('Content-Type', 'application/json; charset=UTF-8')
-            self._write_buffer.append(utf8(translatedText))
+            self._write_buffer.append(utf8(translated_text))
             self.finish()
 
     @gen.coroutine
     def get(self):
-        pair = self.getPairOrError(self.get_argument('langpair'),
-                                   len(self.get_argument('q', strip=False)))
+        pair = self.get_pair_or_error(self.get_argument('langpair'),
+                                      len(self.get_argument('q', strip=False)))
         if pair is not None:
-            pipeline = self.getPipeline(pair)
-            yield self.translateAndRespond(pair,
-                                           pipeline,
-                                           self.get_argument('q', strip=False),
-                                           self.get_argument('markUnknown', default='yes'),
-                                           nosplit=False,
-                                           deformat=self.get_argument('deformat', default=True),
-                                           reformat=False)
+            pipeline = self.get_pipeline(pair)
+            yield self.translate_and_respond(pair,
+                                             pipeline,
+                                             self.get_argument('q', strip=False),
+                                             self.get_argument('markUnknown', default='yes'),
+                                             nosplit=False,
+                                             deformat=self.get_argument('deformat', default=True),
+                                             reformat=False)
 
 
 class AnalyzeHandler(BaseHandler):
     def postproc_text(self, in_text, result):
-        lexical_units = removeDotFromDeformat(in_text, re.findall(r'\^([^\$]*)\$([^\^]*)', result))
+        lexical_units = remove_dot_from_deformat(in_text, re.findall(r'\^([^\$]*)\$([^\^]*)', result))
         return [(lu[0], lu[0].split('/')[0] + lu[1])
                 for lu
                 in lexical_units]
@@ -896,13 +897,13 @@ class AnalyzeHandler(BaseHandler):
     @gen.coroutine
     def get(self):
         in_text = self.get_argument('q')
-        in_mode = toAlpha3Code(self.get_argument('lang'))
+        in_mode = to_alpha3_code(self.get_argument('lang'))
         if in_mode in self.analyzers:
             [path, mode] = self.analyzers[in_mode]
             formatting = 'txt'
             commands = [['apertium', '-d', path, '-f', formatting, mode]]
-            result = yield translation.translateSimple(in_text, commands)
-            self.sendResponse(self.postproc_text(in_text, result))
+            result = yield translation.translate_simple(in_text, commands)
+            self.send_response(self.postproc_text(in_text, result))
         else:
             self.send_error(400, explanation='That mode is not installed')
 
@@ -911,7 +912,7 @@ class SpellerHandler(BaseHandler):
     @gen.coroutine
     def get(self):
         in_text = self.get_argument('q') + '*'
-        in_mode = toAlpha3Code(self.get_argument('lang'))
+        in_mode = to_alpha3_code(self.get_argument('lang'))
         logging.info(in_text)
         logging.info(self.get_argument('lang'))
         logging.info(in_mode)
@@ -922,8 +923,8 @@ class SpellerHandler(BaseHandler):
             logging.info(path)
             logging.info(mode)
             formatting = 'none'
-            commands = [['apertium', '-d', path, '-f', formatting, self.get_argument('lang')+'-tokenise']]
-            result = yield translation.translateSimple(in_text, commands)
+            commands = [['apertium', '-d', path, '-f', formatting, self.get_argument('lang') + '-tokenise']]
+            result = yield translation.translate_simple(in_text, commands)
 
             tokens = parse(result)
             units = []
@@ -934,19 +935,19 @@ class SpellerHandler(BaseHandler):
                     suggestion = []
                     commands = [['apertium', '-d', path, '-f', formatting, mode]]
 
-                    result = yield translation.translateSimple(token.wordform, commands)
-                    foundSugg = False
+                    result = yield translation.translate_simple(token.wordform, commands)
+                    found_sugg = False
                     for line in result.splitlines():
                         if line.count('Corrections for'):
-                            foundSugg = True
+                            found_sugg = True
                             continue
-                        if foundSugg and '\t' in line:
+                        if found_sugg and '\t' in line:
                             s, w = line.split('\t')
                             suggestion.append((s, w))
 
                     units.append({'token': token.wordform, 'known': False, 'sugg': suggestion})
 
-            self.sendResponse(units)
+            self.send_response(units)
         else:
             self.send_error(404, explanation="{} on spellchecker mode: {}".format('Error 404', 'Spelling mode for ' + in_mode + ' is not installed'))
 
@@ -966,14 +967,14 @@ class GenerateHandler(BaseHandler):
     @gen.coroutine
     def get(self):
         in_text = self.get_argument('q')
-        in_mode = toAlpha3Code(self.get_argument('lang'))
+        in_mode = to_alpha3_code(self.get_argument('lang'))
         if in_mode in self.generators:
             [path, mode] = self.generators[in_mode]
             formatting = 'none'
             commands = [['apertium', '-d', path, '-f', formatting, mode]]
             lexical_units, to_generate = self.preproc_text(in_text)
-            result = yield translation.translateSimple(to_generate, commands)
-            self.sendResponse(self.postproc_text(lexical_units, result))
+            result = yield translation.translate_simple(to_generate, commands)
+            self.send_response(self.postproc_text(lexical_units, result))
         else:
             self.send_error(400, explanation='That mode is not installed')
 
@@ -982,40 +983,40 @@ class ListLanguageNamesHandler(BaseHandler):
     @tornado.web.asynchronous
     @gen.coroutine
     def get(self):
-        localeArg = self.get_argument('locale')
-        languagesArg = self.get_argument('languages', default=None)
+        locale_arg = self.get_argument('locale')
+        languages_arg = self.get_argument('languages', default=None)
 
         if not self.langNames:
-            self.sendResponse({})
+            self.send_response({})
             return
 
-        if localeArg:
-            if languagesArg:
-                result = yield getLocalizedLanguages(localeArg, self.langNames, languages=languagesArg.split(' '))
+        if locale_arg:
+            if languages_arg:
+                result = yield get_localized_languages(locale_arg, self.langNames, languages=languages_arg.split(' '))
             else:
-                result = yield getLocalizedLanguages(localeArg, self.langNames)
+                result = yield get_localized_languages(locale_arg, self.langNames)
 
-            self.sendResponse(result)
+            self.send_response(result)
             return
 
         if 'Accept-Language' in self.request.headers:
             locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
 
             for locale in locales:
-                result = yield getLocalizedLanguages(locale, self.langNames)
+                result = yield get_localized_languages(locale, self.langNames)
 
                 if result:
-                    self.sendResponse(result)
+                    self.send_response(result)
                     return
 
-        result = yield getLocalizedLanguages('en', self.langNames)
-        self.sendResponse(result)
+        result = yield get_localized_languages('en', self.langNames)
+        self.send_response(result)
 
 
 class PerWordHandler(BaseHandler):
     @gen.coroutine
     def get(self):
-        lang = toAlpha3Code(self.get_argument('lang'))
+        lang = to_alpha3_code(self.get_argument('lang'))
         modes = set(self.get_argument('modes').split(' '))
         query = self.get_argument('q')
 
@@ -1023,17 +1024,17 @@ class PerWordHandler(BaseHandler):
             self.send_error(400, explanation='Invalid mode argument')
             return
 
-        def handleOutput(output):
-            '''toReturn = {}
+        def handle_output(output):
+            '''to_return = {}
             for mode in modes:
-                toReturn[mode] = outputs[mode]
+                to_return[mode] = outputs[mode]
             for mode in modes:
-                toReturn[mode] = {outputs[mode + '_inputs'][index]: output for (index, output) in enumerate(outputs[mode])}
+                to_return[mode] = {outputs[mode + '_inputs'][index]: output for (index, output) in enumerate(outputs[mode])}
             for mode in modes:
-                toReturn[mode] = [(outputs[mode + '_inputs'][index], output) for (index, output) in enumerate(outputs[mode])]
+                to_return[mode] = [(outputs[mode + '_inputs'][index], output) for (index, output) in enumerate(outputs[mode])]
             for mode in modes:
-                toReturn[mode] = {'outputs': outputs[mode], 'inputs': outputs[mode + '_inputs']}
-            self.sendResponse(toReturn)'''
+                to_return[mode] = {'outputs': outputs[mode], 'inputs': outputs[mode + '_inputs']}
+            self.send_response(to_return)'''
 
             if output is None:
                 self.send_error(400, explanation='No output')
@@ -1042,31 +1043,31 @@ class PerWordHandler(BaseHandler):
                 self.send_error(408, explanation='Request timed out')
                 return
             else:
-                outputs, tagger_lexicalUnits, morph_lexicalUnits = output
+                outputs, tagger_lexical_units, morph_lexical_units = output
 
-            toReturn = []
+            to_return = []
 
-            for (index, lexicalUnit) in enumerate(tagger_lexicalUnits if tagger_lexicalUnits else morph_lexicalUnits):
-                unitToReturn = {}
-                unitToReturn['input'] = stripTags(lexicalUnit.split('/')[0])
+            for (index, lexical_unit) in enumerate(tagger_lexical_units if tagger_lexical_units else morph_lexical_units):
+                unit_to_return = {}
+                unit_to_return['input'] = strip_tags(lexical_unit.split('/')[0])
                 for mode in modes:
-                    unitToReturn[mode] = outputs[mode][index]
-                toReturn.append(unitToReturn)
+                    unit_to_return[mode] = outputs[mode][index]
+                to_return.append(unit_to_return)
 
             if self.get_argument('pos', default=None):
-                requestedPos = int(self.get_argument('pos')) - 1
-                currentPos = 0
-                for unit in toReturn:
+                requested_pos = int(self.get_argument('pos')) - 1
+                current_pos = 0
+                for unit in to_return:
                     input = unit['input']
-                    currentPos += len(input.split(' '))
-                    if requestedPos < currentPos:
-                        self.sendResponse(unit)
+                    current_pos += len(input.split(' '))
+                    if requested_pos < current_pos:
+                        self.send_response(unit)
                         return
             else:
-                self.sendResponse(toReturn)
+                self.send_response(to_return)
 
         pool = Pool(processes=1)
-        result = pool.apply_async(processPerWord, (self.analyzers, self.taggers, lang, modes, query))
+        result = pool.apply_async(process_per_word, (self.analyzers, self.taggers, lang, modes, query))
         pool.close()
 
         @run_async_thread
@@ -1078,27 +1079,27 @@ class PerWordHandler(BaseHandler):
                 callback(None)
 
         output = yield tornado.gen.Task(worker)
-        handleOutput(output)
+        handle_output(output)
 
 
 class CoverageHandler(BaseHandler):
     @gen.coroutine
     def get(self):
-        mode = toAlpha3Code(self.get_argument('lang'))
+        mode = to_alpha3_code(self.get_argument('lang'))
         text = self.get_argument('q')
         if not text:
             self.send_error(400, explanation='Missing q argument')
             return
 
-        def handleCoverage(coverage):
+        def handle_coverage(coverage):
             if coverage is None:
                 self.send_error(408, explanation='Request timed out')
             else:
-                self.sendResponse([coverage])
+                self.send_response([coverage])
 
         if mode in self.analyzers:
             pool = Pool(processes=1)
-            result = pool.apply_async(getCoverage, [text, self.analyzers[mode][0], self.analyzers[mode][1]])
+            result = pool.apply_async(get_coverage, [text, self.analyzers[mode][0], self.analyzers[mode][1]])
             pool.close()
 
             @run_async_thread
@@ -1110,7 +1111,7 @@ class CoverageHandler(BaseHandler):
                     callback(None)
 
             coverage = yield tornado.gen.Task(worker)
-            handleCoverage(coverage)
+            handle_coverage(coverage)
         else:
             self.send_error(400, explanation='That mode is not installed')
 
@@ -1123,18 +1124,18 @@ class IdentifyLangHandler(BaseHandler):
             return self.send_error(400, explanation='Missing q argument')
 
         if cld2:
-            cldResults = cld2.detect(text)
-            if cldResults[0]:
-                possibleLangs = filter(lambda x: x[1] != 'un', cldResults[2])
-                self.sendResponse({toAlpha3Code(possibleLang[1]): possibleLang[2] for possibleLang in possibleLangs})
+            cld_results = cld2.detect(text)
+            if cld_results[0]:
+                possible_langs = filter(lambda x: x[1] != 'un', cld_results[2])
+                self.send_response({to_alpha3_code(possible_lang[1]): possible_lang[2] for possible_lang in possible_langs})
             else:
-                self.sendResponse({'nob': 100})  # TODO: Some more reasonable response
+                self.send_response({'nob': 100})  # TODO: Some more reasonable response
         else:
-            def handleCoverages(coverages):
-                self.sendResponse(coverages)
+            def handle_coverages(coverages):
+                self.send_response(coverages)
 
             pool = Pool(processes=1)
-            result = pool.apply_async(getCoverages, [text, self.analyzers], {'penalize': True}, callback=handleCoverages)
+            result = pool.apply_async(get_coverages, [text, self.analyzers], {'penalize': True}, callback=handle_coverages)
             pool.close()
             try:
                 result.get(timeout=self.timeout)
@@ -1150,7 +1151,7 @@ class GetLocaleHandler(BaseHandler):
     def get(self):
         if 'Accept-Language' in self.request.headers:
             locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
-            self.sendResponse(locales)
+            self.send_response(locales)
         else:
             self.send_error(400, explanation='Accept-Language missing from request headers')
 
@@ -1169,11 +1170,11 @@ class SuggestionHandler(BaseHandler):
     def post(self):
         context = self.get_argument('context', None)
         word = self.get_argument('word', None)
-        newWord = self.get_argument('newWord', None)
+        new_word = self.get_argument('newWord', None)
         langpair = self.get_argument('langpair', None)
         recap = self.get_argument('g-recaptcha-response', None)
 
-        if not newWord:
+        if not new_word:
             self.send_error(400, explanation='A suggestion is required')
             return
 
@@ -1181,11 +1182,11 @@ class SuggestionHandler(BaseHandler):
             self.send_error(400, explanation='The ReCAPTCHA is required')
             return
 
-        if not all([context, word, langpair, newWord, recap]):
+        if not all([context, word, langpair, new_word, recap]):
             self.send_error(400, explanation='All arguments were not provided')
             return
 
-        logging.info("Suggestion (%s): Context is %s \n Word: %s ; New Word: %s " % (langpair, context, word, newWord))
+        logging.info("Suggestion (%s): Context is %s \n Word: %s ; New Word: %s " % (langpair, context, word, new_word))
         logging.info('Now verifying ReCAPTCHA.')
 
         if not self.recaptcha_secret:
@@ -1202,10 +1203,10 @@ class SuggestionHandler(BaseHandler):
             payload = {
                 'secret': self.recaptcha_secret,
                 'response': recap,
-                'remoteip': user_ip
+                'remoteip': user_ip,
             }
-            recapRequest = self.wiki_session.post(RECAPTCHA_VERIFICATION_URL, data=payload)
-            if recapRequest.json()['success']:
+            recap_request = self.wiki_session.post(RECAPTCHA_VERIFICATION_URL, data=payload)
+            if recap_request.json()['success']:
                 logging.info('ReCAPTCHA verified, adding data to wiki')
             else:
                 logging.info('ReCAPTCHA verification failed, stopping')
@@ -1215,19 +1216,19 @@ class SuggestionHandler(BaseHandler):
         from util import addSuggestion
         data = {
             'context': context, 'langpair': langpair,
-            'word': word, 'newWord': newWord
+            'word': word, 'newWord': new_word,
         }
         result = addSuggestion(self.wiki_session,
                                self.SUGGEST_URL, self.wiki_edit_token,
                                data)
 
         if result:
-            self.sendResponse({
+            self.send_response({
                 'responseData': {
-                    'status': 'Success'
+                    'status': 'Success',
                 },
                 'responseDetails': None,
-                'responseStatus': 200
+                'responseStatus': 200,
             })
         else:
             logging.info('Page update failed, trying to get new edit token')
@@ -1238,12 +1239,12 @@ class SuggestionHandler(BaseHandler):
                                    self.SUGGEST_URL, self.wiki_edit_token,
                                    data)
             if result:
-                self.sendResponse({
+                self.send_response({
                     'responseData': {
-                        'status': 'Success'
+                        'status': 'Success',
                     },
                     'responseDetails': None,
-                    'responseStatus': 200
+                    'responseStatus': 200,
                 })
             else:
                 self.send_error(400, explanation='Page update failed')
@@ -1252,60 +1253,59 @@ class SuggestionHandler(BaseHandler):
 class PipeDebugHandler(BaseHandler):
     @gen.coroutine
     def get(self):
-
-        toTranslate = self.get_argument('q')
+        to_translate = self.get_argument('q')
 
         try:
-            l1, l2 = map(toAlpha3Code, self.get_argument('langpair').split('|'))
+            l1, l2 = map(to_alpha3_code, self.get_argument('langpair').split('|'))
         except ValueError:
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
 
         mode_path = self.pairs['%s-%s' % (l1, l2)]
         try:
-            _, commands = translation.parseModeFile(mode_path)
+            _, commands = translation.parse_mode_file(mode_path)
         except Exception:
             self.send_error(500)
             return
 
-        res = yield translation.translatePipeline(toTranslate, commands)
+        res = yield translation.translate_pipeline(to_translate, commands)
         if self.get_status() != 200:
             self.send_error(self.get_status())
             return
 
         output, pipeline = res
 
-        self.sendResponse({
+        self.send_response({
             'responseData': {'output': output, 'pipeline': pipeline},
             'responseDetails': None,
-            'responseStatus': 200
+            'responseStatus': 200,
         })
 
 
-def setupHandler(
-    port, pairs_path, nonpairs_path, langNames, missingFreqsPath, timeout,
+def setup_handler(
+    port, pairs_path, nonpairs_path, lang_names, missing_freqs_path, timeout,
     max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs,
-    restart_pipe_after, max_doc_pipes, verbosity=0, scaleMtLogs=False, memory=1000
+    restart_pipe_after, max_doc_pipes, verbosity=0, scale_mt_logs=False, memory=1000,
 ):
 
-    global missingFreqsDb
-    if missingFreqsPath:
-        missingFreqsDb = missingdb.MissingDb(missingFreqsPath, memory)
+    global missing_freqs_db
+    if missing_freqs_path:
+        missing_freqs_db = missingdb.MissingDb(missing_freqs_path, memory)
 
-    Handler = BaseHandler
-    Handler.langNames = langNames
-    Handler.timeout = timeout
-    Handler.max_pipes_per_pair = max_pipes_per_pair
-    Handler.min_pipes_per_pair = min_pipes_per_pair
-    Handler.max_users_per_pipe = max_users_per_pipe
-    Handler.max_idle_secs = max_idle_secs
-    Handler.restart_pipe_after = restart_pipe_after
-    Handler.scaleMtLogs = scaleMtLogs
-    Handler.verbosity = verbosity
-    Handler.doc_pipe_sem = Semaphore(max_doc_pipes)
+    handler = BaseHandler
+    handler.lang_names = lang_names
+    handler.timeout = timeout
+    handler.max_pipes_per_pair = max_pipes_per_pair
+    handler.min_pipes_per_pair = min_pipes_per_pair
+    handler.max_users_per_pipe = max_users_per_pipe
+    handler.max_idle_secs = max_idle_secs
+    handler.restart_pipe_after = restart_pipe_after
+    handler.scale_mt_logs = scale_mt_logs
+    handler.verbosity = verbosity
+    handler.doc_pipe_sem = Semaphore(max_doc_pipes)
 
-    modes = searchPath(pairs_path, verbosity=verbosity)
+    modes = search_path(pairs_path, verbosity=verbosity)
     if nonpairs_path:
-        src_modes = searchPath(nonpairs_path, include_pairs=False, verbosity=verbosity)
+        src_modes = search_path(nonpairs_path, include_pairs=False, verbosity=verbosity)
         for mtype in modes:
             modes[mtype] += src_modes[mtype]
 
@@ -1313,19 +1313,19 @@ def setupHandler(
         logging.info('%d %s modes found' % (len(modes[mtype]), mtype))
 
     for path, lang_src, lang_trg in modes['pair']:
-        Handler.pairs['%s-%s' % (lang_src, lang_trg)] = path
+        handler.pairs['%s-%s' % (lang_src, lang_trg)] = path
     for dirpath, modename, lang_pair in modes['analyzer']:
-        Handler.analyzers[lang_pair] = (dirpath, modename)
+        handler.analyzers[lang_pair] = (dirpath, modename)
     for dirpath, modename, lang_pair in modes['generator']:
-        Handler.generators[lang_pair] = (dirpath, modename)
+        handler.generators[lang_pair] = (dirpath, modename)
     for dirpath, modename, lang_pair in modes['tagger']:
-        Handler.taggers[lang_pair] = (dirpath, modename)
+        handler.taggers[lang_pair] = (dirpath, modename)
     for dirpath, modename, lang_src in modes['spell']:
         if (any(lang_src == elem[2] for elem in modes['tokenise'])):
-            Handler.spellers[lang_src] = (dirpath, modename)
+            handler.spellers[lang_src] = (dirpath, modename)
 
-    Handler.initPairsGraph()
-    Handler.initPaths()
+    handler.init_pairs_graph()
+    handler.init_paths()
 
 
 def check_utf8():
@@ -1336,9 +1336,9 @@ def check_utf8():
         sys.exit(1)
 
 
-def apply_config(args, apySection):
+def apply_config(args, apy_section):
     for (name, value) in vars(args).items():
-        if name in apySection:
+        if name in apy_section:
             # Get default from private variables of argparse
             default = None
             for action in parser._actions:  # type: ignore
@@ -1350,21 +1350,21 @@ def apply_config(args, apySection):
             res = None
             try:
                 if fn is None:
-                    if apySection[name] == 'None':
+                    if apy_section[name] == 'None':
                         res = None
                     else:
-                        res = apySection[name]
+                        res = apy_section[name]
                 elif fn is bool:
-                    if apySection[name] == 'False':
+                    if apy_section[name] == 'False':
                         res = False
-                    elif apySection[name] == 'True':
+                    elif apy_section[name] == 'True':
                         res = True
                     else:
-                        res = bool(apySection[name])
+                        res = bool(apy_section[name])
                 else:
-                    res = fn(apySection[name])
+                    res = fn(apy_section[name])
             except ValueError:
-                print("Warning: Unable to cast {} to expected type".format(apySection[name]))
+                print("Warning: Unable to cast {} to expected type".format(apy_section[name]))
 
             # only override is value (argument) is default
             if res is not None and value == default:
@@ -1432,9 +1432,9 @@ if __name__ == '__main__':
                             ' please see http://wiki.apertium.org/'
                             'wiki/Apy#Configuration for more information')
         else:
-            logging.info('Using configuration file '+args.config)
-            apySection = conf['APY']
-            apply_config(args, apySection)
+            logging.info('Using configuration file ' + args.config)
+            apy_section = conf['APY']
+            apply_config(args, apy_section)
 
     if args.daemon:
         # regular content logs are output stderr
@@ -1447,10 +1447,10 @@ if __name__ == '__main__':
         logger = logging.getLogger('scale-mt')
         logger.propagate = False
         smtlog = os.path.join(args.log_path, 'ScaleMTRequests.log')
-        loggingHandler = logging_handlers.TimedRotatingFileHandler(smtlog, 'midnight', 0)
+        logging_handler = logging_handlers.TimedRotatingFileHandler(smtlog, 'midnight', 0)
         # internal attribute, should not use
-        loggingHandler.suffix = "%Y-%m-%d"  # type: ignore
-        logger.addHandler(loggingHandler)
+        logging_handler.suffix = "%Y-%m-%d"  # type: ignore
+        logger.addHandler(logging_handler)
 
         # if scalemt_logs is enabled, disable tornado.access logs
         if(args.daemon):
@@ -1464,9 +1464,9 @@ if __name__ == '__main__':
     if not chardet:
         logging.warning("Unable to import chardet, assuming utf-8 encoding for all websites")
 
-    setupHandler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
-                 args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs,
-                 args.restart_pipe_after, args.max_doc_pipes, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
+    setup_handler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
+                  args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs,
+                  args.restart_pipe_after, args.max_doc_pipes, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
 
     application = tornado.web.Application([
         (r'/', RootHandler),

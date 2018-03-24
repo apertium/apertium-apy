@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 
+import logging
+import os
+import re
 from collections import namedtuple
 from contextlib import contextmanager
 from select import PIPE_BUF
 from subprocess import Popen, PIPE
 from time import time
-import logging
-import os
-import re
 
 from tornado import gen
-import tornado.process
+from typing import List  # noqa: F401
 import tornado.iostream
 import tornado.locks as locks
-from typing import List  # noqa: F401
+import tornado.process
 
 
 class Pipeline(object):
@@ -44,13 +44,13 @@ class Pipeline(object):
         return self.users < other.users
 
     @gen.coroutine
-    def translate(self, toTranslate, nosplit, deformat, reformat):
+    def translate(self, to_translate, nosplit, deformat, reformat):
         raise Exception("Not implemented, subclass me!")
 
 
 class FlushingPipeline(Pipeline):
     def __init__(self, commands, *args, **kwargs):
-        self.inpipe, self.outpipe = startPipeline(commands)
+        self.inpipe, self.outpipe = start_pipeline(commands)
         super().__init__(*args, **kwargs)
 
     def __del__(self):
@@ -62,14 +62,14 @@ class FlushingPipeline(Pipeline):
         # server – why?
 
     @gen.coroutine
-    def translate(self, toTranslate, nosplit=False, deformat=True, reformat=True):
+    def translate(self, to_translate, nosplit=False, deformat=True, reformat=True):
         with self.use():
             if nosplit:
-                res = yield translateNULFlush(toTranslate, self, deformat, reformat)
+                res = yield translate_nul_flush(to_translate, self, deformat, reformat)
                 return res
             else:
-                all_split = splitForTranslation(toTranslate, n_users=self.users)
-                parts = yield [translateNULFlush(part, self, deformat, reformat)
+                all_split = split_for_translation(to_translate, n_users=self.users)
+                parts = yield [translate_nul_flush(part, self, deformat, reformat)
                                for part in all_split]
                 return "".join(parts)
 
@@ -80,24 +80,24 @@ class SimplePipeline(Pipeline):
         super().__init__(*args, **kwargs)
 
     @gen.coroutine
-    def translate(self, toTranslate, nosplit="ignored", deformat="ignored", reformat="ignored"):
+    def translate(self, to_translate, nosplit="ignored", deformat="ignored", reformat="ignored"):
         with self.use():
             with (yield self.lock.acquire()):
-                res = yield translateSimple(toTranslate, self.commands)
+                res = yield translate_simple(to_translate, self.commands)
                 return res
 
 
 ParsedModes = namedtuple('ParsedModes', 'do_flush commands')
 
 
-def makePipeline(modes_parsed):
+def make_pipeline(modes_parsed):
     if modes_parsed.do_flush:
         return FlushingPipeline(modes_parsed.commands)
     else:
         return SimplePipeline(modes_parsed.commands)
 
 
-def startPipeline(commands):
+def start_pipeline(commands):
     procs = []  # type: List[tornado.process.Subprocess]
     for i, cmd in enumerate(commands):
         if i == 0:
@@ -114,12 +114,12 @@ def startPipeline(commands):
     return procs[0], procs[-1]
 
 
-def cmdNeedsZ(cmd):
+def cmd_needs_z(cmd):
     exceptions = r'^\s*(vislcg3|cg-mwesplit|hfst-tokeni[sz]e|divvun-suggest)'
     return re.match(exceptions, cmd) is None
 
 
-def parseModeFile(mode_path):
+def parse_mode_file(mode_path):
     mode_str = open(mode_path, 'r').read().strip()
     if mode_str:
         if 'ca-oc@aran' in mode_str:
@@ -131,7 +131,7 @@ def parseModeFile(mode_path):
                 '-f', 'html-noent',
                 # Get the _parent_ dir of the mode file:
                 '-d', modes_parentdir,
-                mode_name
+                mode_name,
             ]]
         else:
             do_flush = True
@@ -141,7 +141,7 @@ def parseModeFile(mode_path):
                 # modes.xml instead; this is brittle (what if a path
                 # has | or " in it?)
                 cmd = cmd.replace('$2', '').replace('$1', '-g')
-                if(cmdNeedsZ(cmd)):
+                if(cmd_needs_z(cmd)):
                     cmd = re.sub(r'^\s*(\S*)', r'\g<1> -z', cmd)
                 commands.append([c.strip("'")
                                  for c in cmd.split()])
@@ -151,7 +151,7 @@ def parseModeFile(mode_path):
         raise Exception('Could not parse mode file %s', mode_path)
 
 
-def upToBytes(string, max_bytes):
+def up_to_bytes(string, max_bytes):
     """Find the unicode string length of the first up-to-max_bytes bytes.
 
     At least it's much faster than going through the string adding
@@ -169,7 +169,7 @@ def upToBytes(string, max_bytes):
     return 0
 
 
-def hardbreakFn(string, n_users):
+def hardbreak_fn(string, n_users):
     """If others are queueing up to translate at the same time, we send
     short requests, otherwise we try to minimise the number of
     requests, but without letting buffers fill up.
@@ -180,10 +180,10 @@ def hardbreakFn(string, n_users):
     if n_users > 2:
         return 1000
     else:
-        return upToBytes(string, PIPE_BUF)
+        return up_to_bytes(string, PIPE_BUF)
 
 
-def preferPunctBreak(string, last, hardbreak):
+def prefer_punct_break(string, last, hardbreak):
     """We would prefer to split on a period or space seen before the
     hardbreak, if we can. If the remaining string is smaller or equal
     than the hardbreak, return end of the string
@@ -207,24 +207,24 @@ def preferPunctBreak(string, last, hardbreak):
             return hardnext
 
 
-def splitForTranslation(toTranslate, n_users):
+def split_for_translation(to_translate, n_users):
     """Splitting it up a bit ensures we don't fill up FIFO buffers (leads
     to processes hanging on read/write)."""
-    allSplit = []              # [].append and join faster than str +=
+    all_split = []              # [].append and join faster than str +=
     last = 0
     rounds = 0
-    while last < len(toTranslate) and rounds < 10:
+    while last < len(to_translate) and rounds < 10:
         rounds += 1
-        hardbreak = hardbreakFn(toTranslate[last:], n_users)
-        next = preferPunctBreak(toTranslate, last, hardbreak)
-        allSplit.append(toTranslate[last:next])
+        hardbreak = hardbreak_fn(to_translate[last:], n_users)
+        next = prefer_punct_break(to_translate, last, hardbreak)
+        all_split.append(to_translate[last:next])
         # logging.getLogger().setLevel(logging.DEBUG)
-        logging.debug("splitForTranslation: last:%s hardbreak:%s next:%s appending:%s" % (last, hardbreak, next, toTranslate[last:next]))
+        logging.debug("split_for_translation: last:%s hardbreak:%s next:%s appending:%s" % (last, hardbreak, next, to_translate[last:next]))
         last = next
-    return allSplit
+    return all_split
 
 
-def validateFormatters(deformat, reformat):
+def validate_formatters(deformat, reformat):
     def valid1(elt, lst):
         if elt in lst:
             return elt
@@ -240,7 +240,7 @@ class ProcessFailure(Exception):
     pass
 
 
-def checkRetCode(name, proc):
+def check_ret_code(name, proc):
     if proc.returncode != 0:
         raise ProcessFailure("%s failed, exit code %s", name, proc.returncode)
 
@@ -260,18 +260,18 @@ def coreduce(init, funcs, *args):
 
 
 @gen.coroutine
-def translateNULFlush(toTranslate, pipeline, unsafe_deformat, unsafe_reformat):
+def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_reformat):
     with (yield pipeline.lock.acquire()):
         proc_in, proc_out = pipeline.inpipe, pipeline.outpipe
-        deformat, reformat = validateFormatters(unsafe_deformat, unsafe_reformat)
+        deformat, reformat = validate_formatters(unsafe_deformat, unsafe_reformat)
 
         if deformat:
             proc_deformat = Popen(deformat, stdin=PIPE, stdout=PIPE)
-            proc_deformat.stdin.write(bytes(toTranslate, 'utf-8'))
+            proc_deformat.stdin.write(bytes(to_translate, 'utf-8'))
             deformatted = proc_deformat.communicate()[0]
-            checkRetCode("Deformatter", proc_deformat)
+            check_ret_code("Deformatter", proc_deformat)
         else:
-            deformatted = bytes(toTranslate, 'utf-8')
+            deformatted = bytes(to_translate, 'utf-8')
 
         proc_in.stdin.write(deformatted)
         proc_in.stdin.write(bytes('\0', "utf-8"))
@@ -288,23 +288,23 @@ def translateNULFlush(toTranslate, pipeline, unsafe_deformat, unsafe_reformat):
             proc_reformat = Popen(reformat, stdin=PIPE, stdout=PIPE)
             proc_reformat.stdin.write(output)
             result = proc_reformat.communicate()[0]
-            checkRetCode("Reformatter", proc_reformat)
+            check_ret_code("Reformatter", proc_reformat)
         else:
             result = re.sub(rb'\0$', b'', output)
         return result.decode('utf-8')
 
 
 @gen.coroutine
-def translatePipeline(toTranslate, commands):
+def translate_pipeline(to_translate, commands):
     proc_deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
-    proc_deformat.stdin.write(bytes(toTranslate, 'utf-8'))
+    proc_deformat.stdin.write(bytes(to_translate, 'utf-8'))
     deformatted = proc_deformat.communicate()[0]
-    checkRetCode("Deformatter", proc_deformat)
+    check_ret_code("Deformatter", proc_deformat)
 
     towrite = deformatted
 
     output = []
-    output.append(toTranslate)
+    output.append(to_translate)
     output.append(towrite.decode('utf-8'))
 
     all_cmds = []
@@ -314,7 +314,7 @@ def translatePipeline(toTranslate, commands):
         proc = Popen(cmd, stdin=PIPE, stdout=PIPE)
         proc.stdin.write(towrite)
         towrite = proc.communicate()[0]
-        checkRetCode(" ".join(cmd), proc)
+        check_ret_code(" ".join(cmd), proc)
 
         output.append(towrite.decode('utf-8'))
         all_cmds.append(cmd)
@@ -322,7 +322,7 @@ def translatePipeline(toTranslate, commands):
     proc_reformat = Popen("apertium-rehtml-noent", stdin=PIPE, stdout=PIPE)
     proc_reformat.stdin.write(towrite)
     towrite = proc_reformat.communicate()[0].decode('utf-8')
-    checkRetCode("Reformatter", proc_reformat)
+    check_ret_code("Reformatter", proc_reformat)
 
     output.append(towrite)
     all_cmds.append("apertium-rehtml-noent")
@@ -331,64 +331,64 @@ def translatePipeline(toTranslate, commands):
 
 
 @gen.coroutine
-def translateSimple(toTranslate, commands):
-    proc_in, proc_out = startPipeline(commands)
+def translate_simple(to_translate, commands):
+    proc_in, proc_out = start_pipeline(commands)
     assert proc_in == proc_out
-    yield gen.Task(proc_in.stdin.write, bytes(toTranslate, 'utf-8'))
+    yield gen.Task(proc_in.stdin.write, bytes(to_translate, 'utf-8'))
     proc_in.stdin.close()
     translated = yield gen.Task(proc_out.stdout.read_until_close)
     proc_in.stdout.close()
     return translated.decode('utf-8')
 
 
-def startPipelineFromModeFile(modeFile, fmt, unknownMarks=False):
-    modesdir = os.path.dirname(os.path.dirname(modeFile))
-    mode = os.path.splitext(os.path.basename(modeFile))[0]
-    if unknownMarks:
-        cmd = ['apertium', '-f', fmt,       '-d', modesdir, mode]
+def start_pipeline_from_modefile(mode_file, fmt, unknown_marks=False):
+    modes_dir = os.path.dirname(os.path.dirname(mode_file))
+    mode = os.path.splitext(os.path.basename(mode_file))[0]
+    if unknown_marks:
+        cmd = ['apertium', '-f', fmt, '-d', modes_dir, mode]
     else:
-        cmd = ['apertium', '-f', fmt, '-u', '-d', modesdir, mode]
-    return startPipeline([cmd])
+        cmd = ['apertium', '-f', fmt, '-u', '-d', modes_dir, mode]
+    return start_pipeline([cmd])
 
 
 @gen.coroutine
-def translateModefileBytes(toTranslateBytes, fmt, modeFile, unknownMarks=False):
-    proc_in, proc_out = startPipelineFromModeFile(modeFile, fmt, unknownMarks)
+def translate_modefile_bytes(to_translate_bytes, fmt, mode_file, unknown_marks=False):
+    proc_in, proc_out = start_pipeline_from_modefile(mode_file, fmt, unknown_marks)
     assert proc_in == proc_out
-    yield gen.Task(proc_in.stdin.write, toTranslateBytes)
+    yield gen.Task(proc_in.stdin.write, to_translate_bytes)
     proc_in.stdin.close()
-    translatedBytes = yield gen.Task(proc_out.stdout.read_until_close)
+    translated_bytes = yield gen.Task(proc_out.stdout.read_until_close)
     proc_in.stdout.close()
-    return translatedBytes
+    return translated_bytes
 
 
 @gen.coroutine
-def translateHtmlMarkHeadings(toTranslate, modeFile, unknownMarks=False):
+def translate_html_mark_headings(to_translate, mode_file, unknown_marks=False):
     proc_deformat = Popen(['apertium-deshtml', '-o'], stdin=PIPE, stdout=PIPE)
-    deformatted = proc_deformat.communicate(bytes(toTranslate, 'utf-8'))[0]
-    checkRetCode("Deformatter", proc_deformat)
+    deformatted = proc_deformat.communicate(bytes(to_translate, 'utf-8'))[0]
+    check_ret_code("Deformatter", proc_deformat)
 
-    translated = yield translateModefileBytes(deformatted, 'none', modeFile, unknownMarks)
+    translated = yield translate_modefile_bytes(deformatted, 'none', mode_file, unknown_marks)
 
     proc_reformat = Popen(['apertium-rehtml-noent'], stdin=PIPE, stdout=PIPE)
     reformatted = proc_reformat.communicate(translated)[0]
-    checkRetCode("Reformatter", proc_reformat)
+    check_ret_code("Reformatter", proc_reformat)
     return reformatted.decode('utf-8')
 
 
 @gen.coroutine
-def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
-    modesdir = os.path.dirname(os.path.dirname(modeFile))
-    mode = os.path.splitext(os.path.basename(modeFile))[0]
-    if unknownMarks:
-        cmd = ['apertium', '-f', fmt,       '-d', modesdir, mode]
+def translate_doc(file_to_translate, fmt, mode_file, unknown_marks=False):
+    modes_dir = os.path.dirname(os.path.dirname(mode_file))
+    mode = os.path.splitext(os.path.basename(mode_file))[0]
+    if unknown_marks:
+        cmd = ['apertium', '-f', fmt, '-d', modes_dir, mode]
     else:
-        cmd = ['apertium', '-f', fmt, '-u', '-d', modesdir, mode]
+        cmd = ['apertium', '-f', fmt, '-u', '-d', modes_dir, mode]
     proc = tornado.process.Subprocess(cmd,
-                                      stdin=fileToTranslate,
+                                      stdin=file_to_translate,
                                       stdout=tornado.process.Subprocess.STREAM)
     translated = yield gen.Task(proc.stdout.read_until_close)
     proc.stdout.close()
     # TODO: raises but not caught:
-    # checkRetCode(" ".join(cmd), proc)
+    # check_ret_code(" ".join(cmd), proc)
     return translated

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-from typing import Dict, List, Tuple  # noqa: F401
-
 import re
 import os
 import logging
-from util import toAlpha3Code
+from typing import Dict, List, Tuple  # noqa: F401
+
+from util import to_alpha3_code
 
 
 def is_loop(dirpath, rootpath, real_root=None):
@@ -28,7 +28,7 @@ def is_loop(dirpath, rootpath, real_root=None):
         return False
 
 
-def searchPath(rootpath, include_pairs=True, verbosity=1):
+def search_path(rootpath, include_pairs=True, verbosity=1):
     lang_code = r'[a-z]{2,3}(?:_[A-Za-z]+)?'
     type_re = {
         'pair': re.compile(r'({0})-({0})\.mode'.format(lang_code)),
@@ -59,7 +59,7 @@ def searchPath(rootpath, include_pairs=True, verbosity=1):
                 if m:
                     if mtype != 'pair':
                         modename = m.group(1)  # e.g. en-es-anmorph
-                        langlist = [toAlpha3Code(l) for l in m.group(2).split('-')]
+                        langlist = [to_alpha3_code(l) for l in m.group(2).split('-')]
                         lang_pair = '-'.join(langlist)  # e.g. en-es
                         dir_of_modes = os.path.dirname(dirpath)
                         mode = (dir_of_modes,
@@ -70,8 +70,8 @@ def searchPath(rootpath, include_pairs=True, verbosity=1):
                         lang_src = m.group(1)
                         lang_trg = m.group(2)
                         mode = (os.path.join(dirpath, filename),
-                                toAlpha3Code(lang_src),
-                                toAlpha3Code(lang_trg))
+                                to_alpha3_code(lang_src),
+                                to_alpha3_code(lang_trg))
                         modes[mtype].append(mode)
 
     if verbosity > 1:

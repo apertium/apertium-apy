@@ -129,7 +129,7 @@ def test_pair(pair, host):
         print("%s failed with error code %s and reason: %s" % (pair, e.code, e.reason))
         return False
     except socket.timeout as e:
-        print("%s failed: %s" % (pair, e,))
+        print("%s failed: %s" % (pair, e))
         return False
     js = json.loads(response)
     translation_raw = js['responseData']['translatedText']
