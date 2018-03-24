@@ -1,0 +1,6 @@
+include COPYING
+include langNames.db
+include servlet.py
+include tools/systemd/*
+include tools/sysvinit/*
+include tools/upstart/*
