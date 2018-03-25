@@ -15,8 +15,8 @@ test-release: langNames.db
 test:
 	flake8 **/*.py
 	mypy --config-file mypy.ini **/*.py
-	coverage run --source apertium_apy -m unittest tests/test*.py
-	coverage report --fail-under 20
+	python3 -m unittest tests/test*.py
+	coverage report --fail-under 35
 
 clean:
 	rm -f langNames.db

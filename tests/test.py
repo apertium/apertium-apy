@@ -37,7 +37,8 @@ server_handle = None
 
 def setUpModule():  # noqa: N802
     global server_handle
-    server_handle = subprocess.Popen([os.path.join(base_path, 'servlet.py')] + cli_args)  # TODO: swallow output and print on error?
+    coverage_cli_args = shlex.split('coverage run --source apertium_apy') + [os.path.join(base_path, 'servlet.py')] + cli_args
+    server_handle = subprocess.Popen(coverage_cli_args)  # TODO: swallow output and print on error?
 
     started = False
     waited = 0
@@ -57,7 +58,7 @@ def setUpModule():  # noqa: N802
 
 def tearDownModule():  # noqa: N802
     if server_handle:
-        server_handle.kill()
+        server_handle.terminate()  # don't kill so that coverage works
 
 
 class BaseTestCase(AsyncHTTPTestCase):
@@ -114,7 +115,7 @@ class TestTranslateHandler(BaseTestCase):
         response = self.fetch_translation('government', 'eng|spa')
         self.assertEqual(response['responseData']['translatedText'], 'Gobierno')
 
-    def test_valid_pair_2(self):  # TODO: a better name (why are we testing both?)
+    def test_valid_giella_pair(self):
         response = self.fetch_translation('ja', 'sme|nob')
         self.assertEqual(response['responseData']['translatedText'], 'og')
 

@@ -23,8 +23,8 @@ script:
     - if [[ $TRAVIS_PYTHON_VERSION != 3.4 ]]; then
         mypy --config-file mypy.ini **/*.py;
       fi
-    - NONPAIRS=/tmp/languages coverage run --source apertium_apy -m unittest tests/test*.py
-    - coverage report --fail-under 20
+    - NONPAIRS=/tmp/languages python -m unittest tests/test*.py
+    - coverage report --fail-under 35
 after_success:
     - coveralls
 notifications:
