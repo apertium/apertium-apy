@@ -19,7 +19,7 @@ Requirements
 Additional functionality is provided by installation
 of the following packages:
 
-- `apertium-stremparser` enables spell checking
+- `apertium-streamparser` enables spell checking
 - `requests` enables suggestion handling
 - `cld2` enables improved language detection
 - `chardet` enables website character encoding detection
