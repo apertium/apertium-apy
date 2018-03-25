@@ -153,7 +153,6 @@ class ListRequestHandler(apy.BaseHandler):
 
 
 class Balancer(object):
-
     def __init__(self, servers):
         self.serverlist = servers
 
@@ -165,7 +164,6 @@ class Balancer(object):
 
 
 class Random(Balancer):
-
     def get_server(self):
         return random.choice(self.serverlist)
 
@@ -226,7 +224,6 @@ class RoundRobin(Balancer):
 
 
 class LeastConnections(Balancer):
-
     def __init__(self, servers):
         self.serverlist = OrderedDict([(server, 0) for server in servers])
 
@@ -274,7 +271,6 @@ class WeightedRandom(Balancer):
 
 
 class Fastest(Balancer):
-
     def __init__(self, servers, server_capabilities, num_responses):
         self.servers = servers
         self.original_servers = servers
