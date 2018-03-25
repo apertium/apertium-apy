@@ -19,4 +19,7 @@ test:
 	coverage report --fail-under 20
 
 clean:
-	rm -rf langNames.db dist/ build/ *.egg-info/
+	rm -f langNames.db
+
+distclean: clean
+	rm -rf dist/ build/ *.egg-info/ .mypy_cache/ .coverage
