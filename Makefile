@@ -3,11 +3,14 @@ langNames.db: language_names/scraped.sql language_names/scraped-sil.sql language
 	rm -f $@
 	cat $^ | sqlite3 $@
 
-release: langNames.db
-	python3 setup.py sdist bdist_wheel
+dist: langNames.db
+	python3 setup.py sdist
 
-publish: release
-	python3 setup.py upload --repository https://test.pypi.org/legacy/ --sign
+release: langNames.db
+	python3 setup.py sdist bdist_wheel upload --sign
+
+test-release: langNames.db
+	python3 setup.py sdist bdist_wheel upload --repository https://test.pypi.org/legacy/ --sign
 
 test:
 	flake8 **/*.py
@@ -16,4 +19,4 @@ test:
 	coverage report --fail-under 20
 
 clean:
-	rm -rf langNames.db dist/ build/
+	rm -rf langNames.db dist/ build/ *.egg-info/
