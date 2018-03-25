@@ -24,7 +24,7 @@ script:
         mypy --config-file mypy.ini **/*.py;
       fi
     - NONPAIRS=/tmp/languages python -m unittest tests/test*.py
-    - coverage report --fail-under 35
+    - coverage report --fail-under 38
 after_success:
     - coveralls
 notifications:

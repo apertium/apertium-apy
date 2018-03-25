@@ -10,6 +10,7 @@ import sys
 import time
 import unittest
 import urllib.request
+import urllib.parse
 
 from tornado.log import enable_pretty_logging
 from tornado.testing import AsyncHTTPTestCase
@@ -68,19 +69,27 @@ class BaseTestCase(AsyncHTTPTestCase):
     def get_http_port(self):
         return PORT
 
-    def fetch_json(self, *args, **kwargs):
+    def fetch_json(self, path, params={}, **kwargs):
         expect_success = kwargs.pop('expect_success', True)
-        response = self.fetch(*args, **kwargs)
+        full_path = path + ('?' + urllib.parse.urlencode(params) if params else '')
+        response = self.fetch(full_path, **kwargs)
+
+        body = None
         if expect_success:
             self.assertEqual(response.code, 200)
-        return json.loads(response.body.decode('utf-8'))
+
+            body = json.loads(response.body.decode('utf-8'))
+            if 'responseStatus' in body:
+                self.assertEqual(body['responseStatus'], 200)
+
+        return body or json.loads(response.body.decode('utf-8'))
 
 # TODO: split the handler tests into another file
 
 
 class TestListHandler(BaseTestCase):
     def test_list_pairs(self):
-        response = self.fetch_json('/list?q=pairs')
+        response = self.fetch_json('/list', {'q': 'pairs'})
         self.assertIsNone(response['responseDetails'])
         self.assertEqual(response['responseStatus'], 200)
         expect = set(map(lambda x: frozenset(x.items()), [
@@ -93,27 +102,35 @@ class TestListHandler(BaseTestCase):
         self.assertTrue(response_data >= expect, '{} is missing one of {}'.format(response_data, expect))
 
     def test_list_generators(self):
-        response = self.fetch_json('/list?q=generators')
+        response = self.fetch_json('/list', {'q': 'generators'})
         expect = {'nno': 'nno-gener'}
         self.assertTrue(response.items() >= expect.items(), '{} is missing {}'.format(response, expect))
 
     def test_list_analyzers(self):
-        response = self.fetch_json('/list?q=analysers')
+        response = self.fetch_json('/list', {'q': 'analyzers'})
         expect = {'nno': 'nno-morph'}
         self.assertTrue(response.items() >= expect.items(), '{} is missing {}'.format(response, expect))
 
 
 class TestTranslateHandler(BaseTestCase):
     def fetch_translation(self, query, pair, **kwargs):
-        expect_success = kwargs.get('expect_success', True)
-        response = self.fetch_json('/translate?q={}&langpair={}'.format(query, pair), **kwargs)
-        if expect_success:
-            self.assertEqual(response['responseStatus'], 200)
+        params = kwargs.get('params', {})
+        params.update({'q': query, 'langpair': pair})
+        kwargs['params'] = params
+
+        response = self.fetch_json('/translate', **kwargs)
         return response
 
     def test_valid_pair(self):
         response = self.fetch_translation('government', 'eng|spa')
         self.assertEqual(response['responseData']['translatedText'], 'Gobierno')
+
+    def test_valid_pair_unknown(self):
+        response = self.fetch_translation('notaword', 'eng|spa')
+        self.assertEqual(response['responseData']['translatedText'], '*notaword')
+
+        response = self.fetch_translation('notaword', 'eng|spa', params={'markUnknown': False})
+        self.assertEqual(response['responseData']['translatedText'], 'notaword')
 
     def test_valid_giella_pair(self):
         response = self.fetch_translation('ja', 'sme|nob')
@@ -138,20 +155,41 @@ class TestTranslateHandler(BaseTestCase):
         })
 
 
+class TestTranslatePageHandler(BaseTestCase):
+    @unittest.skip('Failing for unknown reasons')
+    def test_translate(self):
+        response = self.fetch_json('/translatePage', params={
+            'langpair': 'eng|spa',
+            'url': 'http://example.com/',
+        })
+        print(response)
+
+
 class TestAnalyzeHandler(BaseTestCase):
     def test_analyze(self):
-        response = self.fetch_json('/analyze?q=ikkje&lang=nno')
+        response = self.fetch_json('/analyze', {'q': 'ikkje', 'lang': 'nno'})
         self.assertEqual(response, [['ikkje/ikkje<adv>', 'ikkje']])
 
 
 class TestGenerateHandler(BaseTestCase):
     def test_generate(self):
-        response = self.fetch_json('/generate?q=ja<ij>&lang=nno')
+        response = self.fetch_json('/generate', {'q': '^ja<ij>$', 'lang': 'nno'})
         self.assertEqual(response, [['ja', '^ja<ij>$']])
 
-    def test_generate_2(self):  # TODO: a better name
-        response = self.fetch_json('/generate?q=^ja<ij>$&lang=nno')
+    def test_generate_single(self):
+        response = self.fetch_json('/generate', {'q': 'ja<ij>', 'lang': 'nno'})
         self.assertEqual(response, [['ja', '^ja<ij>$']])
+
+
+class TestStatsHandler(BaseTestCase):
+    def test_stats(self):
+        response = self.fetch_json('/stats')
+        data = response['responseData']
+        self.assertGreater(data['uptime'], 0)
+        for key in ['useCount', 'runningPipes', 'holdingPipes', 'periodStats']:
+            self.assertIn(key, data)
+        for periodKey in ['charsPerSec', 'totChars', 'totTimeSpent', 'requests', 'ageFirstRequest']:
+            self.assertIn(periodKey, data['periodStats'])
 
 
 if __name__ == '__main__':
