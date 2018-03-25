@@ -3,6 +3,8 @@ Apertium APy
 
 [![Build Status](https://travis-ci.org/apertium/apertium-apy.svg)](https://travis-ci.org/apertium/apertium-apy)
 [![Coverage Status](https://coveralls.io/repos/github/apertium/apertium-apy/badge.svg?branch=master)](https://coveralls.io/github/apertium/apertium-apy?branch=master)
+[![PyPI](https://img.shields.io/pypi/v/apertium-apy.svg)](https://pypi.org/project/apertium-apy/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/apertium-apy.svg)](https://pypi.org/project/apertium-apy/)
 
 Apertium APy, **Apertium A**PI in **Py**thon, is a web server exposing Apertium
 morphological functions including text, document and webpage translation. More
