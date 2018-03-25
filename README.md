@@ -123,9 +123,9 @@ APy is available through [PyPi](https://pypi.org/project/apertium-apy/):
 Contributing
 ------------
 
-APy using [TravisCI][3] to run tests. Locally, use `make test` to run the same
-checks it does. Use `pip install -r requirements-dev.txt` to install the
-requirements required for development, e.g. linters.
+APy uses [TravisCI][3] for continous integration. Locally, use `make test`
+to run the same checks it does. Use `pip install -r requirements-dev.txt`
+to install the requirements required for development, e.g. linters.
 
 [1]: http://wiki.apertium.org/wiki/Apertium-apy
 [2]: https://www.apertium.org/apy/listPairs
