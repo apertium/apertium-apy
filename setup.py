@@ -34,5 +34,8 @@ setup(
         'lang_detect': ['cld2'],
         'website_encoding_detect': ['chardet'],
     },
+    entry_points={
+        'console_scripts': ['apertium-apy=apertium_apy.apy:main'],
+    },
     packages=['apertium_apy'],
 )
