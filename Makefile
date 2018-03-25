@@ -16,7 +16,7 @@ test:
 	flake8 **/*.py
 	mypy --config-file mypy.ini **/*.py
 	python3 -m unittest tests/test*.py
-	coverage report --fail-under 38
+	coverage report --fail-under 37
 
 clean:
 	rm -f langNames.db
