@@ -1,0 +1,17 @@
+from apertium_apy.handlers.analyze import AnalyzeHandler  # noqa: F401
+from apertium_apy.handlers.base import BaseHandler  # noqa: F401
+from apertium_apy.handlers.coverage import CoverageHandler  # noqa: F401
+from apertium_apy.handlers.generate import GenerateHandler  # noqa: F401
+from apertium_apy.handlers.identify_lang import IdentifyLangHandler  # noqa: F401
+from apertium_apy.handlers.list_language_names import ListLanguageNamesHandler  # noqa: F401
+from apertium_apy.handlers.list_modes import ListHandler  # noqa: F401
+from apertium_apy.handlers.per_word import PerWordHandler  # noqa: F401
+from apertium_apy.handlers.pipe_debug import PipeDebugHandler  # noqa: F401
+from apertium_apy.handlers.speller import SpellerHandler  # noqa: F401
+from apertium_apy.handlers.stats import StatsHandler  # noqa: F401
+from apertium_apy.handlers.suggestion import SuggestionHandler  # noqa: F401
+from apertium_apy.handlers.translate import TranslateHandler  # noqa: F401
+from apertium_apy.handlers.translate_chain import TranslateChainHandler  # noqa: F401
+from apertium_apy.handlers.translate_doc import TranslateDocHandler  # noqa: F401
+from apertium_apy.handlers.translate_raw import TranslateRawHandler  # noqa: F401
+from apertium_apy.handlers.translate_webpage import TranslateWebpageHandler  # noqa: F401

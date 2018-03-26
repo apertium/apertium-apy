@@ -13,7 +13,7 @@ test-release: langNames.db
 	python3 setup.py sdist bdist_wheel upload --repository https://test.pypi.org/legacy/ --sign
 
 test:
-	flake8 **/*.py
+	flake8 *.py apertium_apy/ language_names/
 	mypy --config-file mypy.ini **/*.py
 	python3 -m unittest tests/test*.py
 	coverage report --fail-under 37
