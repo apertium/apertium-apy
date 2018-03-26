@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# vim: set ts=4 sw=4 sts=4 et :
-
 import logging
 import sqlite3
 import threading

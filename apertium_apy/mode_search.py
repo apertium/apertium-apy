@@ -1,10 +1,8 @@
-#!/usr/bin/env python3
-
 import re
 import os
 import logging
 
-from .util import to_alpha3_code
+from apertium_apy.utils import to_alpha3_code
 
 if False:
     from typing import Dict, List, Tuple  # noqa: F401

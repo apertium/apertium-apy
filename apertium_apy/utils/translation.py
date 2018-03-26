@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import logging
 import os
 import re
@@ -373,21 +371,3 @@ def translate_html_mark_headings(to_translate, mode_file, unknown_marks=False):
     reformatted = proc_reformat.communicate(translated)[0]
     check_ret_code('Reformatter', proc_reformat)
     return reformatted.decode('utf-8')
-
-
-@gen.coroutine
-def translate_doc(file_to_translate, fmt, mode_file, unknown_marks=False):
-    modes_dir = os.path.dirname(os.path.dirname(mode_file))
-    mode = os.path.splitext(os.path.basename(mode_file))[0]
-    if unknown_marks:
-        cmd = ['apertium', '-f', fmt, '-d', modes_dir, mode]
-    else:
-        cmd = ['apertium', '-f', fmt, '-u', '-d', modes_dir, mode]
-    proc = tornado.process.Subprocess(cmd,
-                                      stdin=file_to_translate,
-                                      stdout=tornado.process.Subprocess.STREAM)
-    translated = yield gen.Task(proc.stdout.read_until_close)
-    proc.stdout.close()
-    # TODO: raises but not caught:
-    # check_ret_code(' '.join(cmd), proc)
-    return translated
