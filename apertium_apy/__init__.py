@@ -4,7 +4,7 @@ import string
 if False:
     from typing import Optional  # noqa: F401
 
-    import apertium_apy.missingdb  # noqa: F401
+    from apertium_apy import missingdb  # noqa: F401
 
 missing_freqs_db = None  # type: Optional[missingdb.MissingDb]  # has to be global for sig_handler :-/
 
