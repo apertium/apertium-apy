@@ -71,12 +71,19 @@ class BaseTestCase(AsyncHTTPTestCase):
 
     def fetch_json(self, path, params={}, **kwargs):
         expect_success = kwargs.pop('expect_success', True)
-        full_path = path + ('?' + urllib.parse.urlencode(params) if params else '')
-        response = self.fetch(full_path, **kwargs)
+
+        if params:
+            method = kwargs.get('method', 'GET')
+            if method == 'GET':
+                path += '?' + urllib.parse.urlencode(params)
+            elif method == 'POST':
+                kwargs['body'] = kwargs.get('body', '') + urllib.parse.urlencode(params)
+
+        response = self.fetch(path, **kwargs)
 
         body = None
         if expect_success:
-            self.assertEqual(response.code, 200)
+            self.assertEqual(response.code, 200, msg='Request unsuccessful: {}'.format(response.body))
 
             body = json.loads(response.body.decode('utf-8'))
             if 'responseStatus' in body:
@@ -111,6 +118,11 @@ class TestListHandler(BaseTestCase):
         expect = {'nno': 'nno-morph'}
         self.assertTrue(response.items() >= expect.items(), '{} is missing {}'.format(response, expect))
 
+    def test_list_taggers(self):
+        response = self.fetch_json('/list', {'q': 'taggers'})
+        expect = {'nno': 'nno-tagger'}
+        self.assertTrue(response.items() >= expect.items(), '{} is missing {}'.format(response, expect))
+
 
 class TestTranslateHandler(BaseTestCase):
     def fetch_translation(self, query, pair, **kwargs):
@@ -135,6 +147,10 @@ class TestTranslateHandler(BaseTestCase):
     def test_valid_giella_pair(self):
         response = self.fetch_translation('ja', 'sme|nob')
         self.assertEqual(response['responseData']['translatedText'], 'og')
+
+    def test_valid_pair_post(self):
+        response = self.fetch_translation('government', 'eng|spa', method='POST')
+        self.assertEqual(response['responseData']['translatedText'], 'Gobierno')
 
     def test_invalid_pair(self):
         response = self.fetch_translation('ignored', 'typomode', expect_success=False)
@@ -190,6 +206,25 @@ class TestStatsHandler(BaseTestCase):
             self.assertIn(key, data)
         for periodKey in ['charsPerSec', 'totChars', 'totTimeSpent', 'requests', 'ageFirstRequest']:
             self.assertIn(periodKey, data['periodStats'])
+
+
+class TestListLanguageNamesHandler(BaseTestCase):
+    def test_english_lang_names_list(self):
+        response = self.fetch_json('/listLanguageNames', params={'locale': 'eng'})
+        self.assertEqual(response['en'], 'English')
+        self.assertGreater(len(response.keys()), 50, msg='Should have at least 100 English language names')
+
+    def test_limited_english_lang_names_list(self):
+        response = self.fetch_json('/listLanguageNames', params={'locale': 'eng', 'languages': 'spa arg cat'})
+        self.assertDictEqual(response, {
+            'spa': 'Spanish',
+            'arg': 'Aragonese',
+            'cat': 'Catalan',
+        })
+
+    def test_no_locale_lang_names_list(self):
+        response = self.fetch_json('/listLanguageNames')
+        self.assertEqual(response['en'], 'English')
 
 
 if __name__ == '__main__':

@@ -71,7 +71,7 @@ def get_localized_languages(locale, db_path, languages=[]):
 class ListLanguageNamesHandler(BaseHandler):
     @gen.coroutine
     def get(self):
-        locale_arg = self.get_argument('locale')
+        locale_arg = self.get_argument('locale', default=None)
         languages_arg = self.get_argument('languages', default=None)
 
         if not self.lang_names:
@@ -97,5 +97,5 @@ class ListLanguageNamesHandler(BaseHandler):
                     self.send_response(result)
                     return
 
-        result = yield get_localized_languages('en', self.langNames)
+        result = yield get_localized_languages('en', self.lang_names)
         self.send_response(result)
