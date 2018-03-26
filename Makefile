@@ -16,7 +16,7 @@ test:
 	flake8 *.py apertium_apy/ language_names/ tests/
 	mypy --config-file mypy.ini **/*.py
 	python3 -m unittest tests/test*.py
-	coverage report --fail-under 37
+	coverage report --fail-under 35
 
 clean:
 	rm -f langNames.db
