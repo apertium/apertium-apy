@@ -100,7 +100,7 @@ class TestListHandler(BaseTestCase):
         self.assertIsNone(response['responseDetails'])
         self.assertEqual(response['responseStatus'], 200)
         expect = set(map(lambda x: frozenset(x.items()), [
-            # {'sourceLanguage': 'sme', 'targetLanguage': 'nob'},
+            {'sourceLanguage': 'sme', 'targetLanguage': 'nob'},
             {'sourceLanguage': 'eng', 'targetLanguage': 'spa'},
             {'sourceLanguage': 'spa', 'targetLanguage': 'eng_US'},
             {'sourceLanguage': 'spa', 'targetLanguage': 'eng'},
@@ -144,9 +144,9 @@ class TestTranslateHandler(BaseTestCase):
         response = self.fetch_translation('notaword', 'eng|spa', params={'markUnknown': False})
         self.assertEqual(response['responseData']['translatedText'], 'notaword')
 
-    # def test_valid_giella_pair(self):
-    #     response = self.fetch_translation('ja', 'sme|nob')
-    #     self.assertEqual(response['responseData']['translatedText'], 'og')
+    def test_valid_giella_pair(self):
+        response = self.fetch_translation('ja', 'sme|nob')
+        self.assertEqual(response['responseData']['translatedText'], 'og')
 
     def test_valid_pair_post(self):
         response = self.fetch_translation('government', 'eng|spa', method='POST')
@@ -186,6 +186,15 @@ class TestAnalyzeHandler(BaseTestCase):
         response = self.fetch_json('/analyze', {'q': 'ikkje', 'lang': 'nno'})
         self.assertEqual(response, [['ikkje/ikkje<adv>', 'ikkje']])
 
+    def test_invalid_analyze(self):
+        response = self.fetch_json('/analyze', {'q': 'ignored', 'lang': 'zzz'}, expect_success=False)
+        self.assertDictEqual(response, {
+            'status': 'error',
+            'code': 400,
+            'message': 'Bad Request',
+            'explanation': 'That mode is not installed',
+        })
+
 
 class TestGenerateHandler(BaseTestCase):
     def test_generate(self):
@@ -195,6 +204,15 @@ class TestGenerateHandler(BaseTestCase):
     def test_generate_single(self):
         response = self.fetch_json('/generate', {'q': 'ja<ij>', 'lang': 'nno'})
         self.assertEqual(response, [['ja', '^ja<ij>$']])
+
+    def test_invalid_generate(self):
+        response = self.fetch_json('/generate', {'q': 'ignored', 'lang': 'zzz'}, expect_success=False)
+        self.assertDictEqual(response, {
+            'status': 'error',
+            'code': 400,
+            'message': 'Bad Request',
+            'explanation': 'That mode is not installed',
+        })
 
 
 class TestStatsHandler(BaseTestCase):
