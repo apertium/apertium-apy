@@ -187,13 +187,13 @@ class TestTranslateHandler(BaseTestCase):
 
 
 class TestTranslatePageHandler(BaseTestCase):
-    @unittest.skip('Failing for unknown reasons')
     def test_translate(self):
         response = self.fetch_json('/translatePage', params={
             'langpair': 'eng|spa',
-            'url': 'http://example.com/',
+            'url': 'http://example.org/',
+            'markUnknown': 'no',
         })
-        print(response)
+        self.assertIn('Ámbito', response['responseData']['translatedText'])
 
 
 class TestAnalyzeHandler(BaseTestCase):
