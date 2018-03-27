@@ -69,9 +69,7 @@ class BaseTestCase(AsyncHTTPTestCase):
     def get_http_port(self):
         return PORT
 
-    def fetch_json(self, path, params={}, **kwargs):
-        expect_success = kwargs.pop('expect_success', True)
-
+    def fetch(self, path, params={}, **kwargs):
         if params:
             method = kwargs.get('method', 'GET')
             if method == 'GET':
@@ -79,7 +77,11 @@ class BaseTestCase(AsyncHTTPTestCase):
             elif method == 'POST':
                 kwargs['body'] = kwargs.get('body', '') + urllib.parse.urlencode(params)
 
-        response = self.fetch(path, **kwargs)
+        return super().fetch(path, **kwargs)
+
+    def fetch_json(self, path, params={}, **kwargs):
+        expect_success = kwargs.pop('expect_success', True)
+        response = self.fetch(path, params=params, **kwargs)
 
         body = None
         if expect_success:
@@ -151,6 +153,19 @@ class TestTranslateHandler(BaseTestCase):
     def test_valid_pair_post(self):
         response = self.fetch_translation('government', 'eng|spa', method='POST')
         self.assertEqual(response['responseData']['translatedText'], 'Gobierno')
+
+    def test_valid_pair_jsonp(self):
+        callback_fn_name = 'callback123456'
+        response = self.fetch('/translate', params={
+            'q': 'government',
+            'langpair': 'eng|spa',
+            'callback': callback_fn_name,
+        })
+        body_text = response.body.decode('utf-8')
+        self.assertTrue(body_text.startswith(callback_fn_name))
+        self.assertTrue(body_text.endswith(')'))
+        body = json.loads(body_text[len(callback_fn_name) + 1:-1])
+        self.assertEqual(body['responseData']['translatedText'], 'Gobierno')
 
     def test_invalid_pair(self):
         response = self.fetch_translation('ignored', 'typomode', expect_success=False)
