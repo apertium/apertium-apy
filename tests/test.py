@@ -200,12 +200,10 @@ class TestTranslateWebpageHandler(BaseTestCase):
             'langpair': 'eng|spa',
             'url': 'thisisnotawebsite',
         }, expect_success=False)
-        self.assertDictEqual(response, {
-            'status': 'error',
-            'code': 404,
-            'message': 'Not Found',
-            'explanation': 'Error 404 on fetching url: [Errno 8] nodename nor servname provided, or not known',
-        })
+        self.assertEqual(response['status'], 'error')
+        self.assertEqual(response['code'], 404)
+        self.assertEqual(response['message'], 'Not Found')
+        self.assertTrue(response['explanation'].startswith('Error 404 on fetching url: '))
 
 
 class TestAnalyzeHandler(BaseTestCase):
