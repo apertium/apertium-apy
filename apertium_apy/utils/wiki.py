@@ -64,10 +64,10 @@ def wiki_get_token(s, token_type, props):
         }
         token_result = s.get(WIKI_API_URL, params=payload)
         token = json.loads(token_result.text)['query']['pages']['1']['%stoken' % token_type]
-        logging.debug('%s token: %s' % (token_type, token))
+        logging.debug('%s token: %s', token_type, token)
         return token
     except Exception as e:
-        logging.error('Failed to obtain %s token: %s' % (token_type, e))
+        logging.error('Failed to obtain %s token: %s', token_type, e)
 
 
 def wiki_add_text(content, data):

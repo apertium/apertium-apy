@@ -114,11 +114,11 @@ class BaseHandler(tornado.web.RequestHandler):
                     break
             vmsize = int(num) * scale[unit]
             if vmsize > self.stats['vmsize']:
-                logging.warning('VmSize of %s from %d to %d' % (os.getpid(), self.stats['vmsize'], vmsize))
+                logging.warning('VmSize of %s from %d to %d', os.getpid(), self.stats['vmsize'], vmsize)
                 self.stats['vmsize'] = vmsize
         except Exception as e:
             # Don't fail just because we couldn't log:
-            logging.info('Exception in log_vmsize: %s' % e)
+            logging.info('Exception in log_vmsize: %s', e)
 
     def send_response(self, data):
         self.log_vmsize()

@@ -114,7 +114,7 @@ def setup_handler(
             modes[mtype] += src_modes[mtype]
 
     for mtype in modes:
-        logging.info('%d %s modes found' % (len(modes[mtype]), mtype))
+        logging.info('%d %s modes found', len(modes[mtype]), mtype)
 
     for path, lang_src, lang_trg in modes['pair']:
         handler.pairs['%s-%s' % (lang_src, lang_trg)] = path
@@ -297,7 +297,7 @@ def setup_application(args):
 
     if all([args.wiki_username, args.wiki_password]) and importlib.util.find_spec('requests'):
         import requests
-        logging.info('Logging into Apertium Wiki with username %s' % args.wiki_username)
+        logging.info('Logging into Apertium Wiki with username %s', args.wiki_username)
 
         SuggestionHandler.SUGGEST_URL = 'User:' + args.wiki_username
         SuggestionHandler.recaptcha_secret = args.recaptcha_secret
@@ -333,7 +333,7 @@ def main():
         logging.warning('requests not installed, suggestions disabled')
 
     if args.bypass_token:
-        logging.info('reCaptcha bypass for testing: %s' % BYPASS_TOKEN)
+        logging.info('reCaptcha bypass for testing: %s', BYPASS_TOKEN)
 
     application = setup_application(args)
 
@@ -342,10 +342,10 @@ def main():
             'certfile': args.ssl_cert,
             'keyfile': args.ssl_key,
         })
-        logging.info('Serving at https://localhost:%s' % args.port)
+        logging.info('Serving at https://localhost:%s', args.port)
     else:
         http_server = tornado.httpserver.HTTPServer(application)
-        logging.info('Serving at http://localhost:%s' % args.port)
+        logging.info('Serving at http://localhost:%s', args.port)
 
     signal.signal(signal.SIGTERM, sig_handler)
     signal.signal(signal.SIGINT, sig_handler)

@@ -84,6 +84,4 @@ def _log_modes(modes):
     """Print given modes to log."""
     for mtype in modes:
         if modes[mtype]:
-            logging.info('"%s" modes found:\n%s' % (
-                mtype,
-                '\n'.join(['\t'.join(m) for m in modes[mtype]])))
+            logging.info('"%s" modes found:\n%s', mtype, '\n'.join(['\t'.join(m) for m in modes[mtype]]))
