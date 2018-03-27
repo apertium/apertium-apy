@@ -22,11 +22,10 @@ def add_suggestion(s, suggest_url, edit_token, data):
 
     try:
         if edit_result['edit']['result'] == 'Success':
-            logging.info('Update of page %s' % (suggest_url))
+            logging.info('Update of page %s', suggest_url)
             return True
         else:
-            logging.error('Update of page %s failed: %s' % (suggest_url,
-                                                            edit_result))
+            logging.error('Update of page %s failed: %s', suggest_url, edit_result)
             return False
     except KeyError:
         return False
@@ -62,7 +61,7 @@ class SuggestionHandler(BaseHandler):
             self.send_error(400, explanation='All arguments were not provided')
             return
 
-        logging.info('Suggestion (%s): Context is %s \n Word: %s ; New Word: %s ' % (langpair, context, word, new_word))
+        logging.info('Suggestion (%s): Context is %s \n Word: %s ; New Word: %s ', langpair, context, word, new_word)
         logging.info('Now verifying ReCAPTCHA.')
 
         if not self.recaptcha_secret:

@@ -216,7 +216,7 @@ def split_for_translation(to_translate, n_users):
         next = prefer_punct_break(to_translate, last, hardbreak)
         all_split.append(to_translate[last:next])
         # logging.getLogger().setLevel(logging.DEBUG)
-        logging.debug('split_for_translation: last:%s hardbreak:%s next:%s appending:%s' % (last, hardbreak, next, to_translate[last:next]))
+        logging.debug('split_for_translation: last:%s hardbreak:%s next:%s appending:%s', last, hardbreak, next, to_translate[last:next])
         last = next
     return all_split
 

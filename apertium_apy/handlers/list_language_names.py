@@ -38,7 +38,7 @@ def get_localized_languages(locale, db_path, languages=[]):
     language_results = yield lang_names_db_thread.submit(get_language_names, locale, db_path)
 
     if language_results is None:
-        logging.error('Failed to locate language name DB: %s' % db_path)
+        logging.error('Failed to locate language name DB: %s', db_path)
         return {}
 
     converted_languages, duplicated_languages = {}, {}

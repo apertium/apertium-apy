@@ -79,10 +79,10 @@ class RedirectRequestHandler(RequestHandler):
         if server_tuple:
             server, port = server_tuple
         else:
-            logging.warning('No server available for request: %s' % self.request.uri)
+            logging.warning('No server available for request: %s', self.request.uri)
             return self.send_error(400)
         server_port = gen_server_name(server, port)
-        logging.info('Redirecting %s?%s to %s%s?%s' % (path, query, server_port, path, query))
+        logging.info('Redirecting %s?%s to %s%s?%s', path, query, server_port, path, query)
 
         http = tornado.httpclient.AsyncHTTPClient()
         http.fetch(
@@ -95,7 +95,7 @@ class RedirectRequestHandler(RequestHandler):
         response_body = response.body
         if response.error is not None and response.error.code == 599:
             self.balancer.inform('drop', server, response=response, lang=lang_pair)
-            logging.info('Request failed with code %d, trying next server after %s' % (response.error.code, str(server)))
+            logging.info('Request failed with code %d, trying next server after %s', response.error.code, str(server))
             return self.get()
         if response.error is None:
             self.balancer.inform('complete', server, response=response, lang=lang_pair)
@@ -122,7 +122,7 @@ class ListRequestHandler(apy.BaseHandler):
 
     @tornado.web.asynchronous
     def get(self):
-        logging.info('Overriding list call: %s %s' % (self.request.path, self.get_arguments('q')))
+        logging.info('Overriding list call: %s %s', self.request.path, self.get_arguments('q'))
         if self.request.path != '/listPairs' and self.request.path != '/list':
             self.send_error(400)
         else:
@@ -183,7 +183,7 @@ class RoundRobin(Balancer):
         if 'per_word_modes' in kwargs and kwargs['per_word_modes'] is not None:
             per_word_modes = {'morph': 'analyzers', 'biltrans': 'analyzers', 'tagger': 'taggers', 'translate': 'taggers'}
             modes = set(map(lambda _: per_word_modes[_], kwargs['per_word_modes']))
-            logging.info('Handling a /perWord request with modes %s for langpair %s' % (modes, lang_pair))
+            logging.info('Handling a /perWord request with modes %s for langpair %s', modes, lang_pair)
 
             def is_in(modes, server):
                 for mode in modes:
@@ -192,7 +192,7 @@ class RoundRobin(Balancer):
                 else:
                     return True
             if not any(is_in(modes, server) for server in self.serverlist):
-                logging.error('Language pair %s not found for modes %s' % (lang_pair, modes))
+                logging.error('Language pair %s not found for modes %s', lang_pair, modes)
                 return next(self.generator)
             else:
                 server = next(self.generator)
@@ -203,7 +203,7 @@ class RoundRobin(Balancer):
         if lang_pair is not None and mode == 'pairs':  # for mode 'pairs', the key is ('lang', 'pair') rather than 'lang-pair'
             lang_pair = tuple(lang_pair.split('-'))
         if lang_pair is None or lang_pair not in self.langpairmap[mode]:
-            logging.error('Language pair %s for mode %s not found' % (lang_pair, mode))
+            logging.error('Language pair %s for mode %s not found', lang_pair, mode)
             return next(self.generator)
         server = next(self.generator)
         if mode == 'pairs':
@@ -441,22 +441,22 @@ def determine_server_capabilities(serverlist):
                 request_url = '%s/listPairs' % gen_server_name(domain, port)
             else:
                 request_url = '%s/list?q=%s' % (gen_server_name(domain, port), mode)
-            logging.info('Getting information from %s' % request_url)
+            logging.info('Getting information from %s', request_url)
             # make the request
             try:
                 result = http.fetch(request_url, request_timeout=15, validate_cert=verify_ssl_cert)
             except Exception as e:
-                logging.error('Fetch for data from %s for %s failed with %s, dropping server' % (gen_server_name(domain, port), mode, e))
+                logging.error('Fetch for data from %s for %s failed with %s, dropping server', gen_server_name(domain, port), mode, e)
                 continue
             # parse the return
             try:
                 response = json.loads(result.body.decode('utf-8'))
             except ValueError:  # Not valid JSON, we stop using the server
-                logging.error('Received invalid JSON from %s on query for %s, dropping server' % (gen_server_name(domain, port), mode))
+                logging.error('Received invalid JSON from %s on query for %s, dropping server', gen_server_name(domain, port), mode)
                 continue
             if mode == 'pairs':  # pairs has a slightly different response format
                 if 'responseStatus' not in response or response['responseStatus'] != 200 or 'responseData' not in response:
-                    logging.error('JSON return format unexpected from %s:%s on query for %s, dropping server' % (domain, port, mode))
+                    logging.error('JSON return format unexpected from %s:%s on query for %s, dropping server', domain, port, mode)
                     continue
                 for lang_pair in response['responseData']:
                     lang_pair_tuple = (lang_pair['sourceLanguage'], lang_pair['targetLanguage'])
@@ -500,7 +500,7 @@ if __name__ == '__main__':
                     srv, port = server_port_pair.rsplit(':', 1)
                     server_port_list.append((srv, int(port)))
     except IOError:
-        logging.critical('Could not open serverlist: %s' % args.serverlist)
+        logging.critical('Could not open serverlist: %s', args.serverlist)
         sys.exit(-1)
 
     if len(server_port_list) == 0:
@@ -513,13 +513,13 @@ if __name__ == '__main__':
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         result = sock.connect_ex(('localhost', args.port))
         if result == 0:
-            logging.info('Port %d already in use, trying next' % args.port)
+            logging.info('Port %d already in use, trying next', args.port)
             args.port += 1
         sock.close()
 
     logging.info('Server/port list used: ' + str(server_port_list))
     server_lang_pair_map = determine_server_capabilities(server_port_list)
-    logging.info('Using server language-pair mapping: %s' % str(server_lang_pair_map))
+    logging.info('Using server language-pair mapping: %s', server_lang_pair_map)
     # balancer = RoundRobin(server_port_list, server_lang_pair_map)
     # balancer = LeastConnections(server_port_list)
     # balancer = WeightedRandom(server_port_list)
@@ -536,10 +536,10 @@ if __name__ == '__main__':
             'certfile': args.ssl_cert,
             'keyfile': args.ssl_key,
         })
-        logging.info('Gateway-ing at https://localhost:%s' % args.port)
+        logging.info('Gateway-ing at https://localhost:%s', args.port)
     else:
         http_server = tornado.httpserver.HTTPServer(application)
-        logging.info('Gateway-ing at http://localhost:%s' % args.port)
+        logging.info('Gateway-ing at http://localhost:%s', args.port)
 
     http_server.bind(args.port)
     http_server.start(args.num_processes)

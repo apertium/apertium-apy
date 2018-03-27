@@ -156,7 +156,7 @@ class TranslateWebpageHandler(TranslateHandler):
         try:
             response = yield httpclient.AsyncHTTPClient().fetch(request)
         except Exception as e:
-            logging.info('%s exception has occurred' % e)
+            logging.info('%s exception has occurred', e)
             self.send_error(404, explanation='{} on fetching url: {}'.format('Error 404', e))
             return
         try:

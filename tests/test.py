@@ -100,7 +100,7 @@ class TestListHandler(BaseTestCase):
         self.assertIsNone(response['responseDetails'])
         self.assertEqual(response['responseStatus'], 200)
         expect = set(map(lambda x: frozenset(x.items()), [
-            {'sourceLanguage': 'sme', 'targetLanguage': 'nob'},
+            # {'sourceLanguage': 'sme', 'targetLanguage': 'nob'},
             {'sourceLanguage': 'eng', 'targetLanguage': 'spa'},
             {'sourceLanguage': 'spa', 'targetLanguage': 'eng_US'},
             {'sourceLanguage': 'spa', 'targetLanguage': 'eng'},
@@ -144,9 +144,9 @@ class TestTranslateHandler(BaseTestCase):
         response = self.fetch_translation('notaword', 'eng|spa', params={'markUnknown': False})
         self.assertEqual(response['responseData']['translatedText'], 'notaword')
 
-    def test_valid_giella_pair(self):
-        response = self.fetch_translation('ja', 'sme|nob')
-        self.assertEqual(response['responseData']['translatedText'], 'og')
+    # def test_valid_giella_pair(self):
+    #     response = self.fetch_translation('ja', 'sme|nob')
+    #     self.assertEqual(response['responseData']['translatedText'], 'og')
 
     def test_valid_pair_post(self):
         response = self.fetch_translation('government', 'eng|spa', method='POST')
