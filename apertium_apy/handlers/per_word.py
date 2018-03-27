@@ -1,17 +1,26 @@
 import re
-
 from multiprocessing import Pool
+from subprocess import Popen, PIPE
+
 from tornado import gen
 
 from apertium_apy.handlers.base import BaseHandler
-from apertium_apy.utils import (
-    apertium,
-    bilingual_translate,
-    remove_dot_from_deformat,
-    run_async_thread,
-    strip_tags,
-    to_alpha3_code,
-)
+from apertium_apy.utils import apertium, run_async_thread, remove_dot_from_deformat, to_alpha3_code
+
+
+def bilingual_translate(to_translate, mode_dir, mode):
+    p1 = Popen(['echo', to_translate], stdout=PIPE)
+    p2 = Popen(['lt-proc', '-b', mode], stdin=p1.stdout, stdout=PIPE, cwd=mode_dir)
+    p1.stdout.close()
+    output = p2.communicate()[0].decode('utf-8')
+    return output
+
+
+def strip_tags(analysis):
+    if '<' in analysis:
+        return analysis[:analysis.index('<')]
+    else:
+        return analysis
 
 
 def process_per_word(analyzers, taggers, lang, modes, query):
