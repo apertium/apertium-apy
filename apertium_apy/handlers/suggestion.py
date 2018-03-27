@@ -9,10 +9,27 @@ except ImportError:
 
 from apertium_apy import BYPASS_TOKEN, RECAPTCHA_VERIFICATION_URL
 from apertium_apy.handlers.base import BaseHandler
-from apertium_apy.utils.wiki import wiki_get_token
+from apertium_apy.utils.wiki import wiki_get_token, wiki_get_page, wiki_add_text, wiki_edit_page
 
 if False:
     from typing import Optional  # noqa: F401
+
+
+def add_suggestion(s, suggest_url, edit_token, data):
+    content = wiki_get_page(s, suggest_url)
+    content = wiki_add_text(content, data)
+    edit_result = wiki_edit_page(s, suggest_url, content, edit_token)
+
+    try:
+        if edit_result['edit']['result'] == 'Success':
+            logging.info('Update of page %s' % (suggest_url))
+            return True
+        else:
+            logging.error('Update of page %s failed: %s' % (suggest_url,
+                                                            edit_result))
+            return False
+    except KeyError:
+        return False
 
 
 class SuggestionHandler(BaseHandler):
@@ -72,7 +89,6 @@ class SuggestionHandler(BaseHandler):
                 self.send_error(400, explanation='ReCAPTCHA verification failed')
                 return
 
-        from util import add_suggestion
         data = {
             'context': context, 'langpair': langpair,
             'word': word, 'newWord': new_word,
