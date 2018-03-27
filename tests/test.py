@@ -186,14 +186,26 @@ class TestTranslateHandler(BaseTestCase):
         })
 
 
-class TestTranslatePageHandler(BaseTestCase):
-    def test_translate(self):
+class TestTranslateWebpageHandler(BaseTestCase):
+    def test_translate_webpage(self):
         response = self.fetch_json('/translatePage', params={
             'langpair': 'eng|spa',
             'url': 'http://example.org/',
             'markUnknown': 'no',
         })
         self.assertIn('Ámbito', response['responseData']['translatedText'])
+
+    def test_translate_invalid_webpage(self):
+        response = self.fetch_json('/translatePage', params={
+            'langpair': 'eng|spa',
+            'url': 'thisisnotawebsite',
+        }, expect_success=False)
+        self.assertDictEqual(response, {
+            'status': 'error',
+            'code': 404,
+            'message': 'Not Found',
+            'explanation': 'Error 404 on fetching url: [Errno 8] nodename nor servname provided, or not known',
+        })
 
 
 class TestAnalyzeHandler(BaseTestCase):
