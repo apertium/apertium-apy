@@ -1,6 +1,6 @@
-from multiprocessing import Pool
+from datetime import timedelta
 
-import tornado
+from tornado import gen
 
 try:
     import cld2full as cld2  # type: ignore
@@ -12,7 +12,7 @@ from apertium_apy.utils import get_coverages, to_alpha3_code
 
 
 class IdentifyLangHandler(BaseHandler):
-    @tornado.web.asynchronous
+    @gen.coroutine
     def get(self):
         text = self.get_argument('q')
         if not text:
@@ -26,16 +26,12 @@ class IdentifyLangHandler(BaseHandler):
             else:
                 self.send_response({'nob': 100})  # TODO: Some more reasonable response
         else:
-            def handle_coverages(coverages):
+            try:
+                coverages = yield gen.with_timeout(
+                    timedelta(seconds=self.timeout),
+                    get_coverages(text, self.analyzers, penalize=True),
+                )
                 self.send_response(coverages)
 
-            pool = Pool(processes=1)
-            result = pool.apply_async(get_coverages, [text, self.analyzers], {'penalize': True}, callback=handle_coverages)
-            pool.close()
-            try:
-                result.get(timeout=self.timeout)
-                # coverages = result.get(timeout=self.timeout)
-                # TODO: Coverages are not actually sent!!
-            except TimeoutError:
+            except gen.TimeoutError:
                 self.send_error(408, explanation='Request timed out')
-                pool.terminate()

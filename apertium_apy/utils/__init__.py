@@ -2,8 +2,10 @@ import logging
 import re
 from datetime import datetime
 from functools import wraps
-from subprocess import Popen, PIPE
 from threading import Thread
+
+from tornado import gen
+from tornado.process import Subprocess
 
 from apertium_apy.missingdb import timedelta_to_milliseconds
 
@@ -52,27 +54,28 @@ def remove_dot_from_deformat(query, analyses):
         return analyses
 
 
-def apertium(input, mode_dir, mode, formatting='txt'):
-    p1 = Popen(['echo', input], stdout=PIPE)
-    logging.getLogger().info('util.apertium({}, {}, {}, {})'
-                             .format(repr(input), repr(mode_dir),
-                                     repr(mode), repr(formatting)))
-    cmd = ['apertium', '-d', mode_dir, '-f', formatting, mode]
-    p2 = Popen(cmd, stdin=p1.stdout, stdout=PIPE)
-    p1.stdout.close()
-    output = p2.communicate()[0].decode('utf-8')
-    return output
+@gen.coroutine
+def apertium(apertium_input, mode_dir, mode, formatting='txt'):
+    logging.debug('util.apertium({!r}, {!r}, {!r}, {!r})'.format(apertium_input, mode_dir, mode, formatting))
+    proc = Subprocess(['apertium', '-d', mode_dir, '-f', formatting, mode], stdin=Subprocess.STREAM, stdout=Subprocess.STREAM)
+    yield gen.Task(proc.stdin.write, apertium_input.encode('utf-8'))
+    proc.stdin.close()
+    output = yield gen.Task(proc.stdout.read_until_close)
+    proc.stdout.close()
+    return output.decode('utf-8')
 
 
+@gen.coroutine
 def get_coverages(text, modes, penalize=False):
     coverages = {}
     for mode, mode_tuple in modes.items():
-        coverages[mode] = get_coverage(text, mode_tuple[0], mode_tuple[1], penalize=penalize)
+        coverages[mode] = yield get_coverage(text, mode_tuple[0], mode_tuple[1], penalize=penalize)
     return coverages
 
 
+@gen.coroutine
 def get_coverage(text, mode, mode_dir, penalize=False):
-    analysis = apertium(text, mode, mode_dir)
+    analysis = yield apertium(text, mode, mode_dir)
     lexical_units = remove_dot_from_deformat(text, re.findall(r'\^([^\$]*)\$([^\^]*)', analysis))
     analyzed_lexical_units = list(filter(lambda x: not x[0].split('/')[1][0] in '*&#', lexical_units))
     if len(lexical_units) and not penalize:
