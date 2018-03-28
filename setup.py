@@ -1,5 +1,5 @@
 from os import path
-from setuptools import setup
+from setuptools import setup, find_packages
 
 from apertium_apy import apy
 
@@ -37,5 +37,5 @@ setup(
     entry_points={
         'console_scripts': ['apertium-apy=apertium_apy.apy:main'],
     },
-    packages=['apertium_apy'],
+    packages=find_packages(),
 )
