@@ -288,6 +288,24 @@ class TestCoverageHandler(BaseTestCase):
         response = self.fetch_json('/calcCoverage', {'q': 'ikkje notnno', 'lang': 'nno'})
         self.assertListEqual(response, [0.5])
 
+    def test_no_query_coverage(self):
+        response = self.fetch_json('/calcCoverage', {'q': '', 'lang': 'nno'}, expect_success=False)
+        self.assertDictEqual(response, {
+            'status': 'error',
+            'code': 400,
+            'message': 'Bad Request',
+            'explanation': 'Missing q argument',
+        })
+
+    def test_invalid_mode_coverage(self):
+        response = self.fetch_json('/calcCoverage', {'q': 'ignored', 'lang': 'xxx'}, expect_success=False)
+        self.assertDictEqual(response, {
+            'status': 'error',
+            'code': 400,
+            'message': 'Bad Request',
+            'explanation': 'That mode is not installed',
+        })
+
 
 if __name__ == '__main__':
     unittest.main()
