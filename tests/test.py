@@ -38,8 +38,8 @@ server_handle = None
 
 def setUpModule():  # noqa: N802
     global server_handle
-    coverage_cli_args = shlex.split('coverage run --branch --source apertium_apy') + [os.path.join(base_path, 'servlet.py')] + cli_args
-    server_handle = subprocess.Popen(coverage_cli_args)  # TODO: swallow output and print on error?
+    coverage_cli_args = shlex.split('coverage run --rcfile {}'.format(os.path.join(base_path, '.coveragerc')))
+    server_handle = subprocess.Popen(coverage_cli_args + [os.path.join(base_path, 'servlet.py')] + cli_args)  # TODO: print only on error?
 
     started = False
     waited = 0

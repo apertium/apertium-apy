@@ -16,6 +16,7 @@ test:
 	flake8 *.py apertium_apy/ language_names/ tests/
 	mypy --config-file mypy.ini **/*.py
 	python3 -m unittest tests/test*.py
+	coverage combine
 	coverage report --fail-under 40
 
 clean:
