@@ -277,5 +277,17 @@ class TestListLanguageNamesHandler(BaseTestCase):
         self.assertEqual(response['en'], 'Anglais')
 
 
+class TestIdentifyLangHandler(BaseTestCase):
+    def test_identify_lang(self):
+        response = self.fetch_json('/identifyLang', {'q': 'ikkje'})
+        self.assertAlmostEqual(response['nno'], 1.0)
+
+
+class TestCoverageHandler(BaseTestCase):
+    def test_coverage(self):
+        response = self.fetch_json('/calcCoverage', {'q': 'ikkje notnno', 'lang': 'nno'})
+        self.assertListEqual(response, [0.5])
+
+
 if __name__ == '__main__':
     unittest.main()
