@@ -1,6 +1,29 @@
 # -*- mode:org -*-
 #+STARTUP: showall
 
+* Version: 0.11.0, 2018-04-01
+  Git rev: a92a112a26a22885ee7c6a5dc5fb26612774b790
+  Changes since 0.10.1:
+
+  - PyPi packaging
+
+  - Added requirements.txt and requirements-dev.txt
+
+  - Improved READMEs
+
+  - Dropped support for Tornado v3, supporting >=4.2.1,<5
+
+  - Fix to allow /listLanguageNames request without locale
+
+  - Make apertium-streamparser an optional dependency
+
+  - Fix Python 3.4 support without typing library backport
+
+  - Numerous internal changes including widespread code refactoring,
+    naming changes, improved testing, faster continuous integration,
+    more consistent code style, more linting, and coverage calculation
+
+
 * Version 0.10.0, 2018-01-01
   Git rev: 7bd5c0327cdac0e75126da3d8681cb7553698d97
 
