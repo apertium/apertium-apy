@@ -353,13 +353,11 @@ def main():
     http_server.bind(args.port)
     http_server.start(args.num_processes)
 
-    loop = tornado.ioloop.IOLoop.instance()
     wd = systemd.setup_watchdog()
     if wd is not None:
         wd.systemd_ready()
         logging.info('Initialised systemd watchdog, pinging every {}s'.format(1000 * wd.period))
-        tornado.ioloop.PeriodicCallback(wd.watchdog_ping, 1000 * wd.period, loop).start()
-    loop.start()
+        tornado.ioloop.PeriodicCallback(wd.watchdog_ping, 1000 * wd.period).start()
 
 
 if __name__ == '__main__':
