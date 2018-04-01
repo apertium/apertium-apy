@@ -82,7 +82,7 @@ See NEWS for a per-release summary, this is just the git log.
 2018-03-26  Sushain Cherivirala <sushain@skc.name>
 
 	* apertium_apy/handlers/per_word.py,
-	apertium_apy/handlers/suggestion.py, apertium_apy/utils/__init__.py: 
+	apertium_apy/handlers/suggestion.py, apertium_apy/utils/__init__.py:
 	Move more code out of global utils
 
 2018-03-26  Sushain Cherivirala <sushain@skc.name>
@@ -96,7 +96,7 @@ See NEWS for a per-release summary, this is just the git log.
 
 2018-03-25  Sushain Cherivirala <sushain@skc.name>
 
-	* .travis.yml, Makefile, apertium_apy/__init__.py, tests/test.py: 
+	* .travis.yml, Makefile, apertium_apy/__init__.py, tests/test.py:
 	Run branch coverage and flake8 on tests dir
 
 2018-03-25  Sushain Cherivirala <sushain@skc.name>
@@ -239,7 +239,7 @@ See NEWS for a per-release summary, this is just the git log.
 
 2018-03-24  Sushain Cherivirala <sushain@skc.name>
 
-	* tests/README, tests/README.md, tests/run-tests, tests/test.py: 
+	* tests/README, tests/README.md, tests/run-tests, tests/test.py:
 	Finish Python tests
 
 2018-03-24  Sushain Cherivirala <sushain@skc.name>
@@ -483,7 +483,7 @@ See NEWS for a per-release summary, this is just the git log.
 
 2018-01-07  Sushain Cherivirala <sushain@skc.name>
 
-	* .flake8, .travis.yml, missingdb.py, servlet.py, translation.py: 
+	* .flake8, .travis.yml, missingdb.py, servlet.py, translation.py:
 	Cleanup and style fixes (#79)
 
 2018-01-05  Sushain Cherivirala <sushain@skc.name>
@@ -518,7 +518,7 @@ See NEWS for a per-release summary, this is just the git log.
 
 2017-12-31  Sushain Cherivirala <sushain@skc.name>
 
-	* language-names/scraped-sil.sql, language-names/scraper-sil.py: 
+	* language-names/scraped-sil.sql, language-names/scraper-sil.py:
 	Stop cutting off anything past first word of language names from SIL
 
 2017-12-31  Sushain Cherivirala <sushain@skc.name>
@@ -584,7 +584,7 @@ See NEWS for a per-release summary, this is just the git log.
 
 2017-10-25  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-	* gateway.py, servlet.py, translation.py, translation_py32.py: 
+	* gateway.py, servlet.py, translation.py, translation_py32.py:
 	please flake8
 
 2017-09-16  Kevin Brubeck Unhammer <unhammer@fsfe.org>
@@ -871,11 +871,11 @@ See NEWS for a per-release summary, this is just the git log.
 
 	* : Merge pull request #21 from Putti/variable Remove unused variable
 
-2016-05-27  Joonas Kylm‰l‰ <j.kylmala@gmail.com>
+2016-05-27  Joonas Kylm√§l√§ <j.kylmala@gmail.com>
 
 	* modeSearch.py: Remove unused variable
 
-2016-05-27  Joonas Kylm‰l‰ <j.kylmala@gmail.com>
+2016-05-27  Joonas Kylm√§l√§ <j.kylmala@gmail.com>
 
 	* modeSearch.py: Move mode logging to it's own function
 
@@ -893,7 +893,7 @@ See NEWS for a per-release summary, this is just the git log.
 
 2016-05-20  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-	* .gitignore, servlet.py, systemd.py, tools/systemd/apy.service: 
+	* .gitignore, servlet.py, systemd.py, tools/systemd/apy.service:
 	systemd watchdog; only used if started by systemd and the .service file has e.g. WatchdogSec=10s
 
 2016-05-20  Kevin Brubeck Unhammer <unhammer@fsfe.org>
