@@ -1,6 +1,13 @@
 # -*- mode:org -*-
 #+STARTUP: showall
 
+* Version: 0.11.1, 2018-04-02
+  Git rev: 55c30c166c9e28e365178b6c80d24d10fbbf7671
+  Changes since 0.11.0:
+
+  - Support Tornado 5.0
+
+
 * Version: 0.11.0, 2018-04-01
   Git rev: a92a112a26a22885ee7c6a5dc5fb26612774b790
   Changes since 0.10.1:
