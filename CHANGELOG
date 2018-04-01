@@ -1,240 +1,861 @@
 See NEWS for a per-release summary, this is just the git log.
 
+2018-03-30  Sushain Cherivirala <sushain@skc.name>
+
+	* NEWS: Update NEWS
+
+2018-03-30  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/apy.py: Bump to v0.11.0
+
+2018-03-27  Sushain Cherivirala <sushain@skc.name>
+
+	* tests/test.py: Invalid calc coverage tests
+
+2018-03-27  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/handlers/coverage.py,
+	apertium_apy/handlers/identify_lang.py,
+	apertium_apy/utils/__init__.py: Switch to Tornado futures/subprocess
+	wrapper from multiprocessing for coverage
+
+2018-03-27  Sushain Cherivirala <sushain@skc.name>
+
+	* .coveragerc, .travis.yml, Makefile, tests/test.py: More accurate
+	coverage measurement
+
+2018-03-27  Sushain Cherivirala <sushain@skc.name>
+
+	* tests/test.py: Add two more basic tests
+
+2018-03-27  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/apy.py, setup.py: Bump to v0.11.0.rc3 and fix
+	packaging
+
+2018-03-27  Sushain Cherivirala <sushain@skc.name>
+
+	* requirements.txt, setup.py: Drop required Tornado version to 4.2.1
+	(#99)
+
+2018-03-26  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/apy.py: v0.11.0.rc2
+
+2018-03-26  Sushain Cherivirala <sushain@skc.name>
+
+	* tests/test.py: Less strict invalid webpage test
+
+2018-03-26  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, Makefile, tests/test.py: Add invalid webpage test and
+	up coverage req to 40%
+
+2018-03-26  Sushain Cherivirala <sushain@skc.name>
+
+	* tests/test.py: Attempt webpage translation test
+
+2018-03-26  Sushain Cherivirala <sushain@skc.name>
+
+	* tests/test.py: Add JSONP test
+
+2018-03-26  Sushain Cherivirala <sushain@skc.name>
+
+	* tests/test.py: Two more tests to get 100% coverage in
+	analyze/generate + re-enable accidentally commented out ones
+
+2018-03-26  Sushain Cherivirala <sushain@skc.name>
+
+	* tests/test.py: Add a test that won't pass...
+
+2018-03-26  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/apy.py, apertium_apy/gateway.py,
+	apertium_apy/handlers/base.py,
+	apertium_apy/handlers/list_language_names.py,
+	apertium_apy/handlers/suggestion.py,
+	apertium_apy/handlers/translate_webpage.py,
+	apertium_apy/mode_search.py, apertium_apy/utils/translation.py,
+	apertium_apy/utils/wiki.py, tests/test.py: Remove a bunch of
+	unnecessary %s
+
+2018-03-26  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/handlers/per_word.py,
+	apertium_apy/handlers/suggestion.py, apertium_apy/utils/__init__.py: 
+	Move more code out of global utils
+
+2018-03-26  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, apertium_apy/handlers/list_language_names.py,
+	tests/test.py: Fix /listLanguageNames bug and add more tests
+
+2018-03-25  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, Makefile: Drop coverage req to 35
+
+2018-03-25  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, Makefile, apertium_apy/__init__.py, tests/test.py: 
+	Run branch coverage and flake8 on tests dir
+
+2018-03-25  Sushain Cherivirala <sushain@skc.name>
+
+	* tests/test.py: Re-enable the tests I disabled locally
+
+2018-03-25  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, Makefile, apertium_apy/__init__.py,
+	apertium_apy/apy.py, apertium_apy/handlers/__init__.py,
+	apertium_apy/handlers/analyze.py, apertium_apy/handlers/base.py,
+	apertium_apy/handlers/coverage.py,
+	apertium_apy/handlers/generate.py,
+	apertium_apy/handlers/identify_lang.py,
+	apertium_apy/handlers/list_language_names.py,
+	apertium_apy/handlers/list_modes.py,
+	apertium_apy/handlers/per_word.py,
+	apertium_apy/handlers/pipe_debug.py,
+	apertium_apy/handlers/speller.py, apertium_apy/handlers/stats.py,
+	apertium_apy/handlers/suggestion.py,
+	apertium_apy/handlers/translate.py,
+	apertium_apy/handlers/translate_chain.py,
+	apertium_apy/handlers/translate_doc.py,
+	apertium_apy/handlers/translate_raw.py,
+	apertium_apy/handlers/translate_webpage.py, apertium_apy/keys.py,
+	apertium_apy/missingdb.py, apertium_apy/mode_search.py,
+	apertium_apy/translation.py, apertium_apy/util.py,
+	apertium_apy/utils/__init__.py, apertium_apy/utils/translation.py,
+	apertium_apy/utils/wiki.py, apertium_apy/wiki_util.py,
+	tests/test.py: Reorganize everything
+
+2018-03-25  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, Makefile: Lower expectations...
+
+2018-03-25  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, Makefile, tests/test.py: Improve tests and bump
+	coverage req
+
+2018-03-25  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, Makefile, tests/test.py: Actually measure coverage in
+	subprocess
+
+2018-03-25  Sushain Cherivirala <sushain@skc.name>
+
+	* .gitattributes, README.md: Attempt to fix language stats and fix
+	README verbs
+
+2018-03-25  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/apy.py: Bump version to 0.11.0.rc1
+
+2018-03-25  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/gateway.py: Tad bit of cleanup
+
+2018-03-25  Sushain Cherivirala <sushain@skc.name>
+
+	* MANIFEST.in, serverlist-example, tools/serverlist-example: Move
+	the serverlist
+
+2018-03-25  Sushain Cherivirala <sushain@skc.name>
+
+	* Makefile: Add distclean make target
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* README.md: Fix typo
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml: Update notification token
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml: Cache /tmp/languages
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* Makefile: Improved make targets
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* README.md: PyPi badges
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* README.md, setup.py: Add to README and entry_scripts
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* Makefile: Add a helpful make test target
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* setup.py: Require Py3.4
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* requirements.txt: Tornado 4.4 -> 4.3
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* requirements.txt: Tornado 4.5 -> 4.4
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* MANIFEST.in: Whoops, forgot the manifest
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* Makefile, setup.py: Complete setup.py
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* Makefile, apertium_apy/apy.py, apertium_apy/mode_search.py,
+	apertium_apy/util.py, servlet.py, setup.py, tests/test.py: Start on
+	setup.py and fix some imports
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, apertium_apy/apy.py, apertium_apy/gateway.py,
+	apertium_apy/keys.py, apertium_apy/missingdb.py,
+	apertium_apy/mode_search.py, apertium_apy/translation.py: Hopefully
+	actually support Python3.4
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, requirements-dev.txt: This should BREAK 3.4 compat
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* tests/test.py: Proper list handler test
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* README.md: Add badges
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* tests/README, tests/README.md, tests/run-tests, tests/test.py: 
+	Finish Python tests
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* tests/test.py: More tests and verification
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* tests/test.py: Foiled by own linting...
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, tests/test.py: Another test and run them correctly
+	this time
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml: Faster build
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, apertium_apy/translation.py, tests/test.py: Satisfy
+	mypy, more tests and some cleanup
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, requirements-dev.txt: Add coveralls
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, tests/test.py: Working Python tests
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, apertium_apy/apy.py, tests/test.py: Start on python
+	tests
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/apy.py: Some separation of concerns in prep for
+	proper testing
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, requirements-dev.txt: Disable coverage report for now
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, requirements.txt: Split the requirements
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, apertium_apy/apy.py, servlet.py, tests/run-tests: Fix
+	mypy and servlet.py runnability
+
+2018-03-24  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/apy.py, language_names/scraper.py, requirements.txt,
+	servlet.py: No more symlinks
+
+2018-03-23  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/translation.py: Unbork build
+
+2018-03-23  Sushain Cherivirala <sushain@skc.name>
+
+	* language_names/README.md: Improve language names README
+
+2018-03-23  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/apy.py, apertium_apy/gateway.py,
+	apertium_apy/missingdb.py, apertium_apy/mode_search.py,
+	apertium_apy/systemd.py, apertium_apy/translation.py,
+	apertium_apy/util.py, language_names/scraper-sil.py,
+	language_names/scraper.py, requirements.txt,
+	tests/sanity-test-apy.py: Quote normalization
+
+2018-03-23  Sushain Cherivirala <sushain@skc.name>
+
+	* .flake8, .gitmodules, apertium_apy/apy.py,
+	apertium_apy/gateway.py, language_names/scraper.py: Drop max line
+	length to 140
+
+2018-03-23  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/apy.py, apertium_apy/gateway.py: Add module level
+	dunders
+
+2018-03-23  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/apy.py, apertium_apy/gateway.py,
+	apertium_apy/systemd.py, apertium_apy/translation.py: More pep8
+
+2018-03-23  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, apertium_apy/apy.py, language_names/scraper.py,
+	tests/run-tests: SVN -> Git
+
+2018-03-23  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/apy.py: Make streamparser optional
+
+2018-03-23  Sushain Cherivirala <sushain@skc.name>
+
+	* .flake8, apertium_apy/apy.py, apertium_apy/gateway.py,
+	apertium_apy/keys.py, apertium_apy/missingdb.py,
+	apertium_apy/modeSearch.py, apertium_apy/mode_search.py,
+	apertium_apy/translation.py, apertium_apy/util.py,
+	apertium_apy/wiki_util.py, language_names/scraper.py,
+	requirements.txt, tests/sanity-test-apy.py: Trailing commas and pep8
+	naming
+
+2018-03-23  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/apy.py, requirements.txt: Fix the imports and add
+	chardet to requirements
+
+2018-03-23  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, apertium_apy/apy.py: Hopefully fix build
+
+2018-03-23  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml: Oops, proper install.
+
+2018-03-23  Sushain Cherivirala <sushain@skc.name>
+
+	* .gitmodules, .travis.yml, mypy.ini, requirements.txt,
+	streamparser: Progress
+
+2018-03-23  Sushain Cherivirala <sushain@skc.name>
+
+	* .flake8, .gitignore, .travis.yml, CHANGELOG, ChangeLog, Makefile,
+	apertium_apy/__init__.py, apertium_apy/apy.py,
+	apertium_apy/gateway.py, apertium_apy/keys.py,
+	apertium_apy/missingdb.py, apertium_apy/modeSearch.py,
+	apertium_apy/systemd.py, apertium_apy/translation.py,
+	apertium_apy/util.py, apertium_apy/wiki_util.py, gateway.py,
+	keys.py, language-names/manual.sql, language-names/scraped-sil.sql,
+	language-names/scraped.sql, language-names/scraper-sil.py,
+	language-names/scraper.py, language-names/turkic.sql,
+	language-names/variants.sql, language_names/README.md,
+	language_names/manual.sql, language_names/scraped-sil.sql,
+	language_names/scraped.sql, language_names/scraper-sil.py,
+	language_names/scraper.py, language_names/turkic.sql,
+	language_names/variants.sql, missingdb.py, modeSearch.py,
+	requirements.txt, servlet.py, systemd.py, t/README, t/run-tests,
+	tests/README, tests/run-tests, tests/sanity-test-apy.py,
+	tools/README, tools/sanity-test-apy.py,
+	tools/upstart/apertium-apy-gateway.conf,
+	tools/upstart/apertium-apy.conf, toro.py, translation.py, util.py,
+	wiki_util.py: Initial set of changes
+
+2018-03-22  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: Revert "refer to actual useCount in cleanable" This reverts commit 22c2995ff62a364727e2ba9f22d78a9e1e3cc266.  I think this fixes #88 - `Too many open files` on macos server or at
+	least mitigates it (we might still be leaving files open on pipeline
+	restart, but at least we're not restarting them all the time) But now we'll get back the missing useCount warning on some
+	pipelines, need to figure out why that happens.
+
+2018-03-21  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml: Attempt to fix build with --allow-unauthenticated
+
+2018-03-16  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/sanity-test-apy.py: ukr-rus turned off on server with
+	~/tarballs/rm-bad-modes.sh for now
+
+2018-03-16  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/sanity-test-apy.py: Show usage on missing argument
+
+2018-03-16  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/sanity-test-apy.py: fix tests (rus/ukr was missing, tur-crh
+	gives #e's all over the place)
+
+2017-11-22  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: refer to actual useCount in cleanable
+
+2018-03-14  Tino Didriksen <tino@didriksen.cc>
+
+	* .gitmodules: goavki -> apertium
+
+2018-03-12  Sushain Cherivirala <sushain@skc.name>
+
+	* .gitattributes: Stop counting SQL in the language stats
+
+2018-03-07  Sushain Cherivirala <sushain@skc.name>
+
+	* language-names/scraper-sil.py: Fix build
+
+2018-03-07  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml: Adjust python versions
+
+2018-03-07  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, mypy.ini: Build fixes
+
+2018-03-07  Sushain Cherivirala <sushain@skc.name>
+
+	* README.md: Fix formatting for markdown
+
+2018-03-07  Sushain Cherivirala <sushain@skc.name>
+
+	* README.md, README.org: Update README for org shift and adjust
+	extension
+
+2018-01-18  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, mypy.ini: Fix build
+
+2018-01-18  Sushain Cherivirala <sushain@skc.name>
+
+	* streamparser: Update streamparser submodule
+
+2018-01-10  ryanachi <34379340+ryanachi@users.noreply.github.com>
+
+	* language-names/variants.sql: added Gascon to variants.sql (#82)
+
+2018-01-08  Jonathan Pan <jonpan4@gmail.com>
+
+	* .flake8, .gitmodules, modeSearch.py, mypy.ini, servlet.py,
+	streamparser: Spell Checker (#80) * Deconflicted files.  * Added submodule.  * Add submodule import.  * Fix lint errors.  * Removed some non-needed changes.  * Fix mypy errors.  * Style * Fix review comments.  * Fix logging.  * Changed error message.  * Add print statements.
+
+2018-01-08  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* language-names/manual.sql: native names for khk and kmr
+
+2018-01-08  ryanachi <34379340+ryanachi@users.noreply.github.com>
+
+	* Makefile, language-names/variants.sql: added variants to
+	languageNames (#78) * added variants to languageNames * added full name to Brazilian Portuguese * added more variants to variants.sql
+
+2018-01-07  Sushain Cherivirala <sushain@skc.name>
+
+	* util.py: Fix listLanguageNames
+
+2018-01-07  Sushain Cherivirala <sushain@skc.name>
+
+	* .flake8, .travis.yml, missingdb.py, servlet.py, translation.py: 
+	Cleanup and style fixes (#79)
+
+2018-01-05  Sushain Cherivirala <sushain@skc.name>
+
+	* translation.py: Style
+
+2018-01-04  Kevin Brubeck Unhammer <unhammer+dill@mm.st>
+
+	* : Merge pull request #76 from Androbin/async Make /listLanguageNames non-blocking
+
+2018-01-03  Sushain Cherivirala <sushain@skc.name>
+
+	* util.py: Re-order imports
+
 2017-12-31  Robin Richtsfeld <robin.richtsfeld@gmail.com>
 
-  * Fix mypy line count error
+	* servlet.py, util.py: Make /listLanguageNames non-blocking
 
-2017-12-31  Robin Richtsfeld <robin.richtsfeld@gmail.com>
+2018-01-01  Sushain Cherivirala <sushain@skc.name>
 
-  * Remove support for Python 3.2
+	* NEWS: Fix commit hash for v0.10.0
+
+2018-01-02  Robin Richtsfeld <robin.richtsfeld@gmail.com>
+
+	* .travis.yml, ChangeLog, NEWS, gateway.py, keys.py, missingdb.py,
+	modeSearch.py, servlet.py, toro.py, translation.py,
+	translation_py32.py: Remove support for Python 3.2 (fixes #73) * Remove support for Python 3.2 * Fix mypy line count error * Update ChangeLog * Update NEWS
+
+2018-01-01  Kevin Brubeck Unhammer <unhammer+dill@mm.st>
+
+	* : Merge pull request #72 from Androbin/patch-1 Type soft hypen explicitly
+
+2017-12-31  Sushain Cherivirala <sushain@skc.name>
+
+	* language-names/scraped-sil.sql, language-names/scraper-sil.py: 
+	Stop cutting off anything past first word of language names from SIL
+
+2017-12-31  Sushain Cherivirala <sushain@skc.name>
+
+	* Makefile, language-names/scraped-sil.sql,
+	language-names/scraper-sil.py: Add SIL scraped language names
+
+2017-12-31  Sushain Cherivirala <sushain@skc.name>
+
+	* .flake8, language-names/manual.sql, language-names/scraped.sql,
+	language-names/scraper.py: Rescrape language names
 
 2017-12-30  Robin Richtsfeld <robin.richtsfeld@gmail.com>
 
-  * Add a couple language names in English
+	* .gitignore, .travis.yml, gateway.py, keys.py, missingdb.py,
+	modeSearch.py, servlet.py, tools/sanity-test-apy.py, toro.py,
+	translation.py, translation_py32.py: Check types with mypy (fixes
+	#56) * Check types with mypy * Fix flake8 issues * Specify noqa -> F401 * Fix mypy below 3.3 * Refactor Travis commands
+
+2017-12-30  Robin Richtsfeld <robin.richtsfeld@gmail.com>
+
+	* servlet.py: Type soft hypen explicitly See comments on 0da34d9360cb7166ba2228e81e34527fa9467b0d The entity
+	is covered by `unescape`.
+
+2017-12-27  Sushain Cherivirala <sushain@skc.name>
+
+	* language-names/manual.sql: Add a couple language names in English
 
 2017-12-26  Sushain Cherivirala <sushain@skc.name>
 
-  * Couple more language names
+	* language-names/manual.sql: Couple more language names
 
 2017-12-25  Sushain Cherivirala <sushain@skc.name>
 
-  * Fix language name typo
+	* language-names/manual.sql: Fix language name typo
 
 2017-12-25  Sushain Cherivirala <sushain@skc.name>
 
-  * case fixes
+	* Makefile, language-names/manual.sql, language-names/scraped.sql,
+	language-names/scraper.py, language-names/turkic.sql,
+	tools/apertiumlangs.sql, tools/langNamesScraper.py,
+	tools/turkic.sql: Language names cleanup and additions (#68) * Move around and split language names files * Add some new names * Whoops, actually use the manual language names * Couple more additions
 
 2017-11-12  Jonathan North Washington <jonathan.north.washington@gmail.com>
 
-  * Gagauz in English
+	* tools/apertiumlangs.sql: case fixes
 
 2017-11-12  Jonathan North Washington <jonathan.north.washington@gmail.com>
 
-  * Gagauz in a few languages
+	* tools/apertiumlangs.sql: Gagauz in English
+
+2017-11-12  Jonathan North Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: Gagauz in a few languages
 
 2017-11-01  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * travis: comment out flake8 for python3.2 for now
+	* .travis.yml: travis: comment out flake8 for python3.2 for now
 
 2017-10-25  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * more flake8
+	* .gitignore, tools/langNamesScraper.py: more flake8
 
 2017-10-25  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * please flake8
+	* gateway.py, servlet.py, translation.py, translation_py32.py: 
+	please flake8
 
 2017-09-16  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * actual words in test
+	* tools/sanity-test-apy.py: actual words in test
 
 2017-09-16  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * test srd-cat, crh-tur (but messed up on server still)
+	* tools/sanity-test-apy.py: test srd-cat, crh-tur (but messed up on
+	server still)
 
 2017-08-23  Monish Godhia <monish1247@gmail.com>
 
-  * doh
+	* servlet.py, translation.py, translation_py32.py: Add website
+	translation handler (#58) * Website translation handler * Raise any exception that occurs on fetching the URL * Remove blank line * Attribute errors fixed * Remove comments * Add line, travis * Use startswith and not find
+
+2017-08-06  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/sanity-test-apy.py: doh
 
 2017-08-05  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * bel-rus
+	* tools/sanity-test-apy.py: bel-rus
 
 2017-06-07  Tino Didriksen <mail@tinodidriksen.com>
 
-  * Updated tests fra-cat spa-ita
+	* tools/sanity-test-apy.py: Updated tests fra-cat spa-ita
 
 2017-06-01  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * unindent main content a bit by using 'if should_fail:return' style
+	* servlet.py: unindent main content a bit by using 'if
+	should_fail:return' style
 
 2017-05-22  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * minor mypy fixes (issue #56)
+	* servlet.py, toro.py, translation.py, translation_py32.py: minor
+	mypy fixes (issue #56)
 
 2017-02-07  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * flake8
+	* servlet.py: flake8
 
 2017-02-07  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * remove soft hyphen
+	* servlet.py: remove soft hyphen
 
 2017-02-06  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * dgen is also a generator suffix
+	* modeSearch.py: Revert "dgen is also a generator suffix" This reverts commit 8851ad5383fdce7416defbb84ad9c6c5956f65a8.
+
+2017-02-06  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* modeSearch.py: dgen is also a generator suffix
 
 2017-02-01  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * change in translation.py that was missing from py32
+	* translation_py32.py: change in translation.py that was missing
+	from py32
 
 2017-01-18  Kevin Brubeck Unhammer <unhammer+dill@mm.st>
 
-  * some langnames from https://victorio.uit.no/langtech/trunk/techdoc/mt/smenob/Lokalisering.jspwiki
+	* : Merge pull request #43 from shardulc/chain-translations Initial support for translation chaining.
 
 2017-01-17  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * minor
+	* translation.py, translation_py32.py: minor
 
 2017-01-16  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * exc_info might not have log_message nor reason attrs
+	* servlet.py, translation.py, translation_py32.py: translateDoc
+	non-blocking, keep at most --max-doc-pipes concurrent closes #40 and #41; based on work by @jatinluthra14 of #45 and #46
+
+2017-01-16  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* servlet.py: exc_info might not have log_message nor reason attrs
 
 2017-01-14  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * translatePage: also fix url base for src=
+	* servlet.py: translatePage: also fix url base for src=
 
 2017-01-14  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * translatePage: only set url.netloc to base if it's unset
+	* servlet.py: translatePage: only set url.netloc to base if it's
+	unset
 
 2016-11-23  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * doh, self
+	* servlet.py: doh, self
 
 2016-11-23  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * doh, sub wants something to sub
+	* servlet.py: doh, sub wants something to sub
 
 2016-11-23  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * translatepage: better urlrebasing; do href→onclick in js
+	* servlet.py: translatepage: better urlrebasing; do href→onclick
+	in js
 
 2016-11-17  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * don't strip input text – leads to wrong offsets
+	* servlet.py: don't strip input text – leads to wrong offsets
 
 2017-01-14  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * Fix PEP8 formatting error
+	* servlet.py: cross-references in cli documentation so many options
 
 2017-01-06  Shardul Chiplunkar <shardul.chiplunkar@gmail.com>
 
-  * Changes requested by sushain97.
+	* servlet.py: Fix PEP8 formatting error
+
+2017-01-06  Shardul Chiplunkar <shardul.chiplunkar@gmail.com>
+
+	* servlet.py: Merge pairs and chains in /list, using src as an
+	optional argument to pairs. Make response format consistent.
 
 2017-01-05  Shardul Chiplunkar <shardul.chiplunkar@gmail.com>
 
-  * Make minor changes requested by Putti.
+	* servlet.py: Changes requested by sushain97.
+
+2017-01-05  Shardul Chiplunkar <shardul.chiplunkar@gmail.com>
+
+	* servlet.py, translation.py, translation_py32.py: Use Dijkstra's
+	algorithm to calculate shortest paths for all pairs at startup. Add
+	function to listPairs to list possible chainings. Add better
+	error-handling. Move the newer Python version-dependant code in
+	coreduce to appropriate translation* file.
 
 2017-01-04  Shardul Chiplunkar <shardul.chiplunkar@gmail.com>
 
-  * Move new formatting functinality to new function getFormat.
+	* servlet.py: Make minor changes requested by Putti.
+
+2017-01-04  Shardul Chiplunkar <shardul.chiplunkar@gmail.com>
+
+	* servlet.py: Initial support for translation chaining.
+	http://wiki.apertium.org/wiki/User:Shardulc has documentation of
+	this feature.
+
+2016-12-20  Kevin Brubeck Unhammer <unhammer+dill@mm.st>
+
+	* : Merge pull request #37 from shardulc/master Improve translate/ formatting interface, add rtf formatting handler
 
 2016-12-18  Shardul Chiplunkar <shardul.chiplunkar@gmail.com>
 
-  * Fix travis indentation error.
+	* translation.py: Fix travis indentation error.
 
 2016-12-18  Shardul Chiplunkar <shardul.chiplunkar@gmail.com>
 
-  * Improve translate/ formatting interface, add rtf formatting handler
+	* servlet.py, translation.py: Improve translate/ formatting
+	interface, add rtf formatting handler
 
 2016-12-09  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * Fixed https://github.com/goavki/apertium-apy/issues/15
+	* servlet.py: use built-in status_code→msg; use exception-specific
+	info for 400's etc.  so if we raise MissingArgument('q') then the error msg actually says
+	that
+
+2016-12-02  Simon Narang <simonarang202@gmail.com>
+
+	* servlet.py: Fixed https://github.com/goavki/apertium-apy/issues/15
 
 2016-11-27  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * sadly not a syntax error
+	* translation.py, translation_py32.py: sadly not a syntax error
 
 2016-11-27  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * Merge branch 'master' of github.com:goavki/apertium-apy
-
-2016-11-27  Kevin Brubeck Unhammer <unhammer@fsfe.org>
-
-  * simplify if x == True then True else False
+	* : commit 5b9335390d9d261ce71063996f245697b44164b4 Author: Kevin
+	Brubeck Unhammer <unhammer@fsfe.org> Date:   Sun Nov 27 20:02:10
+	2016 +0100
 
 2016-11-27  Jonathan North Washington <firespeaker@apertium.vm.bytemark.co.uk>
 
-  * crh in ru
+	* tools/apertiumlangs.sql: crh in ru
 
 2016-11-26  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * smn langnames
+	* translation.py, translation_py32.py: (ignored) reformat/deformat args for SimplePipeline etc.  I want a Python typechecker
+
+2016-11-25  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/apertiumlangs.sql: smn langnames
 
 2016-11-22  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * sardu langnames
+	* tools/apertiumlangs.sql: sardu langnames
 
 2016-11-22  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * test for ita-srd
+	* tools/sanity-test-apy.py: test for ita-srd
 
 2016-11-18  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * thought I'd fixed this in b2fd8c93 …
+	* translation_py32.py: thought I'd fixed this in b2fd8c93 …
 
 2016-11-18  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * bytes need b''
+	* translation.py, translation_py32.py: raise fail if retcode bad
+	after proc.communicate if deformat failed, we won't get final \0-byte into the stream,
+	making the main translation hang (and locking that pipeline)
 
 2016-11-17  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * flaky8
+	* translation.py, translation_py32.py: bytes need b''
+
+2016-11-17  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* .dir-locals.el, gateway.py, keys.py, servlet.py,
+	tools/langNamesScraper.py, translation.py, translation_py32.py: new
+	/translateRaw handler which expects pipeline to output as JSON also new url keywords deformat and reformat (see validateFormatters
+	for valid values); avoid giving -z arguments to programs which don't
+	use/need that for flushing; remove unused translateWithoutFlush fn;
+	flake8 fixes
 
 2016-10-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * travis: require trusty, sudo
+	* util.py: flaky8
 
 2016-10-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * Merge branch 'master' of github.com:goavki/apertium-apy
+	* .travis.yml: travis: require trusty, sudo
 
 2016-10-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * Ensure flake8 works for py3.2
+	* : commit 15f0940fe9d0bcd802dfe610babb89bfdfe75b90 Author: Kevin
+	Brubeck Unhammer <unhammer@fsfe.org> Date:   Thu Oct 13 08:52:18
+	2016 +0200
 
 2016-08-24  Sushain Cherivirala <sushain@skc.name>
 
-  * Merge branch 'master' into travis-flake8
+	* : Merge pull request #30 from goavki/travis-flake8 Add flake8 to Travis
+
+2016-08-24  Sushain Cherivirala <sushain@skc.name>
+
+	* : commit ebb54c4d18d4b921062bd6aa1dcf4f2021caeead Author: Sushain
+	Cherivirala <sushain@skc.name> Date:   Tue Aug 23 09:46:15 2016
+	-0500
 
 2016-08-23  Sushain Cherivirala <sushain@skc.name>
 
-  * Fix all Flake8 errors
-
-2016-08-23  Sushain Cherivirala <sushain@skc.name>
-
-  * Add flake8 to Travis config
+	* .travis.yml: Add flake8 to Travis config
 
 2016-08-24  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * oci_aran, not oct_aran
+	* .travis.yml, servlet.py, tools/apertium-recaptcha-test.html,
+	util.py, wiki_util.py: travis: py3.2 doesn't seem to support
+	tornado>4.3 so use tornado 4.3 when python 3.2, otherwise newest tornado
 
 2016-06-20  Jonathan Washington <jonathan.north.washington@gmail.com>
 
-  * kmr, scn fixes mostly
+	* tools/apertiumlangs.sql: oci_aran, not oct_aran
+
+2016-06-20  Jonathan Washington <jonathan.north.washington@gmail.com>
+
+	* tools/apertiumlangs.sql: kmr, scn fixes mostly
 
 2016-06-14  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * nob-swe was missing
+	* tools/sanity-test-apy.py: nob-swe was missing
 
 2016-06-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * doh, package has /modes at the end
+	* tools/systemd/apy.service: doh, package has /modes at the end
 
 2016-06-13  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
-  * User=apertium and expect data in /usr/share/apertium like the debian version
+	* tools/systemd/apy.service: User=apertium and expect data in
+	/usr/share/apertium like the debian version
+
+2016-06-10  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* ChangeLog, NEWS: NEWS/ChangeLog for 0.9.0→0.9.1
 
 2016-06-10  Kevin Brubeck Unhammer <unhammer@fsfe.org>
 
@@ -250,11 +871,11 @@ See NEWS for a per-release summary, this is just the git log.
 
 	* : Merge pull request #21 from Putti/variable Remove unused variable
 
-2016-05-27  Joonas Kylmälä <j.kylmala@gmail.com>
+2016-05-27  Joonas Kylm�l� <j.kylmala@gmail.com>
 
 	* modeSearch.py: Remove unused variable
 
-2016-05-27  Joonas Kylmälä <j.kylmala@gmail.com>
+2016-05-27  Joonas Kylm�l� <j.kylmala@gmail.com>
 
 	* modeSearch.py: Move mode logging to it's own function
 
