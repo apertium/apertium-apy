@@ -1,5 +1,25 @@
 See NEWS for a per-release summary, this is just the git log.
 
+2018-04-01  Sushain Cherivirala <sushain@skc.name>
+
+	* NEWS: Update NEWS
+
+2018-04-01  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/apy.py: Bump version
+
+2018-04-01  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/apy.py: Make it actually start
+
+2018-04-01  Sushain Cherivirala <sushain@skc.name>
+
+	* setup.py: Remove tornado version ceiling
+
+2018-04-01  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/apy.py: Fix PeriodicCallback for 5.0
+
 2018-03-30  Sushain Cherivirala <sushain@skc.name>
 
 	* NEWS: Update NEWS

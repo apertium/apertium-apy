@@ -2,7 +2,7 @@
 #+STARTUP: showall
 
 * Version: 0.11.1, 2018-04-02
-  Git rev: 55c30c166c9e28e365178b6c80d24d10fbbf7671
+  Git rev: d75edb71fb9caaf00773cfceeaa5352fd8f09830
   Changes since 0.11.0:
 
   - Support Tornado 5.0
