@@ -4,6 +4,7 @@ import sys
 from datetime import datetime
 
 import tornado
+import tornado.web
 from tornado import escape
 from tornado.escape import utf8
 from tornado.locks import Semaphore
