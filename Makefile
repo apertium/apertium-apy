@@ -1,15 +1,17 @@
+all: langNames.db
+
 langNames.db: language_names/scraped.sql language_names/scraped-sil.sql language_names/manual.sql language_names/variants.sql
 	@if test -f unicode.db; then echo "WARNING: unicode.db now called langNames.db"; fi
 	rm -f $@
 	cat $^ | sqlite3 $@
 
-dist: langNames.db
-	python3 setup.py sdist
+dist: all
+	python3 setup.py sdist bdist_wheel
 
-release: langNames.db
+release: all
 	python3 setup.py sdist bdist_wheel upload --sign
 
-test-release: langNames.db
+test-release: all
 	python3 setup.py sdist bdist_wheel upload --repository https://test.pypi.org/legacy/ --sign
 
 test:
