@@ -1,13 +1,7 @@
 from os import path
 from setuptools import setup, find_packages
-from subprocess import check_call, CalledProcessError
 
 from apertium_apy import apy
-
-try:
-    check_call('make')
-except CalledProcessError:
-    pass
 
 setup(
     name='apertium-apy',
