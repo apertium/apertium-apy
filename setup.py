@@ -12,7 +12,9 @@ class InstallHelper(install):
             check_call(['make', 'langNames.db'])
         except CalledProcessError:
             pass
+
         super().run()
+
         try:
             check_call(['make', 'clean'])
         except CalledProcessError:
@@ -48,7 +50,7 @@ setup(
         'spelling': ['apertium-streamparser'],
         'suggestions': ['requests'],
         'website_encoding_detect': ['chardet'],
-        'all': ['apertium-streamparser', 'requests', 'chardet'],
+        'full': ['apertium-streamparser', 'requests', 'chardet'],
     },
     entry_points={
         'console_scripts': ['apertium-apy=apertium_apy.apy:main'],
