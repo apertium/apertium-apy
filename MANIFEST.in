@@ -1,7 +1,4 @@
 include COPYING
 include langNames.db
 include servlet.py
-include tools/serverlist-example
-include tools/systemd/*
-include tools/sysvinit/*
-include tools/upstart/*
+recursive-include tools *
