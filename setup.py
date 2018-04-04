@@ -1,7 +1,23 @@
 from os import path
 from setuptools import setup, find_packages
+from setuptools.command.install import install
+from subprocess import check_call, CalledProcessError
 
 from apertium_apy import apy
+
+
+class InstallHelper(install):
+    def run(self):
+        try:
+            check_call(['make', 'langNames.db'])
+        except CalledProcessError:
+            pass
+        super().run(self)
+        try:
+            check_call(['make', 'clean'])
+        except CalledProcessError:
+            pass
+
 
 setup(
     name='apertium-apy',
@@ -38,4 +54,7 @@ setup(
         'console_scripts': ['apertium-apy=apertium_apy.apy:main'],
     },
     packages=find_packages(),
+    cmdclass={
+        'install': InstallHelper,
+    },
 )
