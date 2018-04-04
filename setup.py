@@ -17,6 +17,7 @@ class InstallHelper(install):
         except CalledProcessError:
             pass
 
+
 setup(
     name='apertium-apy',
     version=apy.__version__,
