@@ -50,7 +50,8 @@ setup(
         'spelling': ['apertium-streamparser'],
         'suggestions': ['requests'],
         'website_encoding_detect': ['chardet'],
-        'full': ['apertium-streamparser', 'requests', 'chardet'],
+        'lang_detect': ['chromium_compact_language_detector'],
+        'full': ['apertium-streamparser', 'requests', 'chardet', 'chromium_compact_language_detector'],
     },
     entry_points={
         'console_scripts': ['apertium-apy=apertium_apy.apy:main'],
