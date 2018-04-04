@@ -1,5 +1,51 @@
 See NEWS for a per-release summary, this is just the git log.
 
+2018-04-04  Sushain Cherivirala <sushain@skc.name>
+
+	* MANIFEST.in, NEWS, apertium_apy/apy.py, setup.py: Include proper
+	files in bdist
+
+2018-04-04  Sushain Cherivirala <sushain@skc.name>
+
+	* README.md: Update cld2 reference in README
+
+2018-04-04  Sushain Cherivirala <sushain@skc.name>
+
+	* setup.py: Looks like someone did publish CLD2 to PyPi
+
+2018-04-04  Sushain Cherivirala <sushain@skc.name>
+
+	* setup.py: Minor style tweaks
+
+2018-04-04  Sushain Cherivirala <sushain@skc.name>
+
+	* setup.py: Some setup.py extra fixes
+
+2018-04-04  Tino Didriksen <tino@didriksen.cc>
+
+	* setup.py: How did Travis not catch this?
+
+2018-04-04  Tino Didriksen <mail@tinodidriksen.com>
+
+	* setup.py: Build and remove langNames.db during install (#103) Build and remove langNames.db during install (issue #84)
+
+2018-04-03  Sushain Cherivirala <sushain@skc.name>
+
+	* Makefile, setup.py: Revert "Run make inside setup.py" This reverts commit c2e6c14a1a55eb969a6b7b63434959757af83b1f.
+
+2018-04-03  Sushain Cherivirala <sushain@skc.name>
+
+	* Makefile, setup.py: Run make inside setup.py
+
+2018-04-03  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/handlers/base.py, tests/__init__.py: Play well with
+	Debian's Python packaging
+
+2018-04-02  Sushain Cherivirala <sushain@skc.name>
+
+	* CHANGELOG, NEWS: Update changelog
+
 2018-04-01  Sushain Cherivirala <sushain@skc.name>
 
 	* NEWS: Update NEWS

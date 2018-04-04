@@ -2,7 +2,7 @@
 #+STARTUP: showall
 
 * Version: 0.11.2 2018-04-04
-  Git rev: d75edb71fb9caaf00773cfceeaa5352fd8f09830
+  Git rev: e92cc48f1ae5ce06fb8f7ead9f5736048e8bc10a
   Changes since 0.11.1:
 
   - Include langNames.db and tools in installed version
@@ -11,6 +11,7 @@
   - Improvements to work better with Debian install
 
   - Proper cld2 dependency naming and new [full] extra
+
 
 * Version: 0.11.1, 2018-04-02
   Git rev: d75edb71fb9caaf00773cfceeaa5352fd8f09830
