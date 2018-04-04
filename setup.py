@@ -47,8 +47,8 @@ setup(
     extras_require={
         'spelling': ['apertium-streamparser'],
         'suggestions': ['requests'],
-        'lang_detect': ['cld2'],
         'website_encoding_detect': ['chardet'],
+        'all': ['apertium-streamparser', 'requests', 'chardet'],
     },
     entry_points={
         'console_scripts': ['apertium-apy=apertium_apy.apy:main'],
