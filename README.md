@@ -21,7 +21,7 @@ of the following packages:
 
 - `apertium-streamparser` enables spell checking
 - `requests` enables suggestion handling
-- `cld2` enables improved language detection
+- `chromium_compact_language_detector` enables improved language detection (cld2)
 - `chardet` enables website character encoding detection
 
 Precise versions are available in `requirements.txt` and `setup.py`.
