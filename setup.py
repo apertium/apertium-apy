@@ -12,7 +12,7 @@ class InstallHelper(install):
             check_call(['make', 'langNames.db'])
         except CalledProcessError:
             pass
-        super().run(self)
+        super().run()
         try:
             check_call(['make', 'clean'])
         except CalledProcessError:
