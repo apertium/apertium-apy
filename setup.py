@@ -5,6 +5,7 @@ from subprocess import check_call, CalledProcessError
 
 from apertium_apy import apy
 
+
 class InstallHelper(install):
     def run(self):
         try:
