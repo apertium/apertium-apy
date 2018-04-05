@@ -1,6 +1,13 @@
 # -*- mode:org -*-
 #+STARTUP: showall
 
+* Version: 0.11.3 2018-04-04
+  Git rev: 7f92fb4b2c98532377ded8864f3d858401a90b90
+  Changes since 0.11.2:
+
+  - Install to `share` instead of directly `sys.prefix`
+
+
 * Version: 0.11.2 2018-04-04
   Git rev: e92cc48f1ae5ce06fb8f7ead9f5736048e8bc10a
   Changes since 0.11.1:

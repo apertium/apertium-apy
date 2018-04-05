@@ -65,11 +65,11 @@ setup(
     },
     packages=find_packages(exclude=['tests']),
     data_files=[
-        ('apertium_apy', ['README.md', 'COPYING', 'langNames.db']),
-        ('apertium_apy/tools', files('tools')),
-        ('apertium_apy/tools/systemd', files('tools/systemd')),
-        ('apertium_apy/tools/sysvinit', files('tools/sysvinit')),
-        ('apertium_apy/tools/upstart', files('tools/upstart')),
+        ('share/apertium-apy', ['README.md', 'COPYING', 'langNames.db']),
+        ('share/apertium-apy/tools', files('tools')),
+        ('share/apertium-apy/tools/systemd', files('tools/systemd')),
+        ('share/apertium-apy/tools/sysvinit', files('tools/sysvinit')),
+        ('share/apertium-apy/tools/upstart', files('tools/upstart')),
     ],
     cmdclass={
         'install': InstallHelper,
