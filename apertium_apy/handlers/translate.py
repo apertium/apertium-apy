@@ -188,5 +188,5 @@ class TranslateHandler(BaseHandler):
         self.send_response({
             'responseData': self.response,
             'responseDetails': None,
-            'responseStatus': 200
+            'responseStatus': 200,
         })
