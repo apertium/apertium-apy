@@ -1,4 +1,4 @@
-from os import listdir, path
+from os import path
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 from subprocess import check_call, CalledProcessError
@@ -9,7 +9,7 @@ from apertium_apy import apy
 class InstallHelper(install):
     def run(self):
         try:
-            check_call(['make', 'langNames.db'])
+            check_call(['make', 'unclean'])
         except CalledProcessError:
             pass
 
@@ -19,13 +19,6 @@ class InstallHelper(install):
             check_call(['make', 'clean'])
         except CalledProcessError:
             pass
-
-
-def files(root):
-    for file_or_dir in listdir(root):
-        full_path = path.join(root, file_or_dir)
-        if path.isfile(full_path):
-            yield full_path
 
 
 setup(
@@ -64,13 +57,9 @@ setup(
         'console_scripts': ['apertium-apy=apertium_apy.apy:main'],
     },
     packages=find_packages(exclude=['tests']),
-    data_files=[
-        ('apertium_apy', ['README.md', 'COPYING', 'langNames.db']),
-        ('apertium_apy/tools', files('tools')),
-        ('apertium_apy/tools/systemd', files('tools/systemd')),
-        ('apertium_apy/tools/sysvinit', files('tools/sysvinit')),
-        ('apertium_apy/tools/upstart', files('tools/upstart')),
-    ],
+    package_data={
+        'apertium_apy': ['README.md', 'COPYING', 'langNames.db'],
+    },
     cmdclass={
         'install': InstallHelper,
     },

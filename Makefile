@@ -19,8 +19,12 @@ test:
 	coverage combine
 	coverage report --fail-under 40
 
+unclean: langNames.db
+	cp -a langNames.db README.md COPYING apertium_apy/
+
 clean:
 	rm -f langNames.db
+	rm -f apertium_apy/langNames.db apertium_apy/README.md apertium_apy/COPYING
 
 distclean: clean
 	rm -rf dist/ build/ *.egg-info/ .mypy_cache/ .coverage
