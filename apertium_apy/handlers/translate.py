@@ -157,7 +157,7 @@ class TranslateHandler(BaseHandler):
         before = self.log_before_translation()
         translated = yield pipeline.translate(to_translate, nosplit, deformat, reformat)
         self.log_after_translation(before, len(to_translate))
-        self.send_response({
+        self.response.append({
             'responseData': {
                 'translatedText': self.maybe_strip_marks(mark_unknown, pair, translated),
             },
@@ -168,15 +168,25 @@ class TranslateHandler(BaseHandler):
 
     @gen.coroutine
     def get(self):
-        pair = self.get_pair_or_error(self.get_argument('langpair'),
-                                      len(self.get_argument('q')))
-        if pair is not None:
-            pipeline = self.get_pipeline(pair)
-            deformat, reformat = self.get_format()
-            yield self.translate_and_respond(pair,
-                                             pipeline,
-                                             self.get_argument('q'),
-                                             self.get_argument('markUnknown', default='yes'),
-                                             nosplit=False,
-                                             deformat=deformat,
-                                             reformat=reformat)
+        self.response = []
+        query_list = self.get_arguments('q')
+        langpair = self.get_argument('langpair')
+        for query in query_list:
+            pair = self.get_pair_or_error(langpair, len(query))
+            if pair is not None:
+                pipeline = self.get_pipeline(pair)
+                deformat, reformat = self.get_format()
+                yield self.translate_and_respond(pair,
+                                                 pipeline,
+                                                 query,
+                                                 self.get_argument('markUnknown', default='yes'),
+                                                 nosplit=False,
+                                                 deformat=deformat,
+                                                 reformat=reformat)
+        if len(self.response) == 1:
+            self.response = self.response[0]['responseData']
+        self.send_response({
+            'responseData': self.response,
+            'responseDetails': None,
+            'responseStatus': 200
+        })
