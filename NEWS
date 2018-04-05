@@ -2,7 +2,7 @@
 #+STARTUP: showall
 
 * Version: 0.11.3 2018-04-04
-  Git rev: 7f92fb4b2c98532377ded8864f3d858401a90b90
+  Git rev: 0c0d3c72ce8e8b93affd9b76a69878a052120c26
   Changes since 0.11.2:
 
   - Install to `share` instead of directly `sys.prefix`

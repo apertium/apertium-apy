@@ -1,5 +1,13 @@
 See NEWS for a per-release summary, this is just the git log.
 
+2018-04-05  Sushain Cherivirala <sushain@skc.name>
+
+	* NEWS, apertium_apy/apy.py, setup.py: Install into share (#106) * Install into share * Add news entry and version
+
+2018-04-04  Sushain Cherivirala <sushain@skc.name>
+
+	* CHANGELOG, NEWS: Update CHANGELOG
+
 2018-04-04  Sushain Cherivirala <sushain@skc.name>
 
 	* MANIFEST.in, NEWS, apertium_apy/apy.py, setup.py: Include proper
