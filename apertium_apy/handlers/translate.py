@@ -170,20 +170,20 @@ class TranslateHandler(BaseHandler):
     def get(self):
         query_list = self.get_arguments('q')
         langpair = self.get_argument('langpair')
-        list_of_futures = []
-        for query in query_list:
-            pair = self.get_pair_or_error(langpair, len(query))
-            if pair is not None:
-                pipeline = self.get_pipeline(pair)
-                deformat, reformat = self.get_format()
-                list_of_futures.append(self.translate_and_respond(pair,
+        translation_futures = []
+        pair = self.get_pair_or_error(langpair, len(''.join(query_list)))
+        if pair is not None:
+            pipeline = self.get_pipeline(pair)
+            deformat, reformat = self.get_format()
+            for query in query_list:
+                translation_futures.append(self.translate_and_respond(pair,
                                                                   pipeline,
                                                                   query,
                                                                   self.get_argument('markUnknown', default='yes'),
                                                                   nosplit=False,
                                                                   deformat=deformat,
                                                                   reformat=reformat))
-        response = yield gen.multi_future(list_of_futures)
+        response = yield gen.multi_future(translation_futures)
         if response:
             if len(response) == 1:
                 response = response[0]['responseData']
