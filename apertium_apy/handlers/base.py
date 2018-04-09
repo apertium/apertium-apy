@@ -132,9 +132,7 @@ class BaseHandler(tornado.web.RequestHandler):
             self._write_buffer.append(utf8('%s(%s)' % (self.callback, data)))
         else:
             self._write_buffer.append(utf8(data))
-
-        if not self._finished:
-            self.finish()
+        self.finish()
 
     def write_error(self, status_code, **kwargs):
         http_explanations = {

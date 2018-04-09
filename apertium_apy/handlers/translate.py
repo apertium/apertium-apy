@@ -157,36 +157,38 @@ class TranslateHandler(BaseHandler):
         before = self.log_before_translation()
         translated = yield pipeline.translate(to_translate, nosplit, deformat, reformat)
         self.log_after_translation(before, len(to_translate))
-        self.response.append({
+        self.clean_pairs()
+        return {
             'responseData': {
                 'translatedText': self.maybe_strip_marks(mark_unknown, pair, translated),
             },
             'responseDetails': None,
             'responseStatus': 200,
-        })
-        self.clean_pairs()
+        }
 
     @gen.coroutine
     def get(self):
-        self.response = []
         query_list = self.get_arguments('q')
         langpair = self.get_argument('langpair')
+        list_of_futures = []
         for query in query_list:
             pair = self.get_pair_or_error(langpair, len(query))
             if pair is not None:
                 pipeline = self.get_pipeline(pair)
                 deformat, reformat = self.get_format()
-                yield self.translate_and_respond(pair,
-                                                 pipeline,
-                                                 query,
-                                                 self.get_argument('markUnknown', default='yes'),
-                                                 nosplit=False,
-                                                 deformat=deformat,
-                                                 reformat=reformat)
-        if len(self.response) == 1:
-            self.response = self.response[0]['responseData']
-        self.send_response({
-            'responseData': self.response,
-            'responseDetails': None,
-            'responseStatus': 200,
-        })
+                list_of_futures.append(self.translate_and_respond(pair,
+                                                                  pipeline,
+                                                                  query,
+                                                                  self.get_argument('markUnknown', default='yes'),
+                                                                  nosplit=False,
+                                                                  deformat=deformat,
+                                                                  reformat=reformat))
+        response = yield gen.multi_future(list_of_futures)
+        if response:
+            if len(response) == 1:
+                response = response[0]['responseData']
+            self.send_response({
+                'responseData': response,
+                'responseDetails': None,
+                'responseStatus': 200,
+            })
