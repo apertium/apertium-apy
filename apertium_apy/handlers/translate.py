@@ -151,39 +151,31 @@ class TranslateHandler(BaseHandler):
         return deformat, reformat
 
     @gen.coroutine
-    def translate_and_respond(self, pair, pipeline, to_translate, mark_unknown, nosplit=False, deformat=True, reformat=True):
-        mark_unknown = mark_unknown in ['yes', 'true', '1']
-        self.note_pair_usage(pair)
-        before = self.log_before_translation()
-        translated = yield pipeline.translate(to_translate, nosplit, deformat, reformat)
-        self.log_after_translation(before, len(to_translate))
-        self.clean_pairs()
-        return {
-            'responseData': {
-                'translatedText': self.maybe_strip_marks(mark_unknown, pair, translated),
-            },
-            'responseDetails': None,
-            'responseStatus': 200,
-        }
-
-    @gen.coroutine
     def get(self):
         query_list = self.get_arguments('q')
         langpair = self.get_argument('langpair')
         translation_futures = []
+        response = []
         pair = self.get_pair_or_error(langpair, len(''.join(query_list)))
         if pair is not None:
+            self.note_pair_usage(pair)
             pipeline = self.get_pipeline(pair)
             deformat, reformat = self.get_format()
+            mark_unknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
             for query in query_list:
-                translation_futures.append(self.translate_and_respond(pair,
-                                                                  pipeline,
-                                                                  query,
-                                                                  self.get_argument('markUnknown', default='yes'),
-                                                                  nosplit=False,
-                                                                  deformat=deformat,
-                                                                  reformat=reformat))
-        response = yield gen.multi_future(translation_futures)
+                before = self.log_before_translation()
+                translation_futures.append(pipeline.translate(query, nosplit=False, deformat=deformat, reformat=reformat))
+                self.log_after_translation(before, len(query))
+
+        translations = yield gen.multi_future(translation_futures)
+        for translated in translations:
+            response.append({
+                'responseData': {
+                    'translatedText': self.maybe_strip_marks(mark_unknown, pair, translated),
+                },
+                'responseDetails': None,
+                'responseStatus': 200,
+            })
         if response:
             if len(response) == 1:
                 response = response[0]['responseData']
@@ -192,3 +184,4 @@ class TranslateHandler(BaseHandler):
                 'responseDetails': None,
                 'responseStatus': 200,
             })
+        self.clean_pairs()
