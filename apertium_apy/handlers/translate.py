@@ -167,19 +167,20 @@ class TranslateHandler(BaseHandler):
                 translation_futures.append(pipeline.translate(query, nosplit=False, deformat=deformat, reformat=reformat))
                 self.log_after_translation(before, len(query))
 
-        translations = yield gen.multi_future(translation_futures)
-        for translated in translations:
-            response.append({
-                'responseData': {
-                    'translatedText': self.maybe_strip_marks(mark_unknown, pair, translated),
-                },
-                'responseDetails': None,
-                'responseStatus': 200,
-            })
-        if response:
-            self.send_response({
-                'responseData': response if len(response) > 1 else response[0]['responseData'],
-                'responseDetails': None,
-                'responseStatus': 200,
-            })
-        self.clean_pairs()
+            translations = yield gen.multi_future(translation_futures)
+            for translated in translations:
+                response.append({
+                    'responseData': {
+                        'translatedText': self.maybe_strip_marks(mark_unknown, pair, translated),
+                    },
+                    'responseDetails': None,
+                    'responseStatus': 200,
+                })
+
+            if response:
+                self.send_response({
+                    'responseData': response if len(response) > 1 else response[0]['responseData'],
+                    'responseDetails': None,
+                    'responseStatus': 200,
+                })
+            self.clean_pairs()
