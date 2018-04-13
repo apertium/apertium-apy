@@ -177,10 +177,8 @@ class TranslateHandler(BaseHandler):
                 'responseStatus': 200,
             })
         if response:
-            if len(response) == 1:
-                response = response[0]['responseData']
             self.send_response({
-                'responseData': response,
+                'responseData': response if len(response) > 1 else response[0]['responseData'],
                 'responseDetails': None,
                 'responseStatus': 200,
             })

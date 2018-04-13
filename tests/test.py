@@ -141,9 +141,7 @@ class TestTranslateHandler(BaseTestCase):
 
     def test_valid_pair_multi_query(self):
         response = self.fetch_translation(['welcome', 'respect', 'serve'], 'eng|spa')
-        translations = []
-        for translation_response in response['responseData']:
-            translations.append(translation_response['responseData']['translatedText'])
+        translations = [translation_response['responseData']['translatedText'] for translation_response in response['responseData']]
         self.assertListEqual(translations, ['Bienvenido', 'Respeto', 'Sirve'])
 
     def test_valid_pair_unknown(self):
