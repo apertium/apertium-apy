@@ -25,9 +25,9 @@ class TranslateRawHandler(TranslateHandler):
             pipeline = self.get_pipeline(pair)
             self.note_pair_usage(pair)
             before = self.log_before_translation()
-            translated = yield pipeline.translate(query, 
-                                                  nosplit=False, 
-                                                  deformat=self.get_argument('deformat', default=True), 
+            translated = yield pipeline.translate(query,
+                                                  nosplit=False,
+                                                  deformat=self.get_argument('deformat', default=True),
                                                   reformat=False)
             self.log_after_translation(before, len(query))
             self.send_response({
@@ -38,4 +38,3 @@ class TranslateRawHandler(TranslateHandler):
                 'responseStatus': 200,
             })
             self.clean_pairs()
-
