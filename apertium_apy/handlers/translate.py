@@ -161,7 +161,6 @@ class TranslateHandler(BaseHandler):
             self.note_pair_usage(pair)
             pipeline = self.get_pipeline(pair)
             deformat, reformat = self.get_format()
-            mark_unknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
             for query in query_list:
                 before = self.log_before_translation()
                 translation_futures.append(pipeline.translate(query, nosplit=False, deformat=deformat, reformat=reformat))
@@ -171,7 +170,7 @@ class TranslateHandler(BaseHandler):
             for translated in translations:
                 response.append({
                     'responseData': {
-                        'translatedText': self.maybe_strip_marks(mark_unknown, pair, translated),
+                        'translatedText': self.maybe_strip_marks(self.mark_unknown, pair, translated),
                     },
                     'responseDetails': None,
                     'responseStatus': 200,
