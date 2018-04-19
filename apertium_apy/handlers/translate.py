@@ -27,6 +27,10 @@ class TranslateHandler(BaseHandler):
 
     unknown_mark_re = re.compile(r'[*]([^.,;:\t\* ]+)')
 
+    @property
+    def mark_unknown(self):
+        return self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
+
     def maybe_strip_marks(self, mark_unknown, pair, translated):
         self.note_unknown_tokens('%s-%s' % pair, translated)
         if mark_unknown:

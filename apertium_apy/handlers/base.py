@@ -60,10 +60,6 @@ class BaseHandler(tornado.web.RequestHandler):
     def initialize(self):
         self.callback = self.get_argument('callback', default=None)
 
-    @property
-    def mark_unknown(self):
-        return self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
-
     @classmethod
     def init_pairs_graph(cls):
         for pair in cls.pairs:
