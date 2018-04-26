@@ -1,5 +1,6 @@
 FROM debian:jessie-slim
 LABEL maintainer sushain@skc.name
+ENV LANG C.UTF-8
 WORKDIR /root
 
 # Install packaged dependencies
@@ -11,7 +12,6 @@ RUN apt-get -qq update && apt-get -qq install \
     gawk \
     gcc-multilib \
     git \
-    locales \
     libtool \
     pkg-config \
     python \
@@ -21,11 +21,6 @@ RUN apt-get -qq update && apt-get -qq install \
     sqlite3 \
     wget \
     zlib1g-dev
-
-# Repair locales
-
-RUN locale-gen en_US.UTF-8
-ENV LANG en_US.UTF-8
 
 # Install CLD2
 
