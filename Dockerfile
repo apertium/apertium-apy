@@ -53,7 +53,6 @@ RUN cd apertium-apy && make -j2
 
 # Run APy
 
-CMD cd /root/apertium-apy && \
-    python3 servlet.py /usr/share/apertium/modes \
-        --port 2737 \
-        --lang-names /root/apertium-apy/langNames.db
+EXPOSE 2737
+ENTRYPOINT ["python3", "/root/apertium-apy/servlet.py", "--lang-names", "/root/apertium-apy/langNames.db"]
+CMD ["/usr/share/apertium/modes", "--port", "2737"]

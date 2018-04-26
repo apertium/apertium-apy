@@ -43,7 +43,7 @@ On Ubuntu/Debian, it is also available through `apt`:
 Finally, a `Dockerfile` is provided:
 
     $ docker build . -t apertium-apy
-    $ docker run apertium-apy
+    $ docker run -p 2737:2737 apertium-apy
 
 Usage
 -----
