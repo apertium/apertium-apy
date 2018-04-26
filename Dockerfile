@@ -47,8 +47,10 @@ RUN apt-get -qq update && apt-get -qq install apertium-en-es
 
 # Install APy
 
-COPY . apertium-apy
+COPY requirements.txt apertium-apy/
 RUN pip3 install -r apertium-apy/requirements.txt
+
+COPY . apertium-apy
 RUN cd apertium-apy && make -j2
 
 # Run APy
