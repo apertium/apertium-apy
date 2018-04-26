@@ -1,0 +1,7 @@
+Dockerfile
+.dockerignore
+venv/
+.git/
+.mypy_cache/
+build/
+dist/

@@ -34,6 +34,22 @@ Before you install, you can try out a live version of APy at [apertium.org][2].
 APy is available through [PyPi](https://pypi.org/project/apertium-apy/):
 
     $ pip install apertium-apy
+
+On Ubuntu/Debian, it is also available through `apt`:
+
+    $ wget -qO- https://apertium.projectjj.com/apt/install-nightly.sh | bash
+    $ apt-get install apertium-apy
+
+Finally, a `Dockerfile` is provided:
+
+    $ docker build . -t apertium-apy
+    $ docker run apertium-apy
+
+Usage
+-----
+
+Installation through `apt` or `pip` adds an `apertium-apy` executable:
+
     $ apertium-apy --help
 
     usage: apertium-apy [-h] [-s NONPAIRS_PATH] [-l LANG_NAMES] [-f MISSING_FREQS]
