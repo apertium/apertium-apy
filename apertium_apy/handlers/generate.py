@@ -11,16 +11,24 @@ from apertium_apy.utils.translation import translate_simple
 
 
 class GenerateHandler(BaseHandler):
-    def preproc_text(self, in_text):
-        lexical_units = list(streamparser.parse(in_text, with_text=True))
-        if len(lexical_units) == 0:
-            lexical_units = ['^%s$' % (in_text, )]
-        return lexical_units, '[SEP]'.join(lexical_units)
+    seperator = '[SEP]'
 
-    def postproc_text(self, lexical_units, result):
-        return [(generation, lexical_units[i])
-                for (i, generation)
-                in enumerate(result.split('[SEP]'))]
+    def wrap(self, text):
+        return '^{}$'.format(text)
+
+    def preproc_text(self, in_text):
+        lexical_units_with_text = list(streamparser.parse(in_text, with_text=True))
+        if len(lexical_units_with_text) == 0:
+            lexical_units_with_text = list(streamparser.parse(self.wrap(in_text), with_text=True))
+        lexical_units = [self.wrap(text_and_lu[1].lexical_unit) for text_and_lu in lexical_units_with_text]
+        return lexical_units_with_text, self.seperator.join(lexical_units)
+
+    def postproc_text(self, lexical_units_with_text, result):
+        return [
+            (generation, self.wrap(text_and_lu[0] + text_and_lu[1].lexical_unit))
+            for (generation, text_and_lu)
+            in zip(result.split(self.seperator), lexical_units_with_text)
+        ]
 
     @gen.coroutine
     def get(self):
@@ -30,8 +38,8 @@ class GenerateHandler(BaseHandler):
             [path, mode] = self.generators[in_mode]
             formatting = 'none'
             commands = [['apertium', '-d', path, '-f', formatting, mode]]
-            lexical_units, to_generate = self.preproc_text(in_text)
+            lexical_units_with_text, to_generate = self.preproc_text(in_text)
             result = yield translate_simple(to_generate, commands)
-            self.send_response(self.postproc_text(lexical_units, result))
+            self.send_response(self.postproc_text(lexical_units_with_text, result))
         else:
             self.send_error(400, explanation='That mode is not installed')

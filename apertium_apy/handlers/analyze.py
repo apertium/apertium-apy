@@ -12,10 +12,12 @@ from apertium_apy.utils.translation import translate_simple
 
 class AnalyzeHandler(BaseHandler):
     def postproc_text(self, in_text, result):
-        lexical_units = remove_dot_from_deformat(in_text, list(streamparser.parse(result, with_text=True)))
-        return [(lu[0], lu[0].split('/')[0] + lu[1])
-                for lu
-                in lexical_units]
+        lexical_units_with_text = remove_dot_from_deformat(in_text, list(streamparser.parse(result, with_text=True)))
+        return [
+            (text_and_lu[1].lexical_unit, text_and_lu[0] + text_and_lu[1].wordform)
+            for text_and_lu
+            in lexical_units_with_text
+        ]
 
     @gen.coroutine
     def get(self):
