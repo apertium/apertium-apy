@@ -1,6 +1,5 @@
-FROM debian:jessie-slim
+FROM apertium/base
 LABEL maintainer sushain@skc.name
-ENV LANG C.UTF-8
 WORKDIR /root
 
 # Install packaged dependencies
@@ -8,18 +7,12 @@ WORKDIR /root
 RUN apt-get -qq update && apt-get -qq install \
     apt-utils \
     automake \
-    build-essential \
-    gawk \
     gcc-multilib \
     git \
-    libtool \
-    pkg-config \
     python \
     python3-dev \
     python3-pip \
-    subversion \
     sqlite3 \
-    wget \
     zlib1g-dev
 
 # Install CLD2
@@ -32,11 +25,8 @@ RUN cd /root/chromium-compact-language-detector && \
     python3 setup.py build && python3 setup_full.py build && \
     python3 setup.py install && python3 setup_full.py install
 
-# Install Apertium and related libraries
+# Install Apertium-related libraries (and a test pair)
 
-ADD https://apertium.projectjj.com/apt/install-nightly.sh .
-RUN bash install-nightly.sh
-RUN apt-get -qq update && apt-get -qq install apertium-all-dev
 RUN apt-get -qq update && apt-get -qq install giella-core giella-shared hfst-ospell
 RUN apt-get -qq update && apt-get -qq install apertium-en-es
 
