@@ -1,6 +1,9 @@
-import re
-
 from tornado import gen
+
+try:
+    import streamparser
+except ImportError:
+    streamparser = None
 
 from apertium_apy.handlers.base import BaseHandler
 from apertium_apy.utils import to_alpha3_code
@@ -9,9 +12,9 @@ from apertium_apy.utils.translation import translate_simple
 
 class GenerateHandler(BaseHandler):
     def preproc_text(self, in_text):
-        lexical_units = re.findall(r'(\^[^\$]*\$[^\^]*)', in_text)  # TODO: replace with streamparser
+        lexical_units = list(streamparser.parse(in_text, with_text=True))
         if len(lexical_units) == 0:
-            lexical_units = ['^%s$' % (in_text,)]
+            lexical_units = ['^%s$' % (in_text, )]
         return lexical_units, '[SEP]'.join(lexical_units)
 
     def postproc_text(self, lexical_units, result):

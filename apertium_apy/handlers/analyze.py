@@ -1,6 +1,9 @@
-import re
-
 from tornado import gen
+
+try:
+    import streamparser
+except ImportError:
+    streamparser = None
 
 from apertium_apy.handlers.base import BaseHandler
 from apertium_apy.utils import to_alpha3_code, remove_dot_from_deformat
@@ -9,7 +12,7 @@ from apertium_apy.utils.translation import translate_simple
 
 class AnalyzeHandler(BaseHandler):
     def postproc_text(self, in_text, result):
-        lexical_units = remove_dot_from_deformat(in_text, re.findall(r'\^([^\$]*)\$([^\^]*)', result))  # TODO: replace with streamparser
+        lexical_units = remove_dot_from_deformat(in_text, list(streamparser.parse(result, with_text=True)))
         return [(lu[0], lu[0].split('/')[0] + lu[1])
                 for lu
                 in lexical_units]
