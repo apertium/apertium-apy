@@ -19,7 +19,8 @@ RUN apt-get -qq update && apt-get -qq install \
 
 RUN git clone https://github.com/CLD2Owners/cld2
 RUN cd /root/cld2/internal && \
-    ./compile_libs.sh && cp *.so /usr/lib/
+    CPPFLAGS='-std=c++98' ./compile_libs.sh && \
+    cp *.so /usr/lib/
 RUN git clone https://github.com/mikemccand/chromium-compact-language-detector
 RUN cd /root/chromium-compact-language-detector && \
     python3 setup.py build && python3 setup_full.py build && \
