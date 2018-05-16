@@ -10,7 +10,13 @@ from apertium_apy.handlers.translate import TranslateHandler
 
 FILE_SIZE_LIMIT_BYTES = 32E6
 
-allowed_mime_types = {
+MIMETYPE_COMMANDS = {
+    'mimetype': lambda x: check_output(['mimetype', '-b', x], universal_newlines=True).strip(),
+    'xdg-mime': lambda x: check_output(['xdg-mime', 'query', 'filetype', x], universal_newlines=True).strip(),
+    'file': lambda x: check_output(['file', '--mime-type', '-b', x], universal_newlines=True).strip(),
+}
+
+ALLOWED_MIME_TYPES = {
     'text/plain': 'txt',
     'text/html': 'html-noent',
     'text/rtf': 'rtf',
@@ -22,6 +28,12 @@ allowed_mime_types = {
     'application/vnd.oasis.opendocument.text': 'odt',
     'application/x-latex': 'latex',
     'application/x-tex': 'latex',
+}
+
+OPEN_OFFICE_XML_FILE_MARKERS = {
+    'word/document.xml': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'ppt/presentation.xml': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'xl/workbook.xml': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 }
 
 
@@ -46,41 +58,29 @@ def translate_doc(file_to_translate, fmt, mode_file, unknown_marks=False):
 class TranslateDocHandler(TranslateHandler):
     mime_type_command = None
 
-    def get_mime_type(self, f):
-        commands = {
-            'mimetype': lambda x: check_output(['mimetype', '-b', x], universal_newlines=True).strip(),
-            'xdg-mime': lambda x: check_output(['xdg-mime', 'query', 'filetype', x], universal_newlines=True).strip(),
-            'file': lambda x: check_output(['file', '--mime-type', '-b', x], universal_newlines=True).strip(),
-        }
-
-        type_files = {
-            'word/document.xml': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'ppt/presentation.xml': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            'xl/workbook.xml': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        }
-
-        if not self.mime_type_command:
-            for command in commands.keys():
+    @classmethod
+    def get_mime_type(cls, f):
+        if not cls.mime_type_command:
+            for command in MIMETYPE_COMMANDS.keys():
                 try:
                     check_call(['which', command], stdout=PIPE)
-                    TranslateDocHandler.mime_type_command = command
+                    cls.mime_type_command = command
                     break
                 except CalledProcessError:
                     pass
 
-        mime_type = commands[self.mime_type_command](f).split(';')[0]
+        mime_type = MIMETYPE_COMMANDS[cls.mime_type_command](f).split(';')[0]
         if mime_type == 'application/zip':
             with zipfile.ZipFile(f) as zf:
-                for type_file in type_files:
-                    if type_file in zf.namelist():
-                        return type_files[type_file]
+                file_names = zf.namelist()
 
-                if 'mimetype' in zf.namelist():
+                for marker_file, office_mime_type in OPEN_OFFICE_XML_FILE_MARKERS.items():
+                    if marker_file in file_names:
+                        return office_mime_type
+
+                if 'mimetype' in file_names:
                     return zf.read('mimetype').decode('utf-8')
-
-                return mime_type
-        else:
-            return mime_type
+        return mime_type
 
     # TODO: Some kind of locking. Although we can't easily re-use open
     # pairs here (would have to reimplement lots of
@@ -100,14 +100,14 @@ class TranslateDocHandler(TranslateHandler):
                 temp_file.seek(0)
 
                 mtype = self.get_mime_type(temp_file.name)
-                if mtype not in allowed_mime_types:
+                if mtype not in ALLOWED_MIME_TYPES:
                     self.send_error(400, explanation='Invalid file type %s' % mtype)
                     return
                 self.request.headers['Content-Type'] = 'application/octet-stream'
                 self.request.headers['Content-Disposition'] = 'attachment'
                 with (yield self.doc_pipe_sem.acquire()):
                     t = yield translate_doc(temp_file,
-                                            allowed_mime_types[mtype],
+                                            ALLOWED_MIME_TYPES[mtype],
                                             self.pairs['%s-%s' % pair],
                                             self.mark_unknown)
                 self.write(t)

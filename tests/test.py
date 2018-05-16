@@ -252,6 +252,41 @@ class TestDocTranslateHandler(BaseTestCase):
         )
         self.assertEqual(response.body.decode('utf-8'), 'hola')
 
+    def test_invalid_pair_translate(self):
+        response = self.fetch_json(
+            '/translateDoc',
+            method='POST',
+            expect_success=False,
+            params={
+                'langpair': 'typomode',
+            },
+        )
+        self.assertDictEqual(response, {
+            'status': 'error',
+            'code': 400,
+            'message': 'Bad Request',
+            'explanation': 'That pair is invalid, use e.g. eng|spa',
+        })
+
+    def test_invalid_format_translate(self):
+        response = self.fetch_json(
+            '/translateDoc',
+            method='POST',
+            expect_success=False,
+            params={
+                'langpair': 'eng|spa',
+            },
+            files={
+                'test.txt': b'\0',
+            },
+        )
+        self.assertDictEqual(response, {
+            'status': 'error',
+            'code': 400,
+            'message': 'Bad Request',
+            'explanation': 'Invalid file type application/octet-stream',
+        })
+
     def test_translate_too_large(self):
         response = self.fetch_json(
             '/translateDoc',
