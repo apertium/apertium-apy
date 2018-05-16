@@ -7,9 +7,22 @@ import tornado
 from tornado import gen
 
 from apertium_apy.handlers.translate import TranslateHandler
-from apertium_apy.utils import to_alpha3_code
 
 FILE_SIZE_LIMIT_BYTES = 32E6
+
+allowed_mime_types = {
+    'text/plain': 'txt',
+    'text/html': 'html-noent',
+    'text/rtf': 'rtf',
+    'application/rtf': 'rtf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+    # 'application/msword', 'application/vnd.ms-powerpoint', 'application/vnd.ms-excel'
+    'application/vnd.oasis.opendocument.text': 'odt',
+    'application/x-latex': 'latex',
+    'application/x-tex': 'latex',
+}
 
 
 @gen.coroutine
@@ -75,48 +88,27 @@ class TranslateDocHandler(TranslateHandler):
     # translation.
     @gen.coroutine
     def get(self):
-        try:
-            l1, l2 = map(to_alpha3_code, self.get_argument('langpair').split('|'))
-        except ValueError:
-            self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
-
-        allowed_mime_types = {
-            'text/plain': 'txt',
-            'text/html': 'html-noent',
-            'text/rtf': 'rtf',
-            'application/rtf': 'rtf',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
-            # 'application/msword', 'application/vnd.ms-powerpoint', 'application/vnd.ms-excel'
-            'application/vnd.oasis.opendocument.text': 'odt',
-            'application/x-latex': 'latex',
-            'application/x-tex': 'latex',
-        }
-
-        if '%s-%s' % (l1, l2) not in self.pairs:
-            self.send_error(400, explanation='That pair is not installed')
-            return
-
-        body = self.request.files['file'][0]['body']
-        if len(body) > FILE_SIZE_LIMIT_BYTES:
-            self.send_error(413, explanation='That file is too large')
-            return
-
-        with tempfile.NamedTemporaryFile() as temp_file:
-            temp_file.write(body)
-            temp_file.seek(0)
-
-            mtype = self.get_mime_type(temp_file.name)
-            if mtype not in allowed_mime_types:
-                self.send_error(400, explanation='Invalid file type %s' % mtype)
+        pair = self.get_pair_or_error(self.get_argument('langpair'), -1)
+        if pair is not None:
+            body = self.request.files['file'][0]['body']
+            if len(body) > FILE_SIZE_LIMIT_BYTES:
+                self.send_error(413, explanation='That file is too large')
                 return
-            self.request.headers['Content-Type'] = 'application/octet-stream'
-            self.request.headers['Content-Disposition'] = 'attachment'
-            with (yield self.doc_pipe_sem.acquire()):
-                t = yield translate_doc(temp_file,
-                                        allowed_mime_types[mtype],
-                                        self.pairs['%s-%s' % (l1, l2)],
-                                        self.mark_unknown)
-            self.write(t)
-            self.finish()
+
+            with tempfile.NamedTemporaryFile() as temp_file:
+                temp_file.write(body)
+                temp_file.seek(0)
+
+                mtype = self.get_mime_type(temp_file.name)
+                if mtype not in allowed_mime_types:
+                    self.send_error(400, explanation='Invalid file type %s' % mtype)
+                    return
+                self.request.headers['Content-Type'] = 'application/octet-stream'
+                self.request.headers['Content-Disposition'] = 'attachment'
+                with (yield self.doc_pipe_sem.acquire()):
+                    t = yield translate_doc(temp_file,
+                                            allowed_mime_types[mtype],
+                                            self.pairs['%s-%s' % pair],
+                                            self.mark_unknown)
+                self.write(t)
+                self.finish()

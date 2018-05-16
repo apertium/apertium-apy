@@ -264,10 +264,12 @@ class TestDocTranslateHandler(BaseTestCase):
                 'test.txt': b'0' * int(32E6 + 1),
             },
         )
-        self.assertEqual(response['status'], 'error')
-        self.assertEqual(response['code'], 413)
-        self.assertEqual(response['message'], 'Request Entity Too Large')
-        self.assertEqual(response['explanation'], 'That file is too large')
+        self.assertDictEqual(response, {
+            'status': 'error',
+            'code': 413,
+            'message': 'Request Entity Too Large',
+            'explanation': 'That file is too large',
+        })
 
 
 class TestAnalyzeHandler(BaseTestCase):
