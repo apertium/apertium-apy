@@ -242,15 +242,32 @@ class TestDocTranslateHandler(BaseTestCase):
     def test_translate_txt(self):
         response = self.fetch(
             '/translateDoc',
+            method='POST',
             params={
                 'langpair': 'eng|spa',
             },
-            method='POST',
             files={
                 'test.txt': b'hello',
             },
         )
         self.assertEqual(response.body.decode('utf-8'), 'hola')
+
+    def test_translate_too_large(self):
+        response = self.fetch_json(
+            '/translateDoc',
+            method='POST',
+            expect_success=False,
+            params={
+                'langpair': 'eng|spa',
+            },
+            files={
+                'test.txt': b'0' * int(32E6 + 1),
+            },
+        )
+        self.assertEqual(response['status'], 'error')
+        self.assertEqual(response['code'], 413)
+        self.assertEqual(response['message'], 'Request Entity Too Large')
+        self.assertEqual(response['explanation'], 'That file is too large')
 
 
 class TestAnalyzeHandler(BaseTestCase):

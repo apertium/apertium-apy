@@ -66,7 +66,6 @@ class TranslateDocHandler(TranslateHandler):
                     return zf.read('mimetype').decode('utf-8')
 
                 return mime_type
-
         else:
             return mime_type
 
