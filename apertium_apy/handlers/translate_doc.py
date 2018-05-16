@@ -55,7 +55,7 @@ class TranslateDocHandler(TranslateHandler):
                 except CalledProcessError:
                     pass
 
-        mime_type = commands[self.mime_type_command](f)
+        mime_type = commands[self.mime_type_command](f).split(';')[0]
         if mime_type == 'application/zip':
             with zipfile.ZipFile(f) as zf:
                 for type_file in type_files:
