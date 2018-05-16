@@ -1,13 +1,15 @@
 import os
 import tempfile
 import zipfile
-from subprocess import Popen, PIPE
+from subprocess import check_output, check_call, CalledProcessError, PIPE
 
 import tornado
 from tornado import gen
 
 from apertium_apy.handlers.translate import TranslateHandler
 from apertium_apy.utils import to_alpha3_code
+
+FILE_SIZE_LIMIT_BYTES = 32E6
 
 
 @gen.coroutine
@@ -33,9 +35,9 @@ class TranslateDocHandler(TranslateHandler):
 
     def get_mime_type(self, f):
         commands = {
-            'mimetype': lambda x: Popen(['mimetype', '-b', x], stdout=PIPE).communicate()[0].strip(),
-            'xdg-mime': lambda x: Popen(['xdg-mime', 'query', 'filetype', x], stdout=PIPE).communicate()[0].strip(),
-            'file': lambda x: Popen(['file', '--mime-type', '-b', x], stdout=PIPE).communicate()[0].strip(),
+            'mimetype': lambda x: check_output(['mimetype', '-b', x], universal_newlines=True).strip(),
+            'xdg-mime': lambda x: check_output(['xdg-mime', 'query', 'filetype', x], universal_newlines=True).strip(),
+            'file': lambda x: check_output(['file', '--mime-type', '-b', x], universal_newlines=True).strip(),
         }
 
         type_files = {
@@ -45,12 +47,15 @@ class TranslateDocHandler(TranslateHandler):
         }
 
         if not self.mime_type_command:
-            for command in ['mimetype', 'xdg-mime', 'file']:
-                if Popen(['which', command], stdout=PIPE).communicate()[0]:
+            for command in commands.keys():
+                try:
+                    check_call(['which', command], stdout=PIPE)
                     TranslateDocHandler.mime_type_command = command
                     break
+                except CalledProcessError:
+                    pass
 
-        mime_type = commands[self.mime_type_command](f).decode('utf-8')
+        mime_type = commands[self.mime_type_command](f)
         if mime_type == 'application/zip':
             with zipfile.ZipFile(f) as zf:
                 for type_file in type_files:
@@ -76,8 +81,6 @@ class TranslateDocHandler(TranslateHandler):
         except ValueError:
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
 
-        mark_unknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
-
         allowed_mime_types = {
             'text/plain': 'txt',
             'text/html': 'html-noent',
@@ -97,7 +100,7 @@ class TranslateDocHandler(TranslateHandler):
             return
 
         body = self.request.files['file'][0]['body']
-        if len(body) > 32E6:
+        if len(body) > FILE_SIZE_LIMIT_BYTES:
             self.send_error(413, explanation='That file is too large')
             return
 
@@ -115,6 +118,6 @@ class TranslateDocHandler(TranslateHandler):
                 t = yield translate_doc(temp_file,
                                         allowed_mime_types[mtype],
                                         self.pairs['%s-%s' % (l1, l2)],
-                                        mark_unknown)
+                                        self.mark_unknown)
             self.write(t)
             self.finish()

@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 # coding=utf-8
 
+import io
 import json
 import logging
+import mimetypes
 import os
 import shlex
 import subprocess
 import sys
 import time
 import unittest
-import urllib.request
 import urllib.parse
+import urllib.request
+import uuid
 
 from tornado.log import enable_pretty_logging
 from tornado.testing import AsyncHTTPTestCase
@@ -75,7 +78,36 @@ class BaseTestCase(AsyncHTTPTestCase):
             if method == 'GET':
                 path += '?' + urllib.parse.urlencode(params)
             elif method == 'POST':
-                kwargs['body'] = kwargs.get('body', '') + urllib.parse.urlencode(params)
+                if 'files' in kwargs:
+                    boundary_code = uuid.uuid4().hex
+                    boundary = '--{}'.format(boundary_code).encode()
+
+                    headers = kwargs.get('headers', {})
+                    headers['Content-Type'] = 'multipart/form-data; boundary={}'.format(boundary_code)
+                    kwargs['headers'] = headers
+
+                    body = io.BytesIO()
+
+                    for param_name, param_value in params.items():
+                        body.write(
+                            boundary + b'\r\n' +
+                            'Content-Disposition: form-data; name="{}"\r\n'.format(param_name).encode() + b'\r\n' +
+                            param_value.encode() + b'\r\n',
+                        )
+
+                    for file_name, file_content in kwargs.pop('files').items():
+                        mimetype = mimetypes.guess_type(file_name)[0] or 'application/octet-stream'
+                        body.write(
+                            boundary + b'\r\n' +
+                            'Content-Disposition: form-data; name="file"; filename="{}"\r\n'.format(file_name).encode() +
+                            'Content-Type: {}\r\n'.format(mimetype).encode() + b'\r\n' +
+                            file_content + b'\r\n',
+                        )
+
+                    body.write(boundary + b'--\r\n')
+                    kwargs['body'] = body.getvalue()
+                else:
+                    kwargs['body'] = kwargs.get('body', '') + urllib.parse.urlencode(params)
 
         return super().fetch(path, **kwargs)
 
@@ -204,6 +236,21 @@ class TestTranslateWebpageHandler(BaseTestCase):
         self.assertEqual(response['code'], 404)
         self.assertEqual(response['message'], 'Not Found')
         self.assertTrue(response['explanation'].startswith('Error 404 on fetching url: '))
+
+
+class TestDocTranslateHandler(BaseTestCase):
+    def test_translate_txt(self):
+        response = self.fetch(
+            '/translateDoc',
+            params={
+                'langpair': 'eng|spa',
+            },
+            method='POST',
+            files={
+                'test.txt': b'hello',
+            },
+        )
+        self.assertEqual(response.body.decode('utf-8'), 'hola')
 
 
 class TestAnalyzeHandler(BaseTestCase):
