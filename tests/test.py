@@ -107,7 +107,7 @@ class BaseTestCase(AsyncHTTPTestCase):
                     body.write(boundary + b'--\r\n')
                     kwargs['body'] = body.getvalue()
                 else:
-                    kwargs['body'] = kwargs.get('body', '') + urllib.parse.urlencode(params, doseq=True))
+                    kwargs['body'] = kwargs.get('body', '') + urllib.parse.urlencode(params, doseq=True)
 
         return super().fetch(path, **kwargs)
 
