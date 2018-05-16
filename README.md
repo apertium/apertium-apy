@@ -5,6 +5,7 @@ Apertium APy
 [![Coverage Status](https://coveralls.io/repos/github/apertium/apertium-apy/badge.svg?branch=master)](https://coveralls.io/github/apertium/apertium-apy?branch=master)
 [![PyPI](https://img.shields.io/pypi/v/apertium-apy.svg)](https://pypi.org/project/apertium-apy/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/apertium-apy.svg)](https://pypi.org/project/apertium-apy/)
+[![Docker Automated build](https://img.shields.io/docker/automated/apertium/apy.svg)](https://hub.docker.com/r/apertium/apy/)
 
 Apertium APy, **Apertium A**PI in **Py**thon, is a web server exposing Apertium
 morphological functions including text, document and webpage translation. More
@@ -34,6 +35,22 @@ Before you install, you can try out a live version of APy at [apertium.org][2].
 APy is available through [PyPi](https://pypi.org/project/apertium-apy/):
 
     $ pip install apertium-apy
+
+On Ubuntu/Debian, it is also available through `apt`:
+
+    $ wget -qO- https://apertium.projectjj.com/apt/install-nightly.sh | bash
+    $ apt-get install apertium-apy
+
+Finally, [Docker Hub][3] hosts an image of the provided `Dockerfile` with
+entry point `apertium-apy` exposing port 2737:
+
+    $ docker pull apertium/apy
+
+Usage
+-----
+
+Installation through `apt` or `pip` adds an `apertium-apy` executable:
+
     $ apertium-apy --help
 
     usage: apertium-apy [-h] [-s NONPAIRS_PATH] [-l LANG_NAMES] [-f MISSING_FREQS]
@@ -123,10 +140,11 @@ APy is available through [PyPi](https://pypi.org/project/apertium-apy/):
 Contributing
 ------------
 
-APy uses [TravisCI][3] for continous integration. Locally, use `make test`
+APy uses [TravisCI][4] for continous integration. Locally, use `make test`
 to run the same checks it does. Use `pip install -r requirements-dev.txt`
 to install the requirements required for development, e.g. linters.
 
 [1]: http://wiki.apertium.org/wiki/Apertium-apy
 [2]: https://www.apertium.org/apy/listPairs
-[3]: https://travis-ci.org/apertium/apertium-apy
+[3]: https://hub.docker.com/r/apertium/apy/
+[4]: https://travis-ci.org/apertium/apertium-apy

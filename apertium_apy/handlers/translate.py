@@ -22,14 +22,14 @@ class TranslationInfo:
 
 
 class TranslateHandler(BaseHandler):
-    def note_pair_usage(self, pair):
-        self.stats['useCount'][pair] = 1 + self.stats['useCount'].get(pair, 0)
-
     unknown_mark_re = re.compile(r'[*]([^.,;:\t\* ]+)')
 
     @property
     def mark_unknown(self):
-        return self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
+        return self.get_argument('markUnknown', default='yes').lower() in ['yes', 'true', '1']
+
+    def note_pair_usage(self, pair):
+        self.stats['useCount'][pair] = 1 + self.stats['useCount'].get(pair, 0)
 
     def maybe_strip_marks(self, mark_unknown, pair, translated):
         self.note_unknown_tokens('%s-%s' % pair, translated)
