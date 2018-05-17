@@ -142,7 +142,6 @@ class TranslateWebpageHandler(TranslateHandler):
             return
         self.note_pair_usage(pair)
         mode_path = self.pairs['%s-%s' % pair]
-        mark_unknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
         url = self.get_argument('url')
         if not url.startswith('http'):
             url = 'http://' + url
@@ -188,7 +187,7 @@ class TranslateWebpageHandler(TranslateHandler):
             self.set_cached(pair, url, translated, to_translate)
         self.send_response({
             'responseData': {
-                'translatedText': self.maybe_strip_marks(mark_unknown, pair, translated),
+                'translatedText': self.maybe_strip_marks(self.mark_unknown, pair, translated),
             },
             'responseDetails': None,
             'responseStatus': 200,

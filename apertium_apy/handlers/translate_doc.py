@@ -1,13 +1,41 @@
 import os
+import shutil
+import subprocess
 import tempfile
 import zipfile
-from subprocess import Popen, PIPE
 
 import tornado
 from tornado import gen
 
 from apertium_apy.handlers.translate import TranslateHandler
-from apertium_apy.utils import to_alpha3_code
+
+FILE_SIZE_LIMIT_BYTES = 32E6
+
+MIMETYPE_COMMANDS = {
+    'mimetype': lambda x: subprocess.check_output(['mimetype', '-b', x], universal_newlines=True).strip(),
+    'xdg-mime': lambda x: subprocess.check_output(['xdg-mime', 'query', 'filetype', x], universal_newlines=True).strip(),
+    'file': lambda x: subprocess.check_output(['file', '--mime-type', '-b', x], universal_newlines=True).strip(),
+}
+
+ALLOWED_MIME_TYPES = {
+    'text/plain': 'txt',
+    'text/html': 'html-noent',
+    'text/rtf': 'rtf',
+    'application/rtf': 'rtf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+    # 'application/msword', 'application/vnd.ms-powerpoint', 'application/vnd.ms-excel'
+    'application/vnd.oasis.opendocument.text': 'odt',
+    'application/x-latex': 'latex',
+    'application/x-tex': 'latex',
+}
+
+OPEN_OFFICE_XML_FILE_MARKERS = {
+    'word/document.xml': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'ppt/presentation.xml': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'xl/workbook.xml': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+}
 
 
 @gen.coroutine
@@ -31,39 +59,26 @@ def translate_doc(file_to_translate, fmt, mode_file, unknown_marks=False):
 class TranslateDocHandler(TranslateHandler):
     mime_type_command = None
 
-    def get_mime_type(self, f):
-        commands = {
-            'mimetype': lambda x: Popen(['mimetype', '-b', x], stdout=PIPE).communicate()[0].strip(),
-            'xdg-mime': lambda x: Popen(['xdg-mime', 'query', 'filetype', x], stdout=PIPE).communicate()[0].strip(),
-            'file': lambda x: Popen(['file', '--mime-type', '-b', x], stdout=PIPE).communicate()[0].strip(),
-        }
-
-        type_files = {
-            'word/document.xml': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'ppt/presentation.xml': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            'xl/workbook.xml': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        }
-
-        if not self.mime_type_command:
-            for command in ['mimetype', 'xdg-mime', 'file']:
-                if Popen(['which', command], stdout=PIPE).communicate()[0]:
-                    TranslateDocHandler.mime_type_command = command
+    @classmethod
+    def get_mime_type(cls, f):
+        if not cls.mime_type_command:
+            for command in MIMETYPE_COMMANDS.keys():
+                if shutil.which(command):
+                    cls.mime_type_command = command
                     break
 
-        mime_type = commands[self.mime_type_command](f).decode('utf-8')
+        mime_type = MIMETYPE_COMMANDS[cls.mime_type_command](f).split(';')[0]
         if mime_type == 'application/zip':
             with zipfile.ZipFile(f) as zf:
-                for type_file in type_files:
-                    if type_file in zf.namelist():
-                        return type_files[type_file]
+                file_names = zf.namelist()
 
-                if 'mimetype' in zf.namelist():
+                for marker_file, office_mime_type in OPEN_OFFICE_XML_FILE_MARKERS.items():
+                    if marker_file in file_names:
+                        return office_mime_type
+
+                if 'mimetype' in file_names:
                     return zf.read('mimetype').decode('utf-8')
-
-                return mime_type
-
-        else:
-            return mime_type
+        return mime_type
 
     # TODO: Some kind of locking. Although we can't easily re-use open
     # pairs here (would have to reimplement lots of
@@ -71,50 +86,27 @@ class TranslateDocHandler(TranslateHandler):
     # translation.
     @gen.coroutine
     def get(self):
-        try:
-            l1, l2 = map(to_alpha3_code, self.get_argument('langpair').split('|'))
-        except ValueError:
-            self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
-
-        mark_unknown = self.get_argument('markUnknown', default='yes') in ['yes', 'true', '1']
-
-        allowed_mime_types = {
-            'text/plain': 'txt',
-            'text/html': 'html-noent',
-            'text/rtf': 'rtf',
-            'application/rtf': 'rtf',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
-            # 'application/msword', 'application/vnd.ms-powerpoint', 'application/vnd.ms-excel'
-            'application/vnd.oasis.opendocument.text': 'odt',
-            'application/x-latex': 'latex',
-            'application/x-tex': 'latex',
-        }
-
-        if '%s-%s' % (l1, l2) not in self.pairs:
-            self.send_error(400, explanation='That pair is not installed')
-            return
-
-        body = self.request.files['file'][0]['body']
-        if len(body) > 32E6:
-            self.send_error(413, explanation='That file is too large')
-            return
-
-        with tempfile.NamedTemporaryFile() as temp_file:
-            temp_file.write(body)
-            temp_file.seek(0)
-
-            mtype = self.get_mime_type(temp_file.name)
-            if mtype not in allowed_mime_types:
-                self.send_error(400, explanation='Invalid file type %s' % mtype)
+        pair = self.get_pair_or_error(self.get_argument('langpair'), -1)
+        if pair is not None:
+            body = self.request.files['file'][0]['body']
+            if len(body) > FILE_SIZE_LIMIT_BYTES:
+                self.send_error(413, explanation='That file is too large')
                 return
-            self.request.headers['Content-Type'] = 'application/octet-stream'
-            self.request.headers['Content-Disposition'] = 'attachment'
-            with (yield self.doc_pipe_sem.acquire()):
-                t = yield translate_doc(temp_file,
-                                        allowed_mime_types[mtype],
-                                        self.pairs['%s-%s' % (l1, l2)],
-                                        mark_unknown)
-            self.write(t)
-            self.finish()
+
+            with tempfile.NamedTemporaryFile() as temp_file:
+                temp_file.write(body)
+                temp_file.seek(0)
+
+                mtype = self.get_mime_type(temp_file.name)
+                if mtype not in ALLOWED_MIME_TYPES:
+                    self.send_error(400, explanation='Invalid file type %s' % mtype)
+                    return
+                self.request.headers['Content-Type'] = 'application/octet-stream'
+                self.request.headers['Content-Disposition'] = 'attachment'
+                with (yield self.doc_pipe_sem.acquire()):
+                    t = yield translate_doc(temp_file,
+                                            ALLOWED_MIME_TYPES[mtype],
+                                            self.pairs['%s-%s' % pair],
+                                            self.mark_unknown)
+                self.write(t)
+                self.finish()
