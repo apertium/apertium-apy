@@ -1,7 +1,7 @@
 Apertium APy
 ============
 
-[![Build Status](https://travis-ci.org/apertium/apertium-apy.svg)](https://travis-ci.org/apertium/apertium-apy)
+[![Build Status](https://api.travis-ci.org/apertium/apertium-apy.svg?branch=master)](https://travis-ci.org/apertium/apertium-apy)
 [![Coverage Status](https://coveralls.io/repos/github/apertium/apertium-apy/badge.svg?branch=master)](https://coveralls.io/github/apertium/apertium-apy?branch=master)
 [![PyPI](https://img.shields.io/pypi/v/apertium-apy.svg)](https://pypi.org/project/apertium-apy/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/apertium-apy.svg)](https://pypi.org/project/apertium-apy/)
