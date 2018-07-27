@@ -8,7 +8,7 @@ from tornado import gen
 
 from apertium_apy import missing_freqs_db  # noqa: F401
 from apertium_apy.handlers.base import BaseHandler
-from apertium_apy.keys import get_key
+from apertium_apy.keys import ApiKey
 from apertium_apy.utils import to_alpha3_code, scale_mt_log
 from apertium_apy.utils.translation import parse_mode_file, make_pipeline
 
@@ -23,6 +23,10 @@ class TranslationInfo:
 
 class TranslateHandler(BaseHandler):
     unknown_mark_re = re.compile(r'[*]([^.,;:\t\* ]+)')
+    api_keys = None
+
+    def __init__(self, application, request, **kwargs):
+        super().__init__(application, request, **kwargs)
 
     @property
     def mark_unknown(self):
@@ -113,7 +117,7 @@ class TranslateHandler(BaseHandler):
         after = datetime.now()
         if self.scale_mt_logs:
             t_info = TranslationInfo(self)
-            key = get_key(t_info.key)
+            key = self.get_api_key(t_info.key)
             scale_mt_log(self.get_status(), after - before, t_info, key, length)
 
         if self.get_status() == 200:
@@ -184,3 +188,10 @@ class TranslateHandler(BaseHandler):
                                              nosplit=False,
                                              deformat=deformat,
                                              reformat=reformat)
+
+    @classmethod
+    def get_api_key(cls, key):
+        if not cls.api_keys:
+            cls.api_keys = ApiKey(cls.api_keys_conf)
+
+        return cls.api_keys.get_key(key)

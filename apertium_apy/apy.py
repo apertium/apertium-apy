@@ -88,7 +88,8 @@ class GetLocaleHandler(BaseHandler):
 def setup_handler(
     port, pairs_path, nonpairs_path, lang_names, missing_freqs_path, timeout,
     max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs,
-    restart_pipe_after, max_doc_pipes, verbosity=0, scale_mt_logs=False, memory=1000,
+    restart_pipe_after, max_doc_pipes, verbosity=0, scale_mt_logs=False,
+    memory=1000, apy_keys=None,
 ):
 
     global missing_freqs_db
@@ -106,6 +107,7 @@ def setup_handler(
     handler.scale_mt_logs = scale_mt_logs
     handler.verbosity = verbosity
     handler.doc_pipe_sem = Semaphore(max_doc_pipes)
+    handler.api_keys_conf = apy_keys
 
     modes = search_path(pairs_path, verbosity=verbosity)
     if nonpairs_path:
@@ -221,6 +223,7 @@ def parse_args(cli_args=sys.argv[1:]):
     parser.add_argument('-md', '--max-doc-pipes',
                         help='how many concurrent document translation pipelines we allow (default = 3)', type=int, default=3)
     parser.add_argument('-C', '--config', help='Configuration file to load options from', default=None)
+    parser.add_argument('-ak', '--api-keys', help='Configuration file to load API keys', default=None)
 
     args = parser.parse_args(cli_args)
 
@@ -270,7 +273,8 @@ def setup_application(args):
 
     setup_handler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
                   args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs,
-                  args.restart_pipe_after, args.max_doc_pipes, args.verbosity, args.scalemt_logs, args.unknown_memory_limit)
+                  args.restart_pipe_after, args.max_doc_pipes, args.verbosity, args.scalemt_logs,
+                  args.unknown_memory_limit, args.api_keys)
 
     handlers = [
         (r'/', RootHandler),

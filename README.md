@@ -24,6 +24,7 @@ of the following packages:
 - `requests` enables suggestion handling
 - `chromium_compact_language_detector` enables improved language detection (cld2)
 - `chardet` enables website character encoding detection
+- `commentjson` allows to keep API keys in commented json
 
 Precise versions are available in `requirements.txt` and `setup.py`.
 
@@ -62,6 +63,7 @@ Installation through `apt` or `pip` adds an `apertium-apy` executable:
                     [-M UNKNOWN_MEMORY_LIMIT] [-T STAT_PERIOD_MAX_AGE]
                     [-wp WIKI_PASSWORD] [-wu WIKI_USERNAME] [-b]
                     [-rs RECAPTCHA_SECRET] [-md MAX_DOC_PIPES] [-C CONFIG]
+                    [-ak API_KEYS_FILE]
                     pairs_path
 
     Apertium APY -- API server for machine translation and language analysis
@@ -136,6 +138,7 @@ Installation through `apt` or `pip` adds an `apertium-apy` executable:
                             allow (default = 3)
     -C CONFIG, --config CONFIG
                             Configuration file to load options from
+    -ak, --api-keys         JSON file where API keys are stored. Comments are allowed
 
 Contributing
 ------------
