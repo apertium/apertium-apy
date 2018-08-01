@@ -8,7 +8,7 @@ from tornado import gen
 
 from apertium_apy import missing_freqs_db  # noqa: F401
 from apertium_apy.handlers.base import BaseHandler
-from apertium_apy.keys import ApiKey
+from apertium_apy.keys import ApiKeys
 from apertium_apy.utils import to_alpha3_code, scale_mt_log
 from apertium_apy.utils.translation import parse_mode_file, make_pipeline
 
@@ -192,6 +192,6 @@ class TranslateHandler(BaseHandler):
     @classmethod
     def get_api_key(cls, key):
         if not cls.api_keys:
-            cls.api_keys = ApiKey(cls.api_keys_conf)
+            cls.api_keys = ApiKeys(cls.api_keys_conf)
 
         return cls.api_keys.get_key(key)

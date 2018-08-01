@@ -12,7 +12,7 @@ if False:
     from typing import Dict  # noqa: F401
 
 
-class ApiKey:
+class ApiKeys:
     def __init__(self, api_keys_conf):
         keys_raw = {
             # add keys here
