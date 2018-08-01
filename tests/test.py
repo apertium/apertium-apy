@@ -76,7 +76,7 @@ class BaseTestCase(AsyncHTTPTestCase):
         if params:
             method = kwargs.get('method', 'GET')
             if method == 'GET':
-                path += '?' + urllib.parse.urlencode(params)
+                path += '?' + urllib.parse.urlencode(params, doseq=True)
             elif method == 'POST':
                 if 'files' in kwargs:
                     boundary_code = uuid.uuid4().hex
@@ -107,7 +107,7 @@ class BaseTestCase(AsyncHTTPTestCase):
                     body.write(boundary + b'--\r\n')
                     kwargs['body'] = body.getvalue()
                 else:
-                    kwargs['body'] = kwargs.get('body', '') + urllib.parse.urlencode(params)
+                    kwargs['body'] = kwargs.get('body', '') + urllib.parse.urlencode(params, doseq=True)
 
         return super().fetch(path, **kwargs)
 
@@ -170,6 +170,11 @@ class TestTranslateHandler(BaseTestCase):
     def test_valid_pair(self):
         response = self.fetch_translation('government', 'eng|spa')
         self.assertEqual(response['responseData']['translatedText'], 'Gobierno')
+
+    def test_valid_pair_multi_query(self):
+        response = self.fetch_translation(['welcome', 'respect', 'serve'], 'eng|spa')
+        translations = [translation_response['responseData']['translatedText'] for translation_response in response['responseData']]
+        self.assertListEqual(translations, ['Bienvenido', 'Respeto', 'Sirve'])
 
     def test_valid_pair_unknown(self):
         response = self.fetch_translation('notaword', 'eng|spa')

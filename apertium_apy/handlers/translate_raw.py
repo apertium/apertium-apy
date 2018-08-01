@@ -19,14 +19,22 @@ class TranslateRawHandler(TranslateHandler):
 
     @gen.coroutine
     def get(self):
-        pair = self.get_pair_or_error(self.get_argument('langpair'),
-                                      len(self.get_argument('q', strip=False)))
+        query = self.get_argument('q', strip=False)
+        pair = self.get_pair_or_error(self.get_argument('langpair'), len(query))
         if pair is not None:
             pipeline = self.get_pipeline(pair)
-            yield self.translate_and_respond(pair,
-                                             pipeline,
-                                             self.get_argument('q', strip=False),
-                                             self.get_argument('markUnknown', default='yes'),
-                                             nosplit=False,
-                                             deformat=self.get_argument('deformat', default=True),
-                                             reformat=False)
+            self.note_pair_usage(pair)
+            before = self.log_before_translation()
+            translated = yield pipeline.translate(query,
+                                                  nosplit=False,
+                                                  deformat=self.get_argument('deformat', default=True),
+                                                  reformat=False)
+            self.log_after_translation(before, len(query))
+            self.send_response({
+                'responseData': {
+                    'translatedText': self.maybe_strip_marks(self.mark_unknown, pair, translated),
+                },
+                'responseDetails': None,
+                'responseStatus': 200,
+            })
+            self.clean_pairs()
