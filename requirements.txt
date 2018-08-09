@@ -5,3 +5,4 @@ idna==2.6
 requests==2.18.4
 tornado==4.2.1
 urllib3==1.22
+commentjson==0.7.1

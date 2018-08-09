@@ -26,6 +26,7 @@ class BaseHandler(tornado.web.RequestHandler):
     timeout = None
     scale_mt_logs = False
     verbosity = 0
+    api_keys_conf = None
 
     # dict representing a graph of translation pairs; keys are source languages
     # e.g. pairs_graph['eng'] = ['fra', 'spa']
