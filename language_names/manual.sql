@@ -368,6 +368,7 @@ INSERT INTO "additions" VALUES(NULL,'szl','ca','katalōńskŏ');
 INSERT INTO "additions" VALUES(NULL,'szl','ceb','cebuano');
 INSERT INTO "additions" VALUES(NULL,'szl','ckb','kurdyjskŏ sorani');
 INSERT INTO "additions" VALUES(NULL,'szl','co','korsykańsko');
+INSERT INTO "additions" VALUES(NULL,'szl','crh','krymskŏ tatarskŏ');
 INSERT INTO "additions" VALUES(NULL,'szl','cs','czeskŏ');
 INSERT INTO "additions" VALUES(NULL,'szl','csb','kaszubskŏ');
 INSERT INTO "additions" VALUES(NULL,'szl','cu','staro-cerkewno-słowiańskŏ');
