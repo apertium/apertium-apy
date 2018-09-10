@@ -322,13 +322,13 @@ class ListHandler(BaseHandler):
                              'pipeLanguage3': toAlpha3Code(pipeLanguage),
                              'pipename': pipename}
                             for ((specLanguage, pipename),
-                                 (pipeLanguage, _filename))
+                                 (_filename, pipeLanguage))
                             in self.checkers.items()]
             self.sendResponse({'responseData': responseData,
                                'responseDetails': None,
                                'responseStatus': 200})
         else:
-            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, disambiguators, or pairs')
+            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, disambiguators, checkers or pairs')
 
 
 class StatsHandler(BaseHandler):
