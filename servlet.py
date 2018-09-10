@@ -122,6 +122,7 @@ class BaseHandler(tornado.web.RequestHandler):
     analyzers = {}
     generators = {}
     taggers = {}
+    checkers = {}
     pipelines = {}  # (l1, l2): [translation.Pipeline], only contains flushing pairs!
     pipelines_holding = []
     callback = None
@@ -314,6 +315,18 @@ class ListHandler(BaseHandler):
             self.sendResponse({pair: modename for (pair, (path, modename)) in self.generators.items()})
         elif query == 'taggers' or query == 'disambiguators':
             self.sendResponse({pair: modename for (pair, (path, modename)) in self.taggers.items()})
+        elif query == 'checkers':
+            responseData = [{'specLanguage': specLanguage,
+                             'specLanguage3': toAlpha3Code(specLanguage),
+                             'pipeLanguage': pipeLanguage,
+                             'pipeLanguage3': toAlpha3Code(pipeLanguage),
+                             'pipename': pipename}
+                            for ((specLanguage, pipename),
+                                 (pipeLanguage, _filename))
+                            in self.checkers.items()]
+            self.sendResponse({'responseData': responseData,
+                               'responseDetails': None,
+                               'responseStatus': 200})
         else:
             self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, disambiguators, or pairs')
 
@@ -970,8 +983,8 @@ def basic_auth(after_login_func=lambda *args, **kwargs: None, realm='Restricted'
     return basic_auth_decorator
 
 
-@basic_auth()
-class TranslateRawHandler(TranslateHandler):
+# @basic_auth()
+class CheckerHandler(TranslateHandler):
     """Assumes the pipeline itself outputs as JSON"""
 
     def check_credentials(self, user, pwd):
@@ -988,19 +1001,36 @@ class TranslateRawHandler(TranslateHandler):
             self._write_buffer.append(utf8(translatedText))
             self.finish()
 
+    def getPairOrError(self, speclang, pipename):
+        if (speclang, pipename) not in self.checkers:
+            self.send_error(400, explanation='That checker is not installed')
+            return None
+        else:
+            return (speclang, pipename)
+
+    def getPipeCmds(self, l1, l2):
+        if (l1, l2) not in self.pipeline_cmds:
+            (mode_path, pipelang) = self.checkers[(l1, l2)]
+            self.pipeline_cmds[(l1, l2)] = translation.parseModeFile(mode_path)
+        return self.pipeline_cmds[(l1, l2)]
+
     @gen.coroutine
     def get(self):
-        pair = self.getPairOrError(self.get_argument('langpair'),
-                                   len(self.get_argument('q', strip=False)))
-        if pair is not None:
-            pipeline = self.getPipeline(pair)
-            yield self.translateAndRespond(pair,
-                                           pipeline,
-                                           self.get_argument('q', strip=False),
-                                           self.get_argument('markUnknown', default='yes'),
-                                           nosplit=False,
-                                           deformat=self.get_argument('deformat', default=True),
-                                           reformat=False)
+        speclang = self.get_argument('lang')
+        pipename = self.get_argument('pipename')
+        pair = (speclang, pipename)
+        if pair not in self.checkers:
+            self.send_error(400, explanation='That checker is not installed')
+            return None
+        text = self.get_argument('q', strip=False)
+        pipeline = self.getPipeline(pair)
+        yield self.translateAndRespond(pair,
+                                       pipeline,
+                                       text,
+                                       self.get_argument('markUnknown', default='yes'),
+                                       nosplit=False,
+                                       deformat=self.get_argument('deformat', default=True),
+                                       reformat=False)
 
 
 class CachingHunSpell(object):
@@ -1538,6 +1568,7 @@ def setupHandler(
         Handler.generators[lang_pair] = (dirpath, modename)
     for dirpath, modename, lang_pair in modes['tagger']:
         Handler.taggers[lang_pair] = (dirpath, modename)
+    Handler.checkers = dict(modes['checker'])
 
     if hunspell is not None:
         dirs = ['/usr/share/hunspell', '/usr/share/myspell']
@@ -1662,7 +1693,8 @@ if __name__ == '__main__':
         (r'/translateChain', TranslateChainHandler),
         (r'/translateDoc', TranslateDocHandler),
         (r'/translatePage', TranslatePageHandler),
-        (r'/translateRaw', TranslateRawHandler),
+        (r'/translateRaw', CheckerHandler),  # deprecated
+        (r'/checker', CheckerHandler),
         (r'/hunspell', HunspellHandler),
         (r'/analy[sz]e', AnalyzeHandler),
         (r'/generate', GenerateHandler),
