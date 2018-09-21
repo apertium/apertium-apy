@@ -297,13 +297,14 @@ def setup_application(args):
 
     return tornado.web.Application(handlers)
 
+
 def setup_logging(args):
     if args.daemon:
         # regular content logs are output stderr
         # python messages are mostly output to stdout
         # hence swapping the filenames?
-        logfile=os.path.join(args.log_path, 'apertium-apy.log')
-        errfile=os.path.join(args.log_path, 'apertium-apy.err')
+        logfile = os.path.join(args.log_path, 'apertium-apy.log')
+        errfile = os.path.join(args.log_path, 'apertium-apy.err')
         sys.stderr = open(logfile, 'a+')
         sys.stdout = open(errfile, 'a+')
         logging.basicConfig(filename=logfile, filemode='a')  # NB. Needs to happen *before* we use logs for anything
@@ -320,6 +321,7 @@ def setup_logging(args):
         if args.daemon:
             logging.getLogger('tornado.access').propagate = False
     enable_pretty_logging()
+
 
 def main():
     check_utf8()
