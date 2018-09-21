@@ -248,26 +248,6 @@ def parse_args(cli_args=sys.argv[1:]):
 
 
 def setup_application(args):
-    if args.daemon:
-        # regular content logs are output stderr
-        # python messages are mostly output to stdout
-        # hence swapping the filenames?
-        sys.stderr = open(os.path.join(args.log_path, 'apertium-apy.log'), 'a+')
-        sys.stdout = open(os.path.join(args.log_path, 'apertium-apy.err'), 'a+')
-
-    if args.scalemt_logs:
-        logger = logging.getLogger('scale-mt')
-        logger.propagate = False
-        smtlog = os.path.join(args.log_path, 'ScaleMTRequests.log')
-        logging_handler = logging_handlers.TimedRotatingFileHandler(smtlog, 'midnight', 0)
-        # internal attribute, should not use
-        logging_handler.suffix = '%Y-%m-%d'  # type: ignore
-        logger.addHandler(logging_handler)
-
-        # if scalemt_logs is enabled, disable tornado.access logs
-        if args.daemon:
-            logging.getLogger('tornado.access').propagate = False
-
     if args.stat_period_max_age:
         BaseHandler.STAT_PERIOD_MAX_AGE = timedelta(0, args.stat_period_max_age, 0)
 
@@ -317,12 +297,34 @@ def setup_application(args):
 
     return tornado.web.Application(handlers)
 
+def setup_logging(args):
+    if args.daemon:
+        # regular content logs are output stderr
+        # python messages are mostly output to stdout
+        # hence swapping the filenames?
+        logfile=os.path.join(args.log_path, 'apertium-apy.log')
+        errfile=os.path.join(args.log_path, 'apertium-apy.err')
+        sys.stderr = open(logfile, 'a+')
+        sys.stdout = open(errfile, 'a+')
+        logging.basicConfig(filename=logfile, filemode='a')  # NB. Needs to happen *before* we use logs for anything
+        logging.getLogger().setLevel(logging.INFO)
+    if args.scalemt_logs:
+        logger = logging.getLogger('scale-mt')
+        logger.propagate = False
+        smtlog = os.path.join(args.log_path, 'ScaleMTRequests.log')
+        logging_handler = logging_handlers.TimedRotatingFileHandler(smtlog, 'midnight', 0)
+        # internal attribute, should not use
+        logging_handler.suffix = '%Y-%m-%d'  # type: ignore
+        logger.addHandler(logging_handler)
+        # if scalemt_logs is enabled, disable tornado.access logs
+        if args.daemon:
+            logging.getLogger('tornado.access').propagate = False
+    enable_pretty_logging()
 
 def main():
     check_utf8()
-    logging.getLogger().setLevel(logging.INFO)
     args = parse_args()
-    enable_pretty_logging()
+    setup_logging(args)         # before we start logging anything!
 
     if importlib.util.find_spec('cld2full') is None:
         logging.warning('Unable to import CLD2, continuing using naive method of language detection')
