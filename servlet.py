@@ -1753,5 +1753,5 @@ if __name__ == '__main__':
     if wd is not None:
         wd.systemd_ready()
         logging.info("Initialised systemd watchdog, pinging every {}s".format(1000 * wd.period))
-        tornado.ioloop.PeriodicCallback(wd.watchdog_ping, 1000 * wd.period, loop).start()
+        tornado.ioloop.PeriodicCallback(wd.watchdog_ping, 1000 * wd.period).start()
     loop.start()
