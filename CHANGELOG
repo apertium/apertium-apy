@@ -1,4 +1,73 @@
 See NEWS for a per-release summary, this is just the git log.
+2018-09-21  Kevin Brubeck Unhammer <unhammer+dill@mm.st>
+
+	* apertium_apy/apy.py: Redir of stderr/-out not enough, use
+	logging.basicConfig(filename=…) (#116) * Redir of stderr/-out not enough, use
+	logging.basicConfig(filename=…) Also, the basicConfig stuff needs to happen before any loggers are
+	created, otherwise it has no effect (or you have to pass in the
+	created loggers to basicConfig, which sounds like a drag).  Fixes #112 - apertium-apy doesn't honor -P / --log-path * appease the flake
+
+2018-09-07  gkkulik <g.kulik@o2.pl>
+
+	* language_names/manual.sql, language_names/variants.sql: Added
+	Silesian related names (#114) * Added Silesian related names * Added missing Silesian names * ISO code fix
+
+2018-08-09  Xavi Ivars <xavi.ivars@gmail.com>
+
+	* .gitignore, README.md, apertium_apy/apy.py,
+	apertium_apy/handlers/base.py, apertium_apy/handlers/translate.py,
+	apertium_apy/keys.py, requirements.txt, setup.py: Allowing keys to
+	be passed as a json file (#113) * Allowing keys to be passed as a json file * Small improvements
+
+2018-07-26  Sushain Cherivirala <sushain@skc.name>
+
+	* README.md: Show master build status in Travis badge
+
+2018-05-17  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/handlers/translate_doc.py: Minor translateDoc
+	refactoring (#110)
+
+2018-05-15  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/handlers/translate.py,
+	apertium_apy/handlers/translate_doc.py,
+	apertium_apy/handlers/translate_webpage.py, tests/test.py: Improved
+	doc translation and tests (#109) * Improved doc translation and add tests * Fix tests * Another test * some refactoring * Some refactoring and more tests
+
+2018-04-27  Sushain Cherivirala <sushain@skc.name>
+
+	* Dockerfile: Ensure cld2 compiles on stretch in Dockerfile
+
+2018-04-26  Sushain Cherivirala <sushain@skc.name>
+
+	* README.md: Reference Docker build
+
+2018-04-26  Sushain Cherivirala <sushain@skc.name>
+
+	* Dockerfile: Use apertium/base Docker image
+
+2018-04-26  Sushain Cherivirala <sushain@skc.name>
+
+	* Dockerfile: Simplify locales in Dockerfile
+
+2018-04-26  Sushain Cherivirala <sushain@skc.name>
+
+	* Dockerfile: Minor improvement to Dockerfile
+
+2018-04-26  Sushain Cherivirala <sushain@skc.name>
+
+	* .dockerignore, Dockerfile, README.md: Improvements to Dockerfile
+	and related items
+
+2018-04-26  Sushain Cherivirala <sushain@skc.name>
+
+	* .dockerignore, Dockerfile, README.md: Add Dockerfile and expand
+	README installation
+
+2018-04-05  Sushain Cherivirala <sushain@skc.name>
+
+	* CHANGELOG, NEWS: Update changelog
 
 2018-04-05  Sushain Cherivirala <sushain@skc.name>
 
@@ -73,6 +142,14 @@ See NEWS for a per-release summary, this is just the git log.
 2018-04-01  Sushain Cherivirala <sushain@skc.name>
 
 	* apertium_apy/apy.py: Fix PeriodicCallback for 5.0
+
+2018-04-01  Sushain Cherivirala <sushain@skc.name>
+
+	* CHANGELOG: Fix encoding
+
+2018-04-01  Sushain Cherivirala <sushain@skc.name>
+
+	* CHANGELOG: Update changelog
 
 2018-03-30  Sushain Cherivirala <sushain@skc.name>
 
