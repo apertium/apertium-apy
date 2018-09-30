@@ -1,6 +1,19 @@
 # -*- mode:org -*-
 #+STARTUP: showall
 
+* Version: 0.11.4 2018-09-29
+  Git rev: 7b447ac93c839ddf7ad18149f3eb23ba31a38937
+  Changes since 0.11.3:
+
+  - Fix --log-path option and related logging redirection
+
+  - Add Silesian related language names
+
+  - Allow API keys to be passed as a JSON file
+
+  - Add Dockerfile
+
+
 * Version: 0.11.3 2018-04-04
   Git rev: 0c0d3c72ce8e8b93affd9b76a69878a052120c26
   Changes since 0.11.2:
