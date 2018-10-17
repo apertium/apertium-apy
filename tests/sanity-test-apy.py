@@ -50,7 +50,7 @@ tests = {
     'epo-eng': ('kaj', 'and'),
     'eus-eng': ('kaixo', 'hello'),
     'eus-spa': ('kaixo', 'hola'),
-    'fra-cat': ('pour', 'per a'),
+    'fra-cat': ('monsieur', 'senyor'),
     'fra-epo': ('Pour', 'Por'),
     'fra-spa': ('Je', 'Yo'),
     'glg-eng': ('Teño', 'Have'),
