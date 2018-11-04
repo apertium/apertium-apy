@@ -28,5 +28,3 @@ pycodestyle = "*"
 pyflakes = "*"
 typed-ast = "*"
 
-[requires]
-python_version = "3.7"
