@@ -144,7 +144,7 @@ Contributing
 ------------
 
 APy uses [TravisCI][4] for continous integration. Locally, use `make test`
-to run the same checks it does. Use `pip install -r requirements-dev.txt`
+to run the same checks it does. Use `pipenv install --dev`
 to install the requirements required for development, e.g. linters.
 
 [1]: http://wiki.apertium.org/wiki/Apertium-apy
