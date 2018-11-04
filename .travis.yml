@@ -12,7 +12,7 @@ python:
     - 'nightly'
 install:
     - pip install pipenv
-    - travis_retry pipenv install --dev --system --skip-lock
+    - travis_retry pipenv install --dev --system
     - make
 before_script:
     - wget http://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
