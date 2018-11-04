@@ -10,7 +10,7 @@ chardet = "*"
 idna = "*"
 requests = "*"
 tornado = "*"
-"urllib3" = "*"
+urllib3 = "*"
 commentjson = "*"
 
 [dev-packages]
