@@ -5,9 +5,8 @@ name = "pypi"
 
 [packages]
 apertium-streamparser = "*"
-certifi = "*"
 chardet = "*"
-idna = "*"
+
 requests = "*"
 tornado = "*"
 urllib3 = "*"
