@@ -14,6 +14,19 @@ tornado = "*"
 commentjson = "*"
 
 [dev-packages]
+coverage = "*"
+coveralls = "*"
+docopt = "*"
+flake8-commas = "*"
+flake8-quotes = "*"
+flake8 = "*"
+idna = "*"
+mccabe = "*"
+mypy = "0.580"
+pep8-naming = "*"
+pycodestyle = "*"
+pyflakes = "*"
+typed-ast = "*"
 
 [requires]
 python_version = "3.7"
