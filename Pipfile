@@ -16,11 +16,9 @@ coveralls = "*"
 flake8-commas = "*"
 flake8-quotes = "*"
 flake8 = "*"
-idna = "*"
-mccabe = "*"
 mypy = "*"
 pep8-naming = "*"
 pycodestyle = "*"
 pyflakes = "*"
-typed-ast = "*"
+
 
