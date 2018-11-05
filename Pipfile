@@ -8,7 +8,6 @@ apertium-streamparser = "*"
 chardet = "*"
 requests = "*"
 tornado = "*"
-urllib3 = "*"
 commentjson = "*"
 
 [dev-packages]
