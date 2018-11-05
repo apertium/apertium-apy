@@ -13,7 +13,6 @@ commentjson = "*"
 [dev-packages]
 coverage = "*"
 coveralls = "*"
-docopt = "*"
 flake8-commas = "*"
 flake8-quotes = "*"
 flake8 = "*"
