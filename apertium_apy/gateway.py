@@ -322,8 +322,8 @@ class Fastest(Balancer):
             if mode in self.serverlist:
                 if action == 'complete':
                     if self.serverlist[mode][server]:
-                        self.serverlist[mode][server] = (self.serverlist[mode][server] 
-                                                        * (self.num_responses - 1) + request_time / response_len) / self.num_responses
+                        self.serverlist[mode][server] = (self.serverlist[mode][server] *
+                                                         (self.num_responses - 1) + request_time / response_len) / self.num_responses
                     else:
                         self.serverlist[mode][server] = request_time / response_len / self.num_responses
                 elif action == 'drop':
