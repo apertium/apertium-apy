@@ -16,7 +16,7 @@ coveralls = "*"
 flake8-commas = "==2.0.0"
 flake8-quotes = "==0.14.0"
 flake8 = "==3.5.0"
-mypy = "*" {markers="python_version >= '3.5'"
+mypy = "*" {markers="python_version >= '3.5'"}
 pep8-naming = "*"
 
 
