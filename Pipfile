@@ -11,7 +11,7 @@ tornado = "==4.2.1"
 commentjson = "*"
 
 [dev-packages]
-coverage = "==4.5.1"
+coverage = "*"
 coveralls = "==1.3.0"
 flake8-commas = "==2.0.0"
 flake8-quotes = "==0.14.0"
