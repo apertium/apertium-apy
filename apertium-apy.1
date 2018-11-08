@@ -1,0 +1,102 @@
+.TH apertium-apy "1" "2018-11-08" "" ""
+.SH NAME
+apertium-apy \- API server for machine translation and language analysis.
+.SH SYNOPSIS
+.B apertium-apy
+[
+.B pairs_path
+]
+path to Apertium installed pairs (all modes files in this path are included).
+.SH OPTIONS
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Show this help message and exit.
+.TP
+\fB\-s\fR \fI\,NONPAIRS_PATH\/\fR, \fB\-\-nonpairs-path\fR \fI\,NONPAIRS_PATH\/\fR
+Path to Apertium tree (only non-translator debug modes are included from this
+path).
+.TP
+\fB\-l\fR \fI\,LANG_NAMES\/\fR, \fB\-\-lang-names\fR \fI\,LANG_NAMES\/\fR
+Path to localised language names sqlite database (default = langNames.db)
+.TP
+\fB\-f\fR \fI\,MISSING_FREQS\/\fR, \fB\-\-missing-freqs\fR \fI\,MISSING_FREQS\/\fR
+Path to missing word frequency sqlite database (default = None)
+.TP
+\fB\-p\fR \fI\,PORT\/\fR, \fB\-\-port\fR \fI\,PORT\/\fR
+Port to run server on (default = 2737)
+.TP
+\fB\-c\fR \fI\,SSL_CERT\/\fR, \fB\-\-ssl-cert\fR \fI\,SSL_CERT\/\fR
+Path to SSL Certificate
+.TP
+\fB\-k\fR \fI\,SSL_KEY\/\fR, \fB\-\-ssl\-key\fR \fI\,SSL_KEY\/\fR
+Path to SSL Key File
+.TP
+\fB\-t\fR \fI\,TIMEOUT\/\fR, \fB\-\-timeout\fR \fI\,TIMEOUT\/\fR
+Timeout for requests (default = 10)
+.TP
+\fB\-j\fR \fI\,NUM_PROCESSES\/\fR, \fB\-\-num\-processes\fR \fI\,NUM_PROCESSES\/\fR
+Number of processes to run (default = 1; use 0 to run one http server per core,
+where each http server runs all available language pairs)
+.TP
+\fB\-d\fR, \fB-\-daemon\fR
+Daemon mode: redirects stdout and stderr to files apertium-apy.log and
+apertium-apy.err; use with \fB\-\-log\-path\fR
+.TP
+\fB\-P\fR \fI\,LOG_PATH\/\fR, \fB\-\-log-path\fR \fI\,LOG_PATH\/\fR
+Path to log output files to in daemon mode; defaults to local directory
+.TP
+\fB\-i\fR \fI\,MAX_PIPES_PER_PAIR\/\fR, \fB\-\-max\-pipes\-per\-pair\fR \fI\,MAX_PIPES_PER_PAIR\/\fR
+How many pipelines we can spin up per language pair (default = 1)
+.TP
+\fB\-n\fR \fI\,MIN_PIPES_PER_PAIR\/\fR, \fB\-\-min-pipes-per-pair\fR \fI\,MIN_PIPES_PER_PAIR\/\fR
+When shutting down pipelines, keep at least this many open per language pair
+(default = 0)
+.TP
+\fB\-u\fR \fI\,MAX_USERS_PER_PIPE\/\fR, \fB\-\-max-users-per-pipe\fR \fI\,MAX_USERS_PER_PIPE\/\fR
+How many concurrent requests per pipeline before we consider spinning up a new
+one (default = 5)
+.TP
+\fB\-m\fR \fI\,MAX_IDLE_SECS\/\fR, \fB\-\-max\-idle\-secs\fR \fI\,MAX_IDLE_SECS\/\fR
+If specified, shut down pipelines that have not been used in this many seconds
+.TP
+\fB\-r\fR \fI\,RESTART_PIPE_AFTER\/\fR, \fB\-\-restart-pipe-after\fR \fI\,RESTART_PIPE_AFTER\/\fR
+Restart a pipeline if it has had this many requests (default = 1000)
+.TP
+\fB\-v\fR \fI\,VERBOSITY\/\fR, \fB\-\-verbosity\fR \fI\,VERBOSITY\/\fR
+Logging verbosity.
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Show APY version and exit.
+.TP
+\fB\-S\fR, \fB\-\-scalemt-logs\fR
+Generates ScaleMT\-like logs; use with \fB\-\-log-path\fR; disables
+.TP
+\fB\-M\fR \fI\,UNKNOWN_MEMORY_LIMIT\/\fR, \fB\-\-unknown\-memory\-limit\fR \fI\,UNKNOWN_MEMORY_LIMIT\/\fR
+Keeps unknown words in memory until a limit is reached; use with
+\-\-missing-freqs (default = 1000)
+.TP
+\fB\-T\fR \fI\,STAT_PERIOD_MAX_AGE\/\fR, \fB\-\-stat\-period\-max\-age\fR \fI\,STAT_PERIOD_MAX_AGE\/\fR
+How many seconds back to keep track request timing stats (default = 3600)
+.TP
+\fB\-wp\fR \fI\,WIKI_PASSWORD\/\fR, \fB\-\-wiki\-password\fR \fI\,WIKI_PASSWORD\/\fR
+Apertium Wiki account password for SuggestionHandler
+.TP
+\fB\-wu\fR \fI\,WIKI_USERNAME\/\fR, \fB\-\-wiki\-username\fR \fI\,WIKI_USERNAME\/\fR
+Apertium Wiki account username for SuggestionHandler
+.TP
+\fB\-b\fR, \fB\-\-bypass\-token\fR
+ReCAPTCHA bypass token
+.TP
+\fB\-rs\fR \fI\,RECAPTCHA_SECRET\/\fR, \fB\-\-recaptcha-secret\fR \fI\,RECAPTCHA_SECRET\/\fR
+ReCAPTCHA secret for suggestion validation.
+.TP
+\fB\-md\fR \fI\,MAX_DOC_PIPES\/\fR, \fB\-\-max\-doc\-pipes\fR \fI\,MAX_DOC_PIPES\/\fR
+How many concurrent document translation pipelines we allow (default = 3)
+.TP
+\fB\-C\fR \fI\,CONFIG\/\fR, \fB\-\-config\fR \fI\,CONFIG\/\fR
+Configuration file to load options from.
+.TP
+\fB\-ak\fR \fI\,API_KEYS\/\fR, \fB\-\-api-keys\fR \fI\,API_KEYS\/\fR
+Configuration file to load API keys.
+.SH Homepage
+<https://github.com/apertium/apertium-apy>
