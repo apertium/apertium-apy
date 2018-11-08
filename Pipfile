@@ -13,7 +13,7 @@ commentjson = "*"
 [dev-packages]
 coverage = "*"
 coveralls = "*"
-flake8-commas = "==2.0.0"
+flake8-commas = "*"
 flake8-quotes = "==0.14.0"
 flake8 = "==3.5.0"
 mypy = {version = "*", "python_version" = ">= '3.5'"}
