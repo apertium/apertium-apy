@@ -7,7 +7,7 @@ name = "pypi"
 apertium-streamparser = "*"
 chardet = "*"
 requests = "*"
-tornado = "*"
+tornado = "==4.2.1"
 commentjson = "*"
 
 [dev-packages]
