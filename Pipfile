@@ -1,0 +1,20 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+apertium-streamparser = "*"
+chardet = "*"
+requests = "*"
+tornado = "==4.2.1"
+commentjson = "*"
+
+[dev-packages]
+coverage = "*"
+coveralls = "*"
+flake8-commas = "*"
+flake8-quotes = "*"
+flake8 = "==3.5.0"
+mypy = {version = "*", "python_version" = ">= '3.5'"}
+pep8-naming = "*"
