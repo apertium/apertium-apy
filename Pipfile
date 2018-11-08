@@ -14,7 +14,7 @@ commentjson = "*"
 coverage = "*"
 coveralls = "*"
 flake8-commas = "*"
-flake8-quotes = "==0.14.0"
+flake8-quotes = "*"
 flake8 = "==3.5.0"
 mypy = {version = "*", "python_version" = ">= '3.5'"}
 pep8-naming = "==0.5.0"
