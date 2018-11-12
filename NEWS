@@ -1,6 +1,13 @@
 # -*- mode:org -*-
 #+STARTUP: showall
 
+* Version: 0.11.5 2018-10-11
+  Git rev: 9192785ca30d5ff9b25043192c1c8ccbee934b5b
+  Changes since 0.11.4:
+
+  - Add language_names/ to source distribution
+
+
 * Version: 0.11.4 2018-09-29
   Git rev: 7b447ac93c839ddf7ad18149f3eb23ba31a38937
   Changes since 0.11.3:

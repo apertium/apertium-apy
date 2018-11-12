@@ -1,4 +1,41 @@
 See NEWS for a per-release summary, this is just the git log.
+
+2018-11-11  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/apy.py: Bump version
+
+2018-11-11  Anthony J. Bentley <anthony@anjbe.name>
+
+	* MANIFEST.in: Add language_names/ to dist. (#121)
+
+2018-11-08  milanandreew <43289010+milanandreew@users.noreply.github.com>
+
+	* .travis.yml, Pipfile, Pipfile.lock, README.md,
+	requirements-dev.txt, requirements.txt: Switch to pipenv (fixes
+	#117) * Switch to pipenv * Problem solved All development packages added.  * removed python version restriction * adjusting travis ci workflow * Difficulties on travis ignoring pipfile lock * I don't know how that got in there * Pipfile lock updated, removing skip lock * Another small edit * Another edit * Deleted empty line Linter fix coming * transitive dependency * transitive dependency 2nd time * Transitive dependencies * Flake 8 errors * flake8 version? * Let's just hope some issues are resolved * read the docs is a fitting name
+	https://pipenv.readthedocs.io/en/latest/advanced/#specifying-basically-anything* Ugh, i forgot a curly bracket * Yet again: I MUST READ THE DOCS * adjusting to style conventions * Some issues in ci, hope that this will fix them * deleting whitespace * Just trying something out * Problem with stupid lockfile * Update Pipfile * 3.5 pipfile.lock issue * fixing 3.4 build * coverage pin check * coveralls pin check * lint pin check #1 * Update Pipfile.lock deck the halls with boughs of holly, fa-la-la-la-la-la-la-la-la
+	don't forget to update piplock, fa-la-la-la-la-la-la-la-la * lint pin check #2 * Update Pipfile * Hang on forgot pipfile.lock
+
+2018-11-08  Kevin Brubeck Unhammer <unhammer+dill@mm.st>
+
+	* : Merge pull request #119 from kartikm/man Add apertium-apy manpage
+
+2018-10-17  Xavi Ivars <xavi.ivars@gmail.com>
+
+	* tests/sanity-test-apy.py: Update fra-cat tests
+
+2018-10-05  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tests/sanity-test-apy.py: tests for new language pairs
+
+2018-09-29  Sushain Cherivirala <sushain@skc.name>
+
+	* NEWS: Update NEWS
+
+2018-09-29  Sushain Cherivirala <sushain@skc.name>
+
+	* CHANGELOG, apertium_apy/apy.py: Update changelog and bump version
+
 2018-09-21  Kevin Brubeck Unhammer <unhammer+dill@mm.st>
 
 	* apertium_apy/apy.py: Redir of stderr/-out not enough, use
