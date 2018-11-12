@@ -18,3 +18,4 @@ flake8-quotes = "*"
 flake8 = "==3.5.0"
 mypy = {version = "*", "python_version" = ">= '3.5'"}
 pep8-naming = "*"
+twine = "*"

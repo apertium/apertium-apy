@@ -7,10 +7,12 @@ dist: langNames.db
 	python3 setup.py sdist
 
 release: langNames.db
-	python3 setup.py sdist bdist_wheel upload --sign
+	python3 setup.py sdist bdist_wheel
+	twine upload --sign dist/*
 
 test-release: langNames.db
-	python3 setup.py sdist bdist_wheel upload --repository https://test.pypi.org/legacy/ --sign
+	python3 setup.py sdist bdist_wheel
+	twine upload --sign --repository-url https://test.pypi.org/legacy/ dist/*
 
 test:
 	flake8 *.py apertium_apy/ language_names/ tests/
