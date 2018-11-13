@@ -143,7 +143,7 @@ Installation through `apt` or `pip` adds an `apertium-apy` executable:
 Contributing
 ------------
 
-APy uses [TravisCI][4] for continous integration. Locally, use `make test`
+APy uses [TravisCI][4] for continuous integration. Locally, use `make test`
 to run the same checks it does. Use `pipenv install --dev`
 to install the requirements required for development, e.g. linters.
 
