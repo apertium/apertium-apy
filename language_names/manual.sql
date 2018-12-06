@@ -285,8 +285,8 @@ INSERT INTO "fixes" VALUES(NULL,'fi','smn','inarinsaame');
 INSERT INTO "fixes" VALUES(NULL,'nn','smn','enaresamisk');
 INSERT INTO "fixes" VALUES(NULL,'nb','smn','enaresamisk');
 INSERT INTO "fixes" VALUES(NULL,'sma','smn','enaresaemien');
-INSERT INTO "fixes" VALUES(NULL,'se','smn','anársámegiella');
-INSERT INTO "fixes" VALUES(NULL,'smj','smn','anársámegiella');
+INSERT INTO "fixes" VALUES(NULL,'se','smn','anárašgiella');
+INSERT INTO "fixes" VALUES(NULL,'smj','smn','anárašgiella');
 INSERT INTO "fixes" VALUES(NULL,'smn','smn','anarâškielâ');
 
 INSERT INTO "fixes" VALUES(NULL,'en','smj','Lule Saami');
