@@ -112,7 +112,7 @@ tests = {
     'swe-dan': ('vad', 'hvad'),
     'dan-swe': ('hvad', 'vad'),
     'swe-isl': ('Av', 'Af'),
-    'tat-kaz': ('ул', 'ол'),
+    'tat-kaz': ('ул', 'ұл'),
     'spa-ita': ('natación', 'nuoto'),
     'ita-spa': ('nuoto', 'natación'),
 }
