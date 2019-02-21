@@ -73,7 +73,7 @@ def sig_handler(sig, frame):
 
 class RootHandler(BaseHandler):
     def get(self):
-        self.render('../home.html')
+        self.render('../index.html')
 
 
 class GetLocaleHandler(BaseHandler):
