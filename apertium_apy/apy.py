@@ -73,7 +73,7 @@ def sig_handler(sig, frame):
 
 class RootHandler(BaseHandler):
     def get(self):
-        self.redirect('http://wiki.apertium.org/wiki/Apertium-apy')
+        self.render('../home.html')
 
 
 class GetLocaleHandler(BaseHandler):
