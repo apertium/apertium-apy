@@ -128,6 +128,20 @@ class BaseTestCase(AsyncHTTPTestCase):
 # TODO: split the handler tests into another file
 
 
+class TestRootHandler(BaseTestCase):
+    def test_home_page(self):
+        response = self.fetch('/')
+        File = open("index.html", "r")
+        if File.mode == 'r':
+            contents =File.read()
+        documentation = b"http://wiki.apertium.org/wiki/Apertium-apy"
+        source = b"https://github.com/apertium/apertium-apy"
+        if documentation in response.body and source in response.body:
+            self.assertTrue(True)
+        else :
+            self.assertFalse(False)
+
+
 class TestListHandler(BaseTestCase):
     def test_list_pairs(self):
         response = self.fetch_json('/list', {'q': 'pairs'})
