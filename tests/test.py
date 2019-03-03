@@ -131,15 +131,10 @@ class BaseTestCase(AsyncHTTPTestCase):
 class TestRootHandler(BaseTestCase):
     def test_home_page(self):
         response = self.fetch('/')
-        File = open("index.html", "r")
-        if File.mode == 'r':
-            contents =File.read()
-        documentation = b"http://wiki.apertium.org/wiki/Apertium-apy"
-        source = b"https://github.com/apertium/apertium-apy"
-        if documentation in response.body and source in response.body:
-            self.assertTrue(True)
-        else :
-            self.assertFalse(False)
+        File = open("index.html", "rb")
+        contents = File.read()
+        File.close()
+        self.assertEqual(response.body.decode('utf-8').split(), contents.decode('utf-8').split())
 
 
 class TestListHandler(BaseTestCase):
