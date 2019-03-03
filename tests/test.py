@@ -131,9 +131,9 @@ class BaseTestCase(AsyncHTTPTestCase):
 class TestRootHandler(BaseTestCase):
     def test_home_page(self):
         response = self.fetch('/')
-        File = open("index.html", "rb")
-        contents = File.read()
-        File.close()
+        files = open("index.html", "rb")
+        contents = files.read()
+        files.close()
         self.assertEqual(response.body.decode('utf-8').split(), contents.decode('utf-8').split())
 
 
