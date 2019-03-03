@@ -133,7 +133,7 @@ class TestRootHandler(BaseTestCase):
         response = self.fetch('/')
         contents = response.body.decode('utf-8')
         content_head = contents[contents.find('<h1>') + 4: contents.find('</h1>')]
-        self.assertEqual(content_head, b"Apertium APy".decode('utf-8'))
+        self.assertEqual(content_head, b'Apertium APy'.decode('utf-8'))
 
 
 class TestListHandler(BaseTestCase):
