@@ -131,8 +131,7 @@ class BaseTestCase(AsyncHTTPTestCase):
 class TestRootHandler(BaseTestCase):
     def test_home_page(self):
         response = self.fetch('/')
-        contents = response.body.decode('utf-8').find('Apertium APy')
-        self.assertNotEqual(contents, 0)
+        self.assertTrue('Apertium APy' in response.body.decode('utf-8'))
 
 
 class TestListHandler(BaseTestCase):
