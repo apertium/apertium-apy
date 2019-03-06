@@ -19,6 +19,10 @@ import signal
 import sys
 from datetime import timedelta
 from logging import handlers as logging_handlers  # type: ignore
+try:
+    import pkg_resources
+except ImportError:
+    pkg_resources = None  # type: ignore
 
 import tornado
 import tornado.httpserver
@@ -54,6 +58,8 @@ from apertium_apy.handlers import (
     TranslateRawHandler,
     TranslateWebpageHandler,
 )
+
+lang_names_default_path = 'langNames.db'
 
 
 def sig_handler(sig, frame):
@@ -178,11 +184,17 @@ def apply_config(args, parser, apy_section):
 
 
 def parse_args(cli_args=sys.argv[1:]):
+    if pkg_resources:
+        apy_path = pkg_resources.resource_filename('apertium_apy', '')
+        lang_names_path = os.path.join(os.path.dirname(apy_path), lang_names_default_path)
+    else:
+        lang_names_path = lang_names_default_path
     parser = argparse.ArgumentParser(description='Apertium APY -- API server for machine translation and language analysis')
     parser.add_argument('pairs_path', help='path to Apertium installed pairs (all modes files in this path are included)')
     parser.add_argument('-s', '--nonpairs-path', help='path to Apertium tree (only non-translator debug modes are included from this path)')
     parser.add_argument('-l', '--lang-names',
-                        help='path to localised language names sqlite database (default = langNames.db)', default='langNames.db')
+                        help='path to localised language names sqlite database (default = %s)' % (lang_names_path),
+                        default=lang_names_path)
     parser.add_argument('-f', '--missing-freqs', help='path to missing word frequency sqlite database (default = None)', default=None)
     parser.add_argument('-p', '--port', help='port to run server on (default = 2737)', type=int, default=2737)
     parser.add_argument('-c', '--ssl-cert', help='path to SSL Certificate', default=None)
