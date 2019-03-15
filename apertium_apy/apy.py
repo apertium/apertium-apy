@@ -185,8 +185,7 @@ def apply_config(args, parser, apy_section):
 
 def parse_args(cli_args=sys.argv[1:]):
     if pkg_resources:
-        apy_path = pkg_resources.resource_filename('apertium_apy', '')
-        lang_names_path = os.path.join(os.path.dirname(apy_path), lang_names_default_path)
+        lang_names_path = os.path.abspath(pkg_resources.resource_filename('apertium_apy', os.path.join('..', lang_names_default_path)))
     else:
         lang_names_path = lang_names_default_path
     parser = argparse.ArgumentParser(description='Apertium APY -- API server for machine translation and language analysis')
