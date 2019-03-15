@@ -16,17 +16,17 @@ def populate_database():
     with open('fixes.tsv', 'r') as f:
         reader = csv.reader(f, delimiter='\t')
         for row in reader:
-            c.execute('INSERT INTO fixes VALUES (?, ?, ?, ?)', (None, row[1], row[2], row[3]))
+            c.execute('INSERT INTO fixes VALUES (?, ?, ?, ?)', (None, row[0], row[1], row[2]))
     c.execute(textwrap.dedent("""
         CREATE TABLE IF NOT EXISTS additions (id integer primary key, lg text, inLg text, name text, unique(lg, inLg) on conflict replace);
         """))
     with open('additions.tsv', 'r') as f:
         reader = csv.reader(f, delimiter='\t')
         for row in reader:
-            c.execute('INSERT INTO additions VALUES (?, ?, ?, ?)', (None, row[1], row[2], row[3]))
+            c.execute('INSERT INTO additions VALUES (?, ?, ?, ?)', (None, row[0], row[1], row[2]))
     conn.commit()
     c.close()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     populate_database()
