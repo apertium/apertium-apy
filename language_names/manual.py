@@ -2,6 +2,7 @@ import sqlite3
 import textwrap
 import csv
 
+
 def insert_values(c, filename):
     c.execute(textwrap.dedent(f"""
         CREATE TABLE IF NOT EXISTS {filename} (
@@ -11,10 +12,11 @@ def insert_values(c, filename):
             name TEXT,
             UNIQUE(lg, inLg) ON CONFLICT REPLACE);
         """))
-    with open('{}.tsv'.format(filename),'r') as f:
+    with open('{}.tsv'.format(filename), 'r') as f:
         reader = csv.DictReader(f, delimiter='\t')
         for row in reader:
             c.execute('INSERT INTO {} VALUES (?, ?, ?, ?)'.format(filename), (None, row['lg'], row['inLg'], row['name']))
+
 
 def populate_database():
     conn = sqlite3.connect('langNames.db')
@@ -25,6 +27,7 @@ def populate_database():
     insert_values(c, 'additions')
     conn.commit()
     c.close()
+
 
 if __name__ == '__main__':
     populate_database()
