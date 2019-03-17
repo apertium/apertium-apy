@@ -4,18 +4,18 @@ import csv
 
 
 def insert_values(c, filename):
-    c.execute(textwrap.dedent(f"""
-        CREATE TABLE IF NOT EXISTS {filename} (
+    c.execute(textwrap.dedent("""
+        CREATE TABLE IF NOT EXISTS {} (
             id INTEGER PRIMARY KEY,
             lg TEXT,
             inLg TEXT,
             name TEXT,
             UNIQUE(lg, inLg) ON CONFLICT REPLACE);
-        """))
-    with open(f'{filename}.tsv', 'r') as f:
+        """.format(filename)))
+    with open('{}.tsv'.format(filename), 'r') as f:
         reader = csv.DictReader(f, delimiter='\t')
         for row in reader:
-            c.execute(f'INSERT INTO {filename} VALUES (?, ?, ?, ?)', (None, row['lg'], row['inLg'], row['name']))
+            c.execute('INSERT INTO {} VALUES (?, ?, ?, ?)'.format(filename), (None, row['lg'], row['inLg'], row['name']))
 
 
 def populate_database():
