@@ -1,9 +1,9 @@
+import csv
 import sqlite3
 import textwrap
-import csv
 
 
-def insert_values(c, filename):
+def insert_values(c, filename, tablename):
     c.execute(textwrap.dedent("""
         CREATE TABLE IF NOT EXISTS {} (
             id INTEGER PRIMARY KEY,
@@ -11,20 +11,25 @@ def insert_values(c, filename):
             inLg TEXT,
             name TEXT,
             UNIQUE(lg, inLg) ON CONFLICT REPLACE);
-        """.format(filename)))
-    with open('{}.tsv'.format(filename), 'r') as f:
+        """.format(tablename)))
+    with open(filename, 'r') as f:
         reader = csv.DictReader(f, delimiter='\t')
         for row in reader:
-            c.execute('INSERT INTO {} VALUES (?, ?, ?, ?)'.format(filename), (None, row['lg'], row['inLg'], row['name']))
+            c.execute('INSERT INTO {} VALUES (?, ?, ?, ?)'.format(tablename), (None, row['lg'], row['inLg'], row['name']))
 
 
 def populate_database():
     conn = sqlite3.connect('langNames.db')
     c = conn.cursor()
-    c.execute("""PRAGMA foreign_keys=OFF;""")
-    c.execute("""BEGIN TRANSACTION;""")
-    insert_values(c, 'fixes')
-    insert_values(c, 'additions')
+    c.execute('PRAGMA foreign_keys=OFF;')
+    c.execute('BEGIN TRANSACTION;')
+    insert_values(c, 'fixes.tsv', 'fixes')
+    insert_values(c, 'additions.tsv', 'additions')
+    insert_values(c, 'turkic_fixes.tsv', 'fixes')
+    insert_values(c, 'turkic_langNames.tsv', 'languageNames')
+    insert_values(c, 'scraped.tsv', 'languageNames')
+    insert_values(c, 'scraped-sil.tsv', 'languageNames')
+    insert_values(c, 'variants.tsv', 'languageNames')
     conn.commit()
     c.close()
 
