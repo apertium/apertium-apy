@@ -1,0 +1,272 @@
+lg	inLg	name
+ky	ar	арабча
+ky	ba	башкортчо
+ky	cv	чубашча
+ky	he	ивритче
+ky	ku	куртча
+ky	kum	кумукча
+ky	tk	түркмөнчө
+ky	tr	түркчө
+ky	uz	өзбекче
+ky	kaa	каракалпакча
+ky	tyv	тывача
+ky	sah	сахача (якутча)
+ky	nog	ногойчо 
+kk	az	әзірбайжан тілі
+kk	ba	башқортша
+kk	en	ағылшынша
+kk	gd	шотландиялық гэл тілі
+kk	kk	қазақша
+kk	kum	құмықша
+kk	cv	чувашша
+kk	ky	қырғызша
+kk	tk	түрікменше
+kk	tr	түрікше
+kk	tt	татарша
+kk	uz	өзбекше
+en	kaa	Karakalpak
+en	ky	Kyrgyz
+en	os	Ossetian
+ba	ba	башҡортса
+tt	en	инглизчә
+tt	es	испанча
+tt	kk	казакъча
+tt	tt	татарча
+tt	ky	кыргызча
+tt	tr	төрекчә
+tt	cv	чувашча
+tt	kum	кумыкча
+tt	uz	үзбәкчә
+tt	ba	башкортча
+tt	tk	төрекмәнчә
+tt	kaa	каракалпакча
+tt	tyv	тувача
+tt	az	азәрбайҗанча
+tt	ru	урысча
+an	af	afrikaans
+an	an	aragonés
+an	ar	arabe
+an	as	asamés
+an	ast	asturiano
+an	av	avaro
+an	az	azeri
+an	ba	baixkir
+an	be	belorruso
+an	bg	bulgaro
+an	bi	bislama
+an	bn	bengalí
+an	br	bretón
+an	bs	bosnio
+an	bua	buriat
+an	ca	catalán
+an	ceb	cebuano
+an	ckb	kurd sorani
+an	co	corso
+an	cs	checo
+an	csb	caixubio
+an	cu	eslau eclesiastico
+an	cv	chuvaixo
+an	cy	galés
+an	da	danés
+an	de	alemán
+an	dsb	baixo sorabo
+an	el	griego
+an	en	anglés
+an	eo	esperanto
+an	es	espanyol
+an	et	estonio
+an	eu	basco
+an	fa	persa
+an	fi	finés
+an	fo	feroés
+an	fr	francés
+an	fy	frisón oriental
+an	ga	irlandés
+an	gd	gaelico escocés
+an	gl	gallego
+an	gn	guaraní
+an	gv	manx
+an	he	hebreu
+an	hi	hindi
+an	hr	crovata
+an	hsb	alto sorabo
+an	ht	haitiano
+an	hu	hongaro
+an	hy	armenio
+an	ia	interlingua
+an	id	indonesio
+an	is	islandés
+an	it	italiano
+an	kaa	karakalpak
+an	kk	kazakho
+an	ko	coreano
+an	ku	kurdo
+an	kum	kumiko
+an	kv	komi
+an	ky	kirguíz
+an	la	latín
+an	lb	luxemburgués
+an	lg	ganda
+an	lo	laosiano
+an	lt	lituano
+an	lv	letón
+an	mfe	mauriciano
+an	mk	macedonio
+an	ml	malayalam
+an	mr	marathi
+an	ms	malayo
+an	mt	maltés
+an	myv	mordoviano erza
+an	nb	noruego bokmål
+an	ne	nepalés
+an	nl	neerlandés
+an	nn	noruego nynorsk
+an	no	noruego
+an	nog	nogai
+an	oc	occitán
+an	os	osseto
+an	pa	panchabí
+an	pl	polonés
+an	pt	portugués
+an	rm	romanche
+an	rn	rundi
+an	ro	rumano
+an	ru	ruso
+an	rup	arrumano
+an	sa	sanscrito
+an	sah	yacuto
+an	sc	sardo
+an	sco	escocès
+an	se	sami septentrional
+an	sh	serbocrovata
+an	si	singalés
+an	sk	eslovaco
+an	sl	esloveno
+an	sma	sami meridional
+an	smj	sami lule
+an	sq	albanés
+an	sr	serbio
+an	sv	sueco
+an	sw	suahili
+an	ta	tamil
+an	te	telugu
+an	tet	tetun
+an	tg	tadjik
+an	th	tailandés
+an	tk	turcomano
+an	tl	tagalog
+an	tr	turco
+an	tt	tartre
+an	tyv	tuviniano
+an	udm	udmurt
+an	uk	ucrainiano
+an	ur	urdú
+an	uz	uzbeko
+an	vi	vietnamita
+an	xh	xosa
+an	zh	chino
+an	zu	zulú
+av	ar	гӏараб
+av	av	магӏарул
+av	az	азарбижан
+av	en	ингилис
+av	eo	эсперанто
+av	eu	баск
+av	fr	паранг
+av	it	итал
+av	kum	лъарагӏ
+av	ru	гӏурус
+av	tr	турк
+av	tt	татар
+ug	kk	قازاقچە
+ug	tt	تاتارچە
+ug	ky	قىرغىزچە
+ug	uz	ئۆزبەكچە
+ug	kaa	قاراقالپاقچە
+ug	ug	ئۇيغۇرچە
+en	ug	Uyghur
+ru	ug	уйгурский
+uz	ug	uygʻurcha
+kk	ug	ұйғұрша
+ky	ug	уйгурча
+kaa	kk	qazaqsha
+kaa	kaa	qaraqalpaqsha
+kaa	uz	oʻzbekshe
+kaa	tt	tatarsha
+kaa	ky	qırgʻızsha
+uz	kaa	qoraqalpoqcha
+uz	nog	noʻgʻaycha
+uz	sah	saxacha (yoqutcha)
+uz	chv	chuvashcha
+uz	tyv	tuvacha
+uz	kum	qoʻmiqcha
+uz	bak	boshqircha
+tyv	tyv	тыва дылда
+nog	nog	ногъайша
+sah	sah	сахалыы
+en	crh	Crimean Tatar
+uz	crh	qrimtatarcha
+az	crh	krımtatarca
+bak	crh	Ҡырымтатарса
+chv	crh	крымтутарла
+crh	crh	qırımtatarca
+kaa	crh	qırımtatarsha
+ru	crh	крымско-татарский
+tt	crh	кырымтатарча
+ky	crh	кырымтатарча
+kk	crh	қырымтатарша
+tr	crh	Kırımtatarca
+uig	crh	قرىمتاتارچا
+kk	sah	сахаша (якутша)
+kk	kaa	қарақалпақша
+kk	tyv	тываша
+ca	crh	tàtar de Crimea
+sc	srd	sardu
+sc	ita	italianu
+ca	srd	sard
+en	srd	Sardinian
+it	srd	sardo
+es	srd	sardo
+eu	crh	Krimeako tatarera
+en	oci_aran	Occitan Aranese
+de	oci_aran	Okzitanisch Aranesisch
+oci_aran	oci_aran	Aranés
+kmr	kmr	Kurmancî
+en	kmr	Kurdish Kurmanji
+scn	scn	sicilianu
+es	scn	siciliano
+ca	scn	sicilià
+en	scn	Sicilian
+en	smn	Inari Saami
+fi	smn	inarinsaame
+nn	smn	enaresamisk
+nb	smn	enaresamisk
+sma	smn	enaresaemien
+se	smn	anárašgiella
+smj	smn	anárašgiella
+smn	smn	anarâškielâ
+en	smj	Lule Saami
+fi	smj	luulajansaame
+nn	smj	lulesamisk
+nb	smj	lulesamisk
+sma	smj	julevsaemiengïele
+se	smj	julevsámegiella
+smj	smj	julevsámegiella
+smn	smj	juulevsämikielâ
+sma	se	noerhtesaemiengïele
+smj	se	nuorttasámegiella
+smn	se	pajekielâ
+sma	sma	åarjelsaemiengïele
+smj	sma	oarjjelsámegiella
+smn	sma	maadâsämikielâ
+sma	no	daaroegïele
+smj	no	dárogiella
+smn	no	tárukielâ
+sma	fi	såevmiengïele
+smj	fi	suomagiella
+smn	fi	suomâkielâ
+tr	gag	Gagavuzca
+gag	gag	Gagauzça
+crh	gag	ğağauzça
+kk	gag	ғағауызша
+ky	gag	гагаузча
