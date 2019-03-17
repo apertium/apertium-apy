@@ -12,10 +12,10 @@ def insert_values(c, filename):
             name TEXT,
             UNIQUE(lg, inLg) ON CONFLICT REPLACE);
         """))
-    with open('{}.tsv'.format(filename), 'r') as f:
+    with open(f'{filename}.tsv', 'r') as f:
         reader = csv.DictReader(f, delimiter='\t')
         for row in reader:
-            c.execute('INSERT INTO {} VALUES (?, ?, ?, ?)'.format(filename), (None, row['lg'], row['inLg'], row['name']))
+            c.execute(f'INSERT INTO {filename} VALUES (?, ?, ?, ?)', (None, row['lg'], row['inLg'], row['name']))
 
 
 def populate_database():
