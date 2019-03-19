@@ -1,7 +1,6 @@
-langNames.db: language_names/scraped.sql language_names/scraped-sil.sql language_names/manual.sql language_names/variants.sql
+langNames.db: language_names/fixes.tsv language_names/additions.tsv language_names/scraped.tsv language_names/scraped-sil.tsv language_names/turkic_fixes.tsv language_names/turkic_langNames.tsv language_names/variants.tsv
+	python3	language_names/manual.py	language_names/langNames.db	language_names/fixes.tsv	language_names/additions.tsv	language_names/scraped.tsv	language_names/scraped-sil.tsv	language_names/turkic_fixes.tsv	language_names/turkic_langNames.tsv	language_names/variants.tsv
 	@if test -f unicode.db; then echo "WARNING: unicode.db now called langNames.db"; fi
-	rm -f $@
-	cat $^ | sqlite3 $@
 
 dist: langNames.db
 	python3 setup.py sdist
