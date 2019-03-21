@@ -183,9 +183,15 @@ def apply_config(args, parser, apy_section):
                 setattr(args, name, res)
 
 
+def find(name, path):
+    for root, dirs, files in os.walk(path):
+        if name in files:
+            return os.path.join(root, name)
+
+
 def parse_args(cli_args=sys.argv[1:]):
     if pkg_resources:
-        lang_names_path = os.path.abspath(('apertium_apy', os.path.join('../../../..', 'share', 'apertium-apy', lang_names_default_path))))
+        lang_names_path = find(lang_names_default_path, '/')
     else:
         lang_names_path = lang_names_default_path
     parser = argparse.ArgumentParser(description='Apertium APY -- API server for machine translation and language analysis')
