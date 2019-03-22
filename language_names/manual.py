@@ -11,7 +11,7 @@ def insert_values(c, filename, tablename):
             lg TEXT,
             inLg TEXT,
             name TEXT,
-            UNIQUE(lg, inLg) ON CONFLICT REPLACE);
+            UNIQUE(lg, inLg) ON CONFLICT IGNORE);
         """.format(tablename)))
     with open(filename, 'r') as f:
         reader = csv.DictReader(f, delimiter='\t')
@@ -24,13 +24,13 @@ def populate_database():
     c = conn.cursor()
     c.execute('PRAGMA foreign_keys=OFF;')
     c.execute('BEGIN TRANSACTION;')
-    insert_values(c, sys.argv[1], 'fixes')
-    insert_values(c, sys.argv[2], 'additions')
-    insert_values(c, sys.argv[3], 'fixes')
-    insert_values(c, sys.argv[4], 'languageNames')
-    insert_values(c, sys.argv[5], 'languageNames')
-    insert_values(c, sys.argv[6], 'languageNames')
-    insert_values(c, sys.argv[7], 'languageNames')
+    insert_values(c, 'language_names/fixes.tsv', 'fixes')
+    insert_values(c, 'language_names/additions.tsv', 'additions')
+    insert_values(c, 'language_names/turkic_fixes.tsv', 'fixes')
+    insert_values(c, 'language_names/turkic_langNames.tsv', 'languageNames')
+    insert_values(c, 'language_names/scraped.tsv', 'languageNames')
+    insert_values(c, 'language_names/scraped-sil.tsv', 'languageNames')
+    insert_values(c, 'language_names/variants.tsv', 'languageNames')
     conn.commit()
     c.close()
 
