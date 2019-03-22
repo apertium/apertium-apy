@@ -1,5 +1,5 @@
 langNames.db:
-	python3	language_names/manual.py
+	python3	language_names/build_db.py
 	@if test -f unicode.db; then echo "WARNING: unicode.db now called langNames.db"; fi
 
 dist: langNames.db
