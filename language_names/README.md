@@ -11,9 +11,9 @@
 
 ### Manual - EDIT
 
-- `manual.sql` contains 'fixes' and 'additions' to the scraped data.
-- `variants.sql` contains additions to the scraped data for language variants.
-- `turkic.sql` contains Turkic language names.
+- `manual.tsv` contains 'fixes' and 'additions' to the scraped data.
+- `variants.tsv` contains additions to the scraped data for language variants.
+- `turkic.tsv` contains Turkic language names.
 
 ## Scripts
 
