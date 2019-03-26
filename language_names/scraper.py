@@ -3,10 +3,8 @@
 import argparse
 import os
 import re
-import sqlite3
 import subprocess
 import sys
-import textwrap
 
 from lxml import etree
 
@@ -48,42 +46,28 @@ def convert_iso_code(code):
 
 
 def populate_database(args):
-    conn = sqlite3.connect(args.database)
-    c = conn.cursor()
-    c.execute(textwrap.dedent("""
-        CREATE TABLE IF NOT EXISTS languageNames (
-            id INTEGER PRIMARY KEY,
-            lg TEXT,
-            inLg TEXT,
-            name TEXT,
-            UNIQUE(lg, inLg) ON CONFLICT REPLACE
-        )"""))
-    for locale in args.languages:
-        locale = convert_iso_code(locale)
-        try:
-            tree = etree.parse('http://www.unicode.org/repos/cldr/tags/latest/common/main/%s.xml' % locale[1])
-            languages = tree.xpath('//language')
-            scraped = set()
-            for language in languages:
-                if language.text:
-                    if not args.apertium_names or (args.apertium_names and language.get('type') in apertium_languages):
-                        c.execute('INSERT INTO languageNames VALUES (?, ?, ?, ?)',
-                                  (None, locale[1], language.get('type'), language.text))
-                        scraped.add(language.get('type'))
-
-            print('Scraped %d localized language names for %s, missing %d (%s).' % (
-                len(scraped),
-                locale[1] if locale[0] == locale[1] else '%s -> %s' % locale,
-                len(apertium_languages) - len(scraped) if args.apertium_names else 0,
-                ', '.join(apertium_languages - scraped if args.apertium_names else set()),
-            ))
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except Exception as e:
-            print('Failed to retrieve language %s, exception: %s' % (locale[1], e))
-
-    conn.commit()
-    c.close()
+    with open('language_names/scraped.tsv', 'a') as f:
+        for locale in args.languages:
+            locale = convert_iso_code(locale)
+            try:
+                tree = etree.parse('http://www.unicode.org/repos/cldr/tags/latest/common/main/%s.xml' % locale[1])
+                languages = tree.xpath('//language')
+                scraped = set()
+                for language in languages:
+                    if language.text:
+                        if not args.apertium_names or (args.apertium_names and language.get('type') in apertium_languages):
+                            f.write('%s	%s	%s\n' % (locale[1], language.get('type'), language.text))
+                            scraped.add(language.get('type'))
+                print('Scraped %d localized language names for %s, missing %d (%s).' % (
+                    len(scraped),
+                    locale[1] if locale[0] == locale[1] else '%s -> %s' % locale,
+                    len(apertium_languages) - len(scraped) if args.apertium_names else 0,
+                    ', '.join(apertium_languages - scraped if args.apertium_names else set()),
+                ))
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except Exception as e:
+                print('Failed to retrieve language %s, exception: %s' % (locale[1], e))
 
 
 if __name__ == '__main__':
