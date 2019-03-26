@@ -24,8 +24,7 @@ def populate_database():
     c = conn.cursor()
     c.execute('PRAGMA foreign_keys=OFF;')
     c.execute('BEGIN TRANSACTION;')
-    for i in range(1, len(sys.argv) - 1):
-        insert_values(c, sys.argv[i])
+    [insert_values(c, filename) for filename in sys.argv[1:-1]]
     conn.commit()
     c.close()
 

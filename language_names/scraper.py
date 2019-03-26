@@ -11,7 +11,7 @@ import textwrap
 from lxml import etree
 
 sys.path.append(os.path.join(os.path.abspath(os.path.dirname(__file__)), '../apertium_apy'))
-from util import to_alpha2_code  # noqa: E402
+from utils import to_alpha2_code  # noqa: E402
 
 html_tools_languages = set(map(to_alpha2_code, {
     'arg', 'heb', 'cat', 'sme', 'deu', 'eng', 'eus', 'fra', 'spa', 'ava', 'nno',
