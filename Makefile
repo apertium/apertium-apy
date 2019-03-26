@@ -1,4 +1,4 @@
-langNames.db: language_names/scraped.tsv language_names/scraped-sil.tsv language_names/manual.tsv language_names/variants.tsv
+langNames.db: language_names/scraped-cldr.tsv language_names/scraped-sil.tsv language_names/manual-fixes.tsv language_names/manual-additions.tsv language_names/variants.tsv
 	python3 language_names/build_db.py $@ $^
 	@if test -f unicode.db; then echo "WARNING: unicode.db now called langNames.db"; fi
 

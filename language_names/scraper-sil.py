@@ -7,7 +7,7 @@ import sys
 
 sil_names = 'http://www-01.sil.org/iso639-3/iso-639-3.tab'
 
-user_agent = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}  # noqa: E501
+headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}  # noqa: E501
 tsv_format = re.compile(r'(?P<Id>.*?)\t(?P<Part2B>.*?)\t(?P<Part2T>.*?)\t(?P<Part1>.*?)\t(?P<tcope>.*?)\t(?P<Language_Type>.*?)\t(?P<Ref_Name>.*?)\t(?P<Comment>.*?)')  # noqa: E501
 insert_template = 'INSERT OR IGNORE INTO "%s" VALUES(NULL,"%s","%s","%s");'
 
@@ -17,11 +17,12 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--table', help='language names table', default='languageNames')
     args = parser.parse_args()
 
-    request = urllib.request.Request(sil_names, headers=user_agent)
+    request = urllib.request.Request(sil_names, headers=headers)
     sil_tsv = urllib.request.urlopen(request).read().decode('utf-8')  # Python's csv module chokes badly on this
     tsv_contents = sil_tsv.splitlines()
 
     with open('language_names/scraped-sil.tsv', 'a') as f:
+        f.write('lg	inLg	name\n')
         for tsv_line in tsv_contents[1:]:  # skip the header
             matches = tsv_format.match(tsv_line)
 

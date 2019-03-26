@@ -46,7 +46,8 @@ def convert_iso_code(code):
 
 
 def populate_database(args):
-    with open('language_names/scraped.tsv', 'a') as f:
+    with open('language_names/scraped-cldr.tsv', 'w') as f:
+        f.write('lg	inLg	name\n')
         for locale in args.languages:
             locale = convert_iso_code(locale)
             try:
