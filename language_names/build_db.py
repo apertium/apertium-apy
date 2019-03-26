@@ -20,11 +20,12 @@ def insert_values(c, filename):
 
 
 def populate_database():
-    conn = sqlite3.connect(sys.argv[-1])
+    conn = sqlite3.connect(sys.argv[1])
     c = conn.cursor()
     c.execute('PRAGMA foreign_keys=OFF;')
     c.execute('BEGIN TRANSACTION;')
-    [insert_values(c, filename) for filename in sys.argv[1:-1]]
+    for filename in sys.argv[2:]:
+        insert_values(c, filename)
     conn.commit()
     c.close()
 
