@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import sys
@@ -5,12 +6,17 @@ from datetime import datetime
 
 import tornado
 import tornado.web
-from tornado import escape
 from tornado.escape import utf8
 from tornado.locks import Semaphore
 
 if False:
     from typing import Dict, Optional, List, Tuple  # noqa: F401
+
+
+def dump_json(data):
+    # This acts very similarly to Tornado's escape.json_encode but doesn't
+    # result in ugly \u codes. Tornado does not support this natively.
+    return json.dumps(data, ensure_ascii=False).replace('</', '<\\/')
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -125,7 +131,7 @@ class BaseHandler(tornado.web.RequestHandler):
     def send_response(self, data):
         self.log_vmsize()
         if isinstance(data, dict) or isinstance(data, list):
-            data = escape.json_encode(data)
+            data = dump_json(data)
             self.set_header('Content-Type', 'application/json; charset=UTF-8')
 
         if self.callback:
@@ -159,7 +165,7 @@ class BaseHandler(tornado.web.RequestHandler):
             'explanation': explanation,
         }
 
-        data = escape.json_encode(result)
+        data = dump_json(result)
         self.set_header('Content-Type', 'application/json; charset=UTF-8')
 
         if self.callback:
