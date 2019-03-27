@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import csv
 import os
 import re
 import subprocess
@@ -46,8 +47,10 @@ def convert_iso_code(code):
 
 
 def populate_database(args):
-    with open('language_names/scraped-cldr.tsv', 'w') as f:
-        f.write('lg	inLg	name\n')
+    with open('language_names/scraped-cldr.tsv', 'r+') as f:
+        fieldnames = ['lg', 'inLg', 'name']
+        writer = csv.DictWriter(f, delimiter='\t', lineterminator='\n', fieldnames=fieldnames)
+        writer.writeheader()
         for locale in args.languages:
             locale = convert_iso_code(locale)
             try:
@@ -57,7 +60,9 @@ def populate_database(args):
                 for language in languages:
                     if language.text:
                         if not args.apertium_names or (args.apertium_names and language.get('type') in apertium_languages):
-                            f.write('%s	%s	%s\n' % (locale[1], language.get('type'), language.text))
+                            writer.writerow({'lg': locale[1], 'inLg': language.get('type'), 'name': language.text})
+
+                            # f.write('%s	%s	%s\n' % (locale[1], language.get('type'), language.text))
                             scraped.add(language.get('type'))
                 print('Scraped %d localized language names for %s, missing %d (%s).' % (
                     len(scraped),
@@ -69,6 +74,16 @@ def populate_database(args):
                 raise
             except Exception as e:
                 print('Failed to retrieve language %s, exception: %s' % (locale[1], e))
+        
+        f.seek(0)
+        header = f.readline()
+        reader = f.readlines()
+        reader.sort()
+        f.truncate(0)
+        f.seek(0)
+        f.write(header)
+        for i in reader:
+            f.write(i)
 
 
 if __name__ == '__main__':

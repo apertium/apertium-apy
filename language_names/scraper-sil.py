@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import csv
 import urllib.request
 import re
 import sys
@@ -21,8 +22,10 @@ if __name__ == '__main__':
     sil_tsv = urllib.request.urlopen(request).read().decode('utf-8')  # Python's csv module chokes badly on this
     tsv_contents = sil_tsv.splitlines()
 
-    with open('language_names/scraped-sil.tsv', 'a') as f:
-        f.write('lg	inLg	name\n')
+    with open('language_names/scraped-sil.tsv', 'r+') as f:
+        fieldnames = ['lg', 'inLg', 'name']
+        writer = csv.DictWriter(f, delimiter='\t', lineterminator='\n', fieldnames=fieldnames)
+        writer.writeheader()
         for tsv_line in tsv_contents[1:]:  # skip the header
             matches = tsv_format.match(tsv_line)
 
@@ -34,8 +37,18 @@ if __name__ == '__main__':
                 name = matches.group('Ref_Name')
 
                 if iso639 and name:
-                    f.write('%s	%s	%s\n' % ('en', iso639, name))
+                    writer.writerow({'lg': 'en', 'inLg': iso639, 'name': name})
                 else:
                     sys.stdout.write('!!! Unable to parse %s !!!\n' % repr(tsv_line))
             else:
                 sys.stdout.write('!!! Unable to parse %s !!!\n' % repr(tsv_line))
+
+        f.seek(0)
+        header = f.readline()
+        reader = f.readlines()
+        reader.sort()
+        f.truncate(0)
+        f.seek(0)
+        f.write(header)
+        for i in reader:
+            f.write(i)

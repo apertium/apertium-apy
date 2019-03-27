@@ -594,6 +594,7 @@ ca	cad	caddo
 ca	car	carib
 ca	cay	cayuga
 ca	cch	atsam
+ca	ccp	chakma
 ca	ce	txetxè
 ca	ceb	cebuà
 ca	cgg	chiga
@@ -1179,6 +1180,7 @@ de	cad	Caddo
 de	car	Karibisch
 de	cay	Cayuga
 de	cch	Atsam
+de	ccp	Chakma
 de	ce	Tschetschenisch
 de	ceb	Cebuano
 de	cgg	Rukiga
@@ -3353,6 +3355,7 @@ fi	cad	caddo
 fi	car	karibi
 fi	cay	cayuga
 fi	cch	atsam
+fi	ccp	chakma
 fi	ce	tšetšeeni
 fi	ceb	cebuano
 fi	cgg	kiga
@@ -3976,6 +3979,7 @@ fr	cad	caddo
 fr	car	caribe
 fr	cay	cayuga
 fr	cch	atsam
+fr	ccp	changma kodha
 fr	ce	tchétchène
 fr	ceb	cebuano
 fr	cgg	kiga
@@ -4581,6 +4585,7 @@ he	cad	קאדו
 he	car	קאריב
 he	cay	קאיוגה
 he	cch	אטסם
+he	ccp	צ׳אקמה
 he	ce	צ׳צ׳נית
 he	ceb	סבואנו
 he	cgg	צ׳יגה
@@ -5106,6 +5111,7 @@ hr	cad	caddo
 hr	car	karipski
 hr	cay	cayuga
 hr	cch	atsam
+hr	ccp	chakma
 hr	ce	čečenski
 hr	ceb	cebuano
 hr	cgg	chiga
@@ -5618,6 +5624,7 @@ kk	bs	босния тілі
 kk	bug	бугис тілі
 kk	byn	блин тілі
 kk	ca	каталан тілі
+kk	ccp	чакма тілі
 kk	ce	шешен тілі
 kk	ceb	себуано тілі
 kk	cgg	кига тілі
@@ -7543,6 +7550,7 @@ pt	cad	caddo
 pt	car	caribe
 pt	cay	cayuga
 pt	cch	atsam
+pt	ccp	Chakma
 pt	ce	checheno
 pt	ceb	cebuano
 pt	cgg	chiga
@@ -8066,6 +8074,7 @@ ro	cad	caddo
 ro	car	carib
 ro	cay	cayuga
 ro	cch	atsam
+ro	ccp	chakma
 ro	ce	cecenă
 ro	ceb	cebuană
 ro	cgg	chiga
@@ -8590,6 +8599,7 @@ ru	cad	каддо
 ru	car	кариб
 ru	cay	кайюга
 ru	cch	атсам
+ru	ccp	чакма
 ru	ce	чеченский
 ru	ceb	себуано
 ru	cgg	кига
@@ -9225,6 +9235,7 @@ sr	ca	каталонски
 sr	cad	кадо
 sr	car	карипски
 sr	cch	атсам
+sr	ccp	ccp
 sr	ce	чеченски
 sr	ceb	себуански
 sr	cgg	чига
@@ -9760,6 +9771,7 @@ sv	cad	caddo
 sv	car	karibiska
 sv	cay	cayuga
 sv	cch	atsam
+sv	ccp	chakma
 sv	ce	tjetjenska
 sv	ceb	cebuano
 sv	cgg	chiga
@@ -10380,6 +10392,7 @@ tr	cad	Kado dili
 tr	car	Carib
 tr	cay	Kayuga dili
 tr	cch	Atsam
+tr	ccp	Chakma
 tr	ce	Çeçence
 tr	ceb	Sebuano dili
 tr	cgg	Kigaca
@@ -10936,7 +10949,6 @@ tt	cs	чех
 tt	cy	уэльс
 tt	da	дания
 tt	de	алман
-tt	de_CH	югары алман (Швейцария)
 tt	dsb	түбән сорб
 tt	dv	мальдив
 tt	dz	дзонг-кха
@@ -10945,7 +10957,6 @@ tt	en	инглиз
 tt	eo	эсперанто
 tt	es	испан
 tt	es_419	испан (Латин Америкасы)
-tt	es_ES	испан (Европа)
 tt	et	эстон
 tt	eu	баск
 tt	fa	фарсы
@@ -11017,7 +11028,6 @@ tt	pap	папьяменто
 tt	pl	поляк
 tt	ps	пушту
 tt	pt	португал
-tt	pt_PT	португал (Европа)
 tt	qu	кечуа
 tt	quc	киче
 tt	rm	ретороман
@@ -11061,7 +11071,7 @@ tt	vi	вьетнам
 tt	wo	волоф
 tt	yi	идиш
 tt	yo	йоруба
-tt	zh	кытай
+tt	zh	кытай (тәрҗемә киңәше: аерым алганда, мандарин кытайчасы)
 tt	zh_Hans	гадиләштерелгән кытай
 tt	zh_Hant	традицион кытай
 ug	aa	ئافارچە
@@ -12050,6 +12060,7 @@ zh	cad	卡多语
 zh	car	加勒比语
 zh	cay	卡尤加语
 zh	cch	阿灿语
+zh	ccp	查克玛语
 zh	ce	车臣语
 zh	ceb	宿务语
 zh	cgg	奇加语
