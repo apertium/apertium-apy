@@ -74,7 +74,7 @@ def populate_database(args):
                 raise
             except Exception as e:
                 print('Failed to retrieve language %s, exception: %s' % (locale[1], e))
-        
+
         f.seek(0)
         header = f.readline()
         reader = f.readlines()
