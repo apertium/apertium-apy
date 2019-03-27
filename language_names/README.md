@@ -11,7 +11,8 @@
 
 ### Manual - EDIT
 
-- `manual.tsv` contains 'fixes' and 'additions' to the scraped data.
+- `manual-fixes.tsv` contains 'fixes' to the scraped data.
+- `manual-additions.tsv` contains 'additions' to the scraped data.
 - `variants.tsv` contains additions to the scraped data for language variants.
 - `turkic.tsv` contains Turkic language names.
 
