@@ -144,15 +144,21 @@ chv	crh	крымтутарла
 crh	crh	qırımtatarca
 crh	gag	ğağauzça
 de	oci_aran	Okzitanisch Aranesisch
+de	szl	Schlesisch
 en	crh	Crimean Tatar
 en	kaa	Karakalpak
+en	khk	Khalkha Mongolian
 en	kmr	Kurdish Kurmanji
 en	ky	Kyrgyz
+en	lvs	Latvian
 en	oci_aran	Occitan Aranese
+en	olo	Livvi-Karelian
 en	os	Ossetian
+en	qve	Quechua
 en	scn	Sicilian
 en	smj	Lule Saami
 en	smn	Inari Saami
+en	snd	Sindhi
 en	srd	Sardinian
 en	ug	Uyghur
 es	scn	siciliano
@@ -161,6 +167,7 @@ eu	crh	Krimeako tatarera
 fi	smj	luulajansaame
 fi	smn	inarinsaame
 gag	gag	Gagauzça
+guj	guj	ગુજરાતી
 it	srd	sardo
 kaa	crh	qırımtatarsha
 kaa	kaa	qaraqalpaqsha
@@ -168,6 +175,7 @@ kaa	kk	qazaqsha
 kaa	ky	qırgʻızsha
 kaa	tt	tatarsha
 kaa	uz	oʻzbekshe
+khk	khk	монгол хэл
 kk	az	әзірбайжан тілі
 kk	ba	башқортша
 kk	crh	қырымтатарша
@@ -186,7 +194,6 @@ kk	tt	татарша
 kk	tyv	тываша
 kk	ug	ұйғұрша
 kk	uz	өзбекше
-kmr	kmr	Kurmancî
 ky	ar	арабча
 ky	ba	башкортчо
 ky	crh	кырымтатарча
@@ -196,7 +203,7 @@ ky	he	ивритче
 ky	kaa	каракалпакча
 ky	ku	куртча
 ky	kum	кумукча
-ky	nog	ногойчо 
+ky	nog	ногойчо
 ky	sah	сахача (якутча)
 ky	tk	түркмөнчө
 ky	tr	түркчө
@@ -235,6 +242,7 @@ smn	se	pajekielâ
 smn	sma	maadâsämikielâ
 smn	smj	juulevsämikielâ
 smn	smn	anarâškielâ
+sv	szl	schlesiska
 tr	crh	Kırımtatarca
 tr	gag	Gagavuzca
 tt	az	азәрбайҗанча

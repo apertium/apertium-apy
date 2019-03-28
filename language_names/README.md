@@ -22,8 +22,8 @@ consistent ordering makes for clearer diffs.
    variants.
 - `turkic.tsv` contains Turkic language names.
 
-N.B. Due to historical reasons, there are currently some fixes in
-`manual-additions.tsv` and some additions in `manual-fixes.tsv`.
+N.B. Due to historical reasons, there are currently some additions in
+`manual-fixes.tsv`.
 
 ## Scripts
 
