@@ -1,7 +1,6 @@
-langNames.db: language_names/scraped.sql language_names/scraped-sil.sql language_names/manual.sql language_names/variants.sql
+langNames.db: language_names/scraped-cldr.tsv language_names/scraped-sil.tsv language_names/manual-fixes.tsv language_names/manual-additions.tsv language_names/variants.tsv
+	language_names/build_db.py $@ $^
 	@if test -f unicode.db; then echo "WARNING: unicode.db now called langNames.db"; fi
-	rm -f $@
-	cat $^ | sqlite3 $@
 
 dist: langNames.db
 	python3 setup.py sdist
@@ -16,6 +15,7 @@ test-release: langNames.db
 
 test:
 	flake8 *.py apertium_apy/ language_names/ tests/
+	LC_ALL=C find language_names/*.tsv -exec sh -c 'tail +2 {} | sort -c' \;
 	mypy --config-file mypy.ini **/*.py
 	python3 -m unittest tests/test*.py
 	coverage combine

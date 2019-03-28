@@ -1,23 +1,33 @@
 # Language Names
 
-## SQL Files
+## TSV Files
+
+Each of the following TSVs contains language names. They are combined by
+`build_db.py` to create a final SQL database which is used by APy. These
+files must be sorted alphabetically for the build to pass. Maintaining a
+consistent ordering makes for clearer diffs.
 
 ### Generated - DO NOT EDIT
 
-- `scraped.sql` contains language names from the Unicode CLDR. It is created
-  by `scraper.py`.
-- `scraped-sil.sql` contains language names from SIL International. It is
+- `scraped.tsv` contains language names from the Unicode CLDR. It is created
+  by `scraper-cldr.py`.
+- `scraped-sil.tsv` contains language names from SIL International. It is
   created by `scraper-sil.py`.
 
 ### Manual - EDIT
 
-- `manual.sql` contains 'fixes' and 'additions' to the scraped data.
-- `variants.sql` contains additions to the scraped data for language variants.
-- `turkic.sql` contains Turkic language names.
+- `manual-fixes.tsv` contains fixes to the scraped data.
+- `manual-additions.tsv` contains additions to the scraped data.
+- `variants.tsv` contains fixes/additions to the scraped data for language
+   variants.
+- `turkic.tsv` contains Turkic language names.
+
+N.B. Due to historical reasons, there are currently some additions in
+`manual-fixes.tsv`.
 
 ## Scripts
 
-To run `scraper.py`, first install some dependencies:
+To run `scraper-cldr.py`, first install some dependencies:
 
     sudo apt-get install libxml2-dev libxslt-dev
     sudo pip3 install lxml
