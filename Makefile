@@ -15,6 +15,7 @@ test-release: langNames.db
 
 test:
 	flake8 *.py apertium_apy/ language_names/ tests/
+	LC_ALL=C find language_names/*.tsv -exec sh -c 'tail +2 {} | sort -c' \;
 	mypy --config-file mypy.ini **/*.py
 	python3 -m unittest tests/test*.py
 	coverage combine
