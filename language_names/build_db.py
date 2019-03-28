@@ -50,7 +50,7 @@ def populate_database(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Build language names database from TSVs.')
-    parser.add_argument('db', help='Language names database', default='langNames.db')
+    parser.add_argument('db', help='language names database', default='langNames.db')
     parser.add_argument('files', nargs='+', help='TSV files with language names')
     parser.add_argument('--table', help='language names table', default='languageNames')
     args = parser.parse_args()
