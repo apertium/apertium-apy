@@ -27,7 +27,7 @@ apertium_languages = html_tools_languages | {'sr', 'bs', 'hr'}  # Add more manua
 
 
 def get_apertium_languages():
-    packages = json.load(urllib.request.urlopen('https://apertium.projectjj.com/stats-service/packages'))['packages']
+    packages = json.load(urllib.request.urlopen('https://apertium.projectjj.com/stats-service/packages'))['packages']  # type: ignore
     lang_codes = itertools.chain.from_iterable(map(lambda x: list(map(to_alpha2_code, x['name'].split('-')[1:])), packages))
     apertium_languages.update(lang_codes)
     logging.info('Found %s apertium languages: %s.', len(apertium_languages), ', '.join(apertium_languages))
