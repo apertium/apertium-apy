@@ -41,8 +41,8 @@ def scrape_sil(filename):
         fieldnames = ['lg', 'inLg', 'name']
         writer = csv.DictWriter(f, delimiter='\t', lineterminator='\n', fieldnames=fieldnames)
         writer.writeheader()
-        for name in names:
-            writer.writerow(name)
+        for row in names:
+            writer.writerow(row)
         logging.info('Scraped %d language names', len(names))
 
 
