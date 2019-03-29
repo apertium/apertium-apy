@@ -15,10 +15,13 @@ en	fra_eco	Quebec French
 en	hbs_BS	Bosnian
 en	hbs_HR	Croatian
 en	hbs_SR	Serbian
+en	hbs_SRcyr	Serbian (Cyrillic)
 en	mlt_translit	Maltese Transliterated
 en	nno_e	East Norwegian
 en	oci_aran	Aranese
 en	oci_gascon	Gascon
+en	pan_Arab	Punjabi (Arabic)
+en	pan_Guru	Punjabi (Gurmukhi)
 en	por_BR	Brazilian Portuguese
 en	tgk_translit	Tajik Transliterated
 es	cat_valencia	valenciano
@@ -45,6 +48,7 @@ no	cat_valencia	valensiansk
 no	nno_e	nynorsk e-infinitiv
 no	oci_aran	araneisk
 no	por_BR	brasiliansk portugisisk
+oci_aran	oci_aran	Aranés
 pt	cat_valencia	valenciana
 pt	oci_aran	aranês
 pt	por_BR	português brasileiro

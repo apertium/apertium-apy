@@ -143,7 +143,6 @@ ca	srd	sard
 chv	crh	крымтутарла
 crh	crh	qırımtatarca
 crh	gag	ğağauzça
-de	oci_aran	Okzitanisch Aranesisch
 de	szl	Schlesisch
 en	ain	Ainu
 en	bas	Basaa
@@ -159,7 +158,6 @@ en	ky	Kyrgyz
 en	lvs	Latvian
 en	ne	Nepali
 en	oc	Occitan
-en	oci_aran	Occitan Aranese
 en	olo	Livvi-Karelian
 en	os	Ossetian
 en	ota	Ottoman Turkish
@@ -172,6 +170,7 @@ en	srd	Sardinian
 en	tr	Turkish
 en	tyv	Tuvan
 en	ug	Uyghur
+en	zlm	Malay
 es	scn	siciliano
 es	srd	sardo
 eu	crh	Krimeako tatarera
@@ -226,7 +225,6 @@ nb	smn	enaresamisk
 nn	smj	lulesamisk
 nn	smn	enaresamisk
 nog	nog	ногъайша
-oci_aran	oci_aran	Aranés
 ru	crh	крымско-татарский
 ru	ug	уйгурский
 sah	sah	сахалыы
