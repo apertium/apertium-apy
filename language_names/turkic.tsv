@@ -1,269 +1,67 @@
 lg	inLg	name
-az	af	afrikaans
-az	ar	ərəb
-az	as	assam
 az	av	avarikcə
-az	az	azərbaycan
 az	ba	başkir dili
-az	be	belarus
-az	bg	bolqar
 az	bi	bislama dili
-az	bn	benqal
 az	br	Bretonca
 az	bua	buryat dili
-az	ca	katalan
 az	ceb	kebuano dili
 az	co	korsikan dili
-az	cs	çex
 az	csb	kaşubyan dili
 az	cu	kilsə slav dili
 az	cv	çuvaş dili
-az	cy	uels
-az	da	danimarka
-az	de	alman
 az	dsb	aşağı sorbca
-az	el	yunan
-az	en	ingilis
-az	eo	esperanto
-az	es	ispan
-az	et	eston
-az	eu	bask
-az	fa	fars
-az	fi	fin
-az	fo	farer
-az	fr	fransız
 az	fy	friz
-az	ga	irland
 az	gd	skot gaelik dili
-az	gn	quarani
 az	gv	manks dili
-az	he	ivrit
 az	hi	hindi
 az	hsb	yuxarı sorbca
 az	ht	haiti
-az	hu	macar
-az	hy	erməni
 az	ia	interlingua dili
-az	id	indoneziya
-az	is	island
-az	it	italyan
 az	kaa	qara-qalpaq dili
-az	kk	qazax
-az	ko	koreya
 az	ku	kürd
 az	kum	kumuk dili
 az	kv	komi dili
-az	ky	qırğız
-az	la	latın
-az	lb	lüksemburq
 az	lg	qanda dili
-az	lo	laos
-az	lt	litva
-az	lv	latış
-az	mk	makedon
-az	ml	malayalam
 az	mr	marati
-az	mt	malta
 az	myv	erzya dili
-az	nb	bokmal norveç
-az	ne	nepal
-az	nl	holland
-az	nn	nünorsk norveç
 az	no	norveç dili
 az	nog	noqay dili
 az	oc	oksitanca
 az	os	osetik dili
-az	pa	pəncab
-az	pl	polyak
-az	pt	portuqal
 az	rm	retoroman
 az	rn	rundi dili
-az	ro	rumın
-az	ru	rus
 az	rup	aromanca
-az	sa	sanskrit
 az	sc	sardin dili
 az	sco	skots dili
 az	se	şimal sami dili
 az	sh	serb-xorvatca
 az	si	sinhal
-az	sk	slovak
-az	sl	sloven
 az	sma	cənub sami dili
 az	smj	lule sami dili
-az	sq	alban
-az	sv	isveç
-az	sw	suahili
-az	te	teluqu
 az	tet	tetum dili
-az	tg	tacik
-az	th	tay
-az	tk	türkmən
 az	tl	taqaloq dili
-az	tr	türk
-az	tt	tatar
 az	tyv	tuvinyan dili
 az	udm	udmurt dili
-az	uk	ukrayna
-az	ur	urdu
-az	uz	özbək
-az	vi	vyetnam
-az	xh	xosa
-az	zh	çin
-az	zu	zulu
-ba	ba	башҡортса
-en	af	Afrikaans
-en	ar	Arabic
-en	as	Assamese
-en	av	Avaric
-en	az	Azeri
-en	ba	Bashkir
-en	be	Belarusian
-en	bg	Bulgarian
-en	bi	Bislama
-en	bn	Bengali
-en	br	Breton
-en	bua	Buriat
-en	ca	Catalan
-en	ceb	Cebuano
-en	ckb	Sorani Kurdish
-en	co	Corsican
-en	crh	Crimean Tatar
-en	cs	Czech
-en	csb	Kashubian
-en	cu	Church Slavic
-en	cv	Chuvash
-en	cy	Welsh
-en	da	Danish
-en	de	German
-en	dsb	Lower Sorbian
-en	el	Greek
-en	en	English
-en	eo	Esperanto
-en	es	Spanish
-en	et	Estonian
-en	eu	Basque
-en	fa	Persian
-en	fi	Finnish
-en	fo	Faroese
-en	fr	French
-en	fy	Western Frisian
-en	ga	Irish
-en	gd	Scottish Gaelic
-en	gn	Guarani
-en	gv	Manx
-en	he	Hebrew
-en	hi	Hindi
-en	hsb	Upper Sorbian
-en	ht	Haitian
-en	hu	Hungarian
-en	hy	Armenian
-en	ia	Interlingua
-en	id	Indonesian
-en	is	Icelandic
-en	it	Italian
-en	kaa	Karakalpak
-en	kaa	Karakalpak
-en	kk	Kazakh
-en	ko	Korean
-en	ku	Kurdish
-en	kum	Kumyk
-en	kv	Komi
-en	ky	Kyrgyz
-en	ky	Kyrgyz
-en	la	Latin
-en	lb	Luxembourgish
-en	lg	Ganda
-en	lo	Lao
-en	lt	Lithuanian
-en	lv	Latvian
-en	mfe	Morisyen
-en	mk	Macedonian
-en	ml	Malayalam
-en	mr	Marathi
-en	mt	Maltese
-en	myv	Erzya
-en	nb	Norwegian Bokmål
-en	ne	Nepali
-en	nl	Dutch
-en	nn	Norwegian Nynorsk
-en	no	Norwegian
-en	nog	Nogai
-en	oc	Occitan
-en	os	Ossetian
-en	os	Ossetian
-en	pa	Punjabi
-en	pl	Polish
-en	pt	Portuguese
-en	rm	Romansh
-en	rn	Rundi
-en	ro	Romanian
-en	ru	Russian
-en	rup	Aromanian
-en	sa	Sanskrit
-en	sc	Sardinian
-en	sco	Scots
-en	se	Northern Sami
-en	sh	Serbo-Croatian
-en	si	Sinhala
-en	sk	Slovak
-en	sl	Slovenian
-en	sma	Southern Sami
-en	smj	Lule Sami
-en	sq	Albanian
-en	sv	Swedish
-en	sw	Swahili
-en	te	Telugu
-en	tet	Tetum
-en	tg	Tajik
-en	th	Thai
-en	tk	Turkmen
-en	tl	Tagalog
-en	tr	Turkish
-en	tt	Tatar
-en	tyv	Tuvan
-en	udm	Udmurt
-en	ug	Uyghur
-en	uk	Ukrainian
-en	ur	Urdu
-en	uz	Uzbek
-en	vi	Vietnamese
-en	xh	Xhosa
-en	zh	Chinese
-en	zu	Zulu
 kk	af	африкаанс
 kk	ar	араб
 kk	as	ассам
-kk	az	әзірбайжан тілі
-kk	az	әзірбайжан тілі
-kk	ba	башқортша
-kk	ba	башқортша
 kk	be	беларус
 kk	bg	болгар
 kk	bn	бенгал
 kk	br	брит
 kk	ca	каталан
 kk	cs	чех
-kk	cv	чувашша
-kk	cv	чувашша
 kk	cy	валлий
 kk	da	дат
-kk	de	неміс тілі
 kk	el	грек
-kk	en	ағылшынша
-kk	en	ағылшынша
 kk	eo	эсперанто
-kk	es	испан тілі
 kk	et	эстон
 kk	eu	баск
 kk	fa	парсы
 kk	fi	фин
 kk	fo	фарер
-kk	fr	француз тілі
 kk	fy	батыс фриз
 kk	ga	ирланд
-kk	gd	шотландиялық гэл тілі
-kk	gd	шотландиялық гэл тілі
 kk	gn	гуарани
 kk	he	иврит
 kk	hi	хинди
@@ -273,15 +71,8 @@ kk	hy	армян
 kk	ia	интерлингва
 kk	id	индонезия
 kk	is	исланд
-kk	it	итальян тілі
-kk	kk	қазақша
-kk	kk	қазақша
 kk	ko	кәріс
 kk	ku	күрд
-kk	kum	құмықша
-kk	kum	құмықша
-kk	ky	қырғызша
-kk	ky	қырғызша
 kk	la	латын
 kk	lb	люксембург
 kk	lo	лаос
@@ -300,11 +91,9 @@ kk	oc	окситан
 kk	os	осетин
 kk	pa	панджаб
 kk	pl	поляк
-kk	pt	португал тілі
 kk	rm	романш
 kk	rn	рунди
 kk	ro	румын
-kk	ru	орыс тілі
 kk	sa	санскрит
 kk	se	Солтүстік саам
 kk	sh	сербхорват
@@ -317,392 +106,72 @@ kk	sw	суахили
 kk	te	телугу
 kk	tg	тәжік
 kk	th	тай
-kk	tk	түрікменше
-kk	tk	түрікменше
-kk	tr	түрікше
-kk	tr	түрікше
-kk	tt	татарша
-kk	tt	татарша
-kk	ug	ұйғұрша
 kk	uk	украин
 kk	ur	урду
-kk	uz	өзбекше
-kk	uz	өзбекше
 kk	vi	вьетнам
 kk	xh	ксоза
-kk	zh	қытай тілі
 kk	zu	зулу
-ky	af	африкаанча
-ky	ar	арабча
-ky	ar	арабча
-ky	as	ассамча
-ky	az	азербайжанча
-ky	ba	башкортчо
-ky	ba	башкортчо
-ky	be	беларусча
 ky	bg	болгарияча
-ky	bn	бангладешче
 ky	br	бретон
 ky	ca	каталанча
 ky	cs	чех тили
-ky	cv	чубашча
-ky	cv	чубашча
-ky	cy	уелшче
-ky	da	датча
-ky	de	немисче
-ky	el	грекче
-ky	en	англисче
-ky	eo	эсперанто
-ky	es	испанча
-ky	et	эстончо
-ky	eu	баскча
 ky	fa	Фарзча
-ky	fi	финче
 ky	fo	фароэче
-ky	fr	французча
-ky	fy	батыш фризче
-ky	ga	ирландча
 ky	gn	гуараш
-ky	he	ивритче
-ky	he	ивритче
 ky	hi	индусча
-ky	ht	гаитиче
 ky	hu	венгрияча
-ky	hy	армянча
-ky	id	индонезияча
-ky	is	исландча
-ky	it	италиянча
-ky	kk	казакча
-ky	ko	корейче
-ky	ku	куртча
-ky	ku	куртча
-ky	kum	кумукча
-ky	kum	кумукча
-ky	ky	кыргызча
-ky	la	латынча
 ky	lb	Люксембургча
-ky	lo	лаочо
 ky	lt	литвача
 ky	lv	латвияча
 ky	mk	македонияча
-ky	ml	малайаламча
-ky	mr	маратиче
-ky	mt	малтизче
 ky	nb	норвежче букмалча
-ky	ne	непалча
-ky	nl	голландча
 ky	nn	норвегияча
-ky	no	норвежче
-ky	pa	пунжабиче
-ky	pl	полякча
-ky	pt	португалча
-ky	rm	романшча
 ky	ro	румынияча
-ky	ru	орусча
-ky	sa	санскритче
-ky	sh	серб-хорват
-ky	si	сингалача
-ky	sk	словакча
-ky	sl	словенче
-ky	sq	албанча
-ky	sv	шведче
-ky	sw	суахиличе
-ky	te	телугуча
-ky	tg	тажикче
-ky	th	тайча
-ky	tk	түркмөнчө
-ky	tk	түркмөнчө
-ky	tr	түркчө
-ky	tr	түркчө
-ky	tt	татарча
-ky	ug	уйгурча
-ky	uk	украинче
-ky	ur	урдуча
-ky	uz	өзбекче
-ky	uz	өзбекче
-ky	vi	вьетнамча
-ky	xh	косача
-ky	zh	кытайча
-ky	zu	зулуча
-ru	af	африкаанс
-ru	ar	арабский
-ru	as	ассамский
-ru	av	аварский
-ru	az	азербайджанский
-ru	ba	башкирский
-ru	be	белорусский
-ru	bg	болгарский
-ru	bi	бислама
-ru	bn	бенгальский
-ru	br	бретонский
-ru	bua	бурятский
-ru	ca	каталанский
 ru	ceb	кебуано
 ru	ckb	сорани курдский
-ru	co	корсиканский
-ru	cs	чешский
 ru	csb	кашубианский
-ru	cu	церковнославянский
-ru	cv	чувашский
-ru	cy	валлийский
-ru	da	датский
-ru	de	немецкий
-ru	dsb	нижнелужицкий
-ru	el	греческий
-ru	en	английский
-ru	eo	эсперанто
-ru	es	испанский
-ru	et	эстонский
-ru	eu	баскский
-ru	fa	персидский
-ru	fi	финский
-ru	fo	фарерский
-ru	fr	французский
 ru	fy	западно-фризский
-ru	ga	ирландский
-ru	gd	гэльский
-ru	gn	гуарани
-ru	gv	мэнский
-ru	he	иврит
-ru	hi	хинди
-ru	hsb	верхнелужицкий
-ru	ht	гаитянский
-ru	hu	венгерский
-ru	hy	армянский
-ru	ia	интерлингва
-ru	id	индонезийский
-ru	is	исландский
-ru	it	итальянский
-ru	kaa	каракалпакский
-ru	kk	казахский
-ru	ko	корейский
 ru	ku	курдский
-ru	kum	кумыкский
-ru	kv	коми
 ru	ky	кыргызский
-ru	la	латинский
-ru	lb	люксембургский
-ru	lg	ганда
-ru	lo	лаосский
-ru	lt	литовский
-ru	lv	латышский
-ru	mfe	маврикийский креольский
-ru	mk	македонский
-ru	ml	малаялам
-ru	mr	маратхи
-ru	mt	мальтийский
 ru	myv	эрзя
-ru	nb	норвежский букмол
-ru	ne	непальский
 ru	nl	голландский
 ru	nn	норвежский нюнорск
-ru	no	норвежский
-ru	nog	ногайский
-ru	oc	окситанский
-ru	os	осетинский
-ru	pa	панджаби
-ru	pl	польский
-ru	pt	португальский
-ru	rm	романшский
-ru	rn	рунди
-ru	ro	румынский
-ru	ru	русский
-ru	rup	арумынский
-ru	sa	санскрит
-ru	sc	сардинский
-ru	sco	шотландский
-ru	se	северносаамский
-ru	sh	сербскохорватский
-ru	si	сингальский
-ru	sk	словацкий
-ru	sl	словенский
 ru	sma	саамский (южный)
-ru	smj	луле-саамский
-ru	sq	албанский
-ru	sv	шведский
-ru	sw	суахили
-ru	te	телугу
-ru	tet	тетум
-ru	tg	таджикский
-ru	th	тайский
-ru	tk	туркменский
-ru	tl	тагалог
-ru	tr	турецкий
-ru	tt	татарский
-ru	tyv	тувинский
-ru	udm	удмуртский
-ru	ug	уйгурский
-ru	uk	украинский
-ru	ur	урду
-ru	uz	узбекский
-ru	vi	вьетнамский
 ru	xh	ксоза
-ru	zh	китайский
-ru	zu	зулу
-sah	af	Аппырыкааныстыы
-sah	ar	Араабтыы
-sah	az	Адьырбайдьаанныы
-sah	be	Бөлөрүүстүү
-sah	bg	Булҕаардыы
-sah	bn	Бенгаллыы
-sah	ca	Каталаанныы
 sah	cs	Чиэскэйдии
-sah	da	Даатскайдыы
-sah	de	Ниэмэстии
-sah	el	Гириэктии
 sah	en	Аҥылычаанныы
-sah	es	Ыспаанныы
-sah	et	Эстиэнийэлии
 sah	fa	Пиэрсийэлии
-sah	fi	Пииннии
 sah	fr	Пырансуустуу
-sah	hu	Бэҥгиэрдии
-sah	hy	Эрмээннии
-sah	it	Ытаалыйалыы
-sah	kk	Хаһаахтыы
-sah	ko	Кэриэйдии
-sah	ky	Кыргыстыы
-sah	la	Латыынныы
-sah	ne	Ньыпааллыы
-sah	pa	Пандьаабтыы
-sah	pt	Португааллыы
-sah	ro	Румыынныы
-sah	ru	Нууччалыы
-sah	sk	Словаактыы
 sah	sq	Албаанскайдыы
-sah	te	Төлүгүлүү
-sah	tg	Тадьыыктыы
-sah	uk	Украйыыньыстыы
-sah	uz	Үзбиэктии
-sah	zh	Кытайдыы
-sah	zu	Зуулулуу
-tr	af	Afrikaanca
-tr	ar	Arapça
-tr	as	Assamca
-tr	av	Avar Dili
-tr	az	Azerice
-tr	ba	Başkırtça
 tr	be	Beyaz Rusça
-tr	bg	Bulgarca
-tr	bi	Bislama
-tr	bn	Bengalce
 tr	br	Breton
 tr	bua	Buryat
-tr	ca	Katalanca
 tr	ceb	Cebuano
-tr	ckb	Orta Kürtçe
-tr	co	Korsikaca
-tr	cs	Çekçe
-tr	csb	Kashubian
-tr	cu	Kilise Slavcası
-tr	cv	Çuvaşça
-tr	cy	Galce
-tr	da	Danca
-tr	de	Almanca
-tr	dsb	Aşağı Sorbça
-tr	el	Yunanca
-tr	en	İngilizce
-tr	eo	Esperanto
-tr	es	İspanyolca
-tr	et	Estonca
-tr	eu	Baskça
-tr	fa	Farsça
-tr	fi	Fince
 tr	fo	Faroe Dili
-tr	fr	Fransızca
-tr	fy	Batı Frizcesi
-tr	ga	İrlandaca
 tr	gd	İskoç Gal Dili
 tr	gn	Guarani Dili
 tr	gv	Manks
-tr	he	İbranice
-tr	hi	Hintçe
-tr	hsb	Yukarı Sorbça
 tr	ht	Haiti Dili
-tr	hu	Macarca
-tr	hy	Ermenice
-tr	ia	Interlingua
-tr	id	Endonezce
-tr	is	İzlandaca
-tr	it	İtalyanca
-tr	kaa	Karakalpakça
-tr	kk	Kazakça
-tr	ko	Korece
 tr	ku	Kürtçe
-tr	kum	Kumukça
-tr	kv	Komi
-tr	ky	Kırgızca
-tr	la	Latince
-tr	lb	Lüksemburgca
-tr	lg	Ganda
 tr	lo	Laoca
 tr	lt	Litvanyaca
-tr	lv	Letonca
-tr	mfe	Morisyen
-tr	mk	Makedonca
 tr	ml	Malayalam
 tr	mr	Marathi
-tr	mt	Maltaca
-tr	myv	Erzya
-tr	nb	Norveççe Bokmål
-tr	ne	Nepalce
 tr	nl	Hollandaca
-tr	nn	Norveççe Nynorsk
-tr	no	Norveççe
-tr	nog	Nogayca
 tr	oc	Occitan
-tr	os	Osetçe
-tr	pa	Pencapça
-tr	pl	Lehçe
-tr	pt	Portekizce
-tr	rm	Romanşça
-tr	rn	Kirundi
 tr	ro	Romence
-tr	ru	Rusça
-tr	rup	Ulahça
 tr	sa	Sanskritçe
 tr	sc	Sardunya Dili
 tr	sco	Scots
 tr	se	Kuzey Sami
-tr	sh	Sırp-Hırvat Dili
 tr	si	Seylanca
-tr	sk	Slovakça
-tr	sl	Slovence
 tr	sma	Güney Sami
 tr	smj	Lule Sami
-tr	sq	Arnavutça
-tr	sv	İsveççe
 tr	sw	Svahili
 tr	te	Telugu Dili
-tr	tet	Tetum
-tr	tg	Tacikçe
-tr	th	Tayca
-tr	tk	Türkmence
 tr	tl	Takalotça
-tr	tr	Türkçe
-tr	tt	Tatarca
-tr	tyv	Tuvaca
-tr	udm	Udmurtça
-tr	uk	Ukraynaca
-tr	ur	Urduca
-tr	uz	Özbekçe
-tr	vi	Vietnamca
 tr	xh	Zosa
-tr	zh	Çince
-tr	zu	Zuluca
 tt	az	урысча
-tt	ba	башкортча
-tt	cv	чувашча
-tt	kaa	каракалпакча
-tt	kk	казакъча
-tt	kum	кумыкча
-tt	ky	кыргызча
-tt	ru	урысча
-tt	tk	төрекмәнчә
-tt	tr	төрекчә
-tt	tt	татарча
-tt	tyv	тувача
-tt	uz	үзбәкчә
 ug	kaa	قاراقالپاقچا
 ug	kk	قازاقچا
 ug	ky	قىرغىزچا
@@ -722,18 +191,10 @@ uz	cy	uelscha
 uz	da	daniyacha
 uz	de	olmoncha
 uz	el	grekcha
-uz	en	inglizcha
-uz	eo	esperanto
-uz	es	ispancha
-uz	et	estoncha
 uz	eu	baskcha
 uz	fa	forscha
-uz	fi	fincha
-uz	fo	farercha
-uz	fr	fransuzcha
 uz	fy	gʻarbiy friziancha
 uz	ga	irlandcha
-uz	gn	guarani
 uz	he	ibroniy
 uz	hi	hindcha
 uz	ht	gaitiancha
@@ -742,37 +203,21 @@ uz	hy	armancha
 uz	id	indoneziyacha
 uz	is	islandcha
 uz	it	italyancha
-uz	kk	qozoqcha
-uz	ko	koreyscha
 uz	ku	kurdcha
-uz	ky	qirgʻizcha
-uz	la	lotincha
-uz	lb	lyuksemburgcha
 uz	lo	lao
 uz	lt	litvacha
-uz	lv	latishcha
 uz	mk	makedoncha
-uz	ml	malayalam
 uz	mr	marati
 uz	mt	maltacha
 uz	nb	norvegcha bokmal
 uz	ne	nepalcha
 uz	nl	gollandcha
 uz	nn	norvegcha ninorsk
-uz	pa	panjobcha
-uz	pl	polyakcha
-uz	pt	portugalcha
 uz	rm	romancha
-uz	ro	rumincha
-uz	ru	ruscha
 uz	sa	sanskritcha
 uz	si	sinxala
-uz	sk	slovakcha
-uz	sl	slovencha
 uz	sq	albancha
 uz	sv	shvedcha
-uz	sw	suaxili
-uz	te	telugu
 uz	tg	tojikcha
 uz	th	taycha
 uz	tk	turkmancha
@@ -780,9 +225,7 @@ uz	tr	turkcha
 uz	tt	tatarcha
 uz	ug	uyg\'urcha
 uz	uk	ukraincha
-uz	ur	urdu
 uz	uz	oʻzbekcha
 uz	vi	vyetnamcha
 uz	xh	xosa
 uz	zh	xitoycha
-uz	zu	zulu
