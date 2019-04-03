@@ -266,8 +266,6 @@ def setup_application(args):
         (r'/translateDoc', TranslateDocHandler),
         (r'/translatePage', TranslateWebpageHandler),
         (r'/translateRaw', TranslateRawHandler),
-        (r'/analy[sz]e', AnalyzeHandler),
-        (r'/generate', GenerateHandler),
         (r'/listLanguageNames', ListLanguageNamesHandler),
         (r'/perWord', PerWordHandler),
         (r'/calcCoverage', CoverageHandler),
@@ -277,7 +275,11 @@ def setup_application(args):
     ]
 
     if importlib.util.find_spec('streamparser'):
-        handlers.append((r'/speller', SpellerHandler))
+        handlers.extend([
+            (r'/analy[sz]e', AnalyzeHandler),
+            (r'/generate', GenerateHandler),
+            (r'/speller', SpellerHandler),
+        ])
 
     if all([args.wiki_username, args.wiki_password]) and importlib.util.find_spec('requests'):
         import requests
@@ -335,7 +337,7 @@ def main():
         logging.warning('Unable to import chardet, assuming utf-8 encoding for all websites')
 
     if importlib.util.find_spec('streamparser') is None:
-        logging.warning('Apertium streamparser not installed, spelling handler disabled')
+        logging.warning('Apertium streamparser not installed, analysis, generation and spelling handlers disabled')
 
     if importlib.util.find_spec('requests') is None:
         logging.warning('requests not installed, suggestions disabled')
