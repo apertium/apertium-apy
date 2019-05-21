@@ -248,7 +248,7 @@ class WeightedRandom(Balancer):
             for test_result in test_results.items():
                 server = test_result[0]
                 results = test_result[1]
-                test_score = sum([result[1] for testPath, result in results.items()])
+                test_score = sum([result[1] for test_path, result in results.items()])
                 self.serverlist[server] += test_score / 5
         self.serverlist = OrderedDict(sorted(self.serverlist.items(), key=lambda x: x[1]))
 
@@ -358,7 +358,7 @@ class Fastest(Balancer):
             for test_result in test_results.items():
                 server = test_result[0]
                 results = test_result[1]
-                test_sum = sum([result[1] for testPath, result in results.items()])
+                test_sum = sum([result[1] for test_path, result in results.items()])
                 if '/list' not in self.serverlist[server][1]:
                     self.serverlist[server][1]['list'] = 0
                 self.serverlist[server][1]['list'] += test_sum / (self.num_responses * len(results.items()))

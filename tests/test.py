@@ -354,8 +354,8 @@ class TestStatsHandler(BaseTestCase):
         self.assertGreater(data['uptime'], 0)
         for key in ['useCount', 'runningPipes', 'holdingPipes', 'periodStats']:
             self.assertIn(key, data)
-        for periodKey in ['charsPerSec', 'totChars', 'totTimeSpent', 'requests', 'ageFirstRequest']:
-            self.assertIn(periodKey, data['periodStats'])
+        for period_key in ['charsPerSec', 'totChars', 'totTimeSpent', 'requests', 'ageFirstRequest']:
+            self.assertIn(period_key, data['periodStats'])
 
 
 class TestListLanguageNamesHandler(BaseTestCase):
