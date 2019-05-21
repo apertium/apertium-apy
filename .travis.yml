@@ -1,8 +1,8 @@
 language: python
 
-# let linux be Ubuntu 14.04 Trusty
+# let linux be Ubuntu Xenial
 sudo: required
-dist: trusty
+dist: xenial
 
 python:
     #    - "3.2"
