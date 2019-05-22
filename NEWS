@@ -1,6 +1,20 @@
 # -*- mode:org -*-
 #+STARTUP: showall
 
+* Version: 0.11.6 2019-05-21
+  Git rev: 979883c627973a3a2e4b9243a2504c6c060940ac
+  Changes since 0.11.5:
+
+  - Drop support for Python 3.4
+
+  - New landing page with link to Wiki
+
+  - Set LimitNOFILE for systemd
+
+  - Improved language names
+
+  - Update some language pair tests
+
 * Version: 0.11.5 2018-10-11
   Git rev: 9192785ca30d5ff9b25043192c1c8ccbee934b5b
   Changes since 0.11.4:

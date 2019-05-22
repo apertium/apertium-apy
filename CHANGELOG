@@ -1,5 +1,100 @@
 See NEWS for a per-release summary, this is just the git log.
 
+2019-05-21  Sushain Cherivirala <sushain@skc.name>
+
+	* .travis.yml, Makefile, Pipfile, Pipfile.lock, README.md,
+	apertium_apy/apy.py, apertium_apy/gateway.py,
+	apertium_apy/handlers/list_language_names.py,
+	apertium_apy/utils/__init__.py, setup.py, tests/test.py: Switch to
+	xenial build, s/3.4/3.7 (#137) * Switch to xenial build * 3.4 => 3.7 * s/3.4/3.8 * Remove special casing for Py3.4 * Remove special casing for Py3.4 * Fix build failures * Rest of 3.4 refs
+
+2019-04-21  Sushain Cherivirala <sushain@skc.name>
+
+	* Pipfile.lock: Update dependencies (#136)
+
+2019-03-29  Sushain Cherivirala <sushain@skc.name>
+
+	* language_names/manual-fixes.tsv: Panjabi -> Punjabi
+
+2019-03-29  Sushain Cherivirala <sushain@skc.name>
+
+	* language_names/manual-fixes.tsv, language_names/variants.tsv: Add
+	a couple more variant names
+
+2019-03-29  Sushain Cherivirala <sushain@skc.name>
+
+	* language_names/manual-fixes.tsv: Fixup some English names
+
+2019-03-29  Sushain Cherivirala <sushain@skc.name>
+
+	* language_names/manual-fixes.tsv, language_names/turkic.tsv:
+	Cleanup turkic.tsv duplicate entries and move some into manual-fixes
+
+2019-03-28  Sushain Cherivirala <sushain@skc.name>
+
+	* Makefile, language_names/README.md, language_names/build_db.py,
+	language_names/manual-additions.tsv,
+	language_names/manual-fixes.tsv, language_names/manual.sql,
+	language_names/scraped-cldr.tsv, language_names/scraped-sil.sql,
+	language_names/scraped-sil.tsv, language_names/scraped.sql,
+	language_names/scraper-cldr.py, language_names/scraper-sil.py,
+	language_names/scraper.py, language_names/turkic.sql,
+	language_names/turkic.tsv, language_names/variants.sql,
+	language_names/variants.tsv: Issue 115 - TSV scraped files (#134) * Added TSV source files to be converted at the build time by
+	manual.py * Support for python<3.6 added * Fixed formatting of strings * Added TSV source for larger sql files * Updated makefile for building langNames.db * Using command line arguements for filenames and makefile updated * Removed command line arguements and using IGNORE on conflict * Removed unused sys package * Renamed manual.py to build_db.py * Added langNames.db in makefile dependency * Fixed build_db to convert TSV file from source * Fixed issue with build_db and makefile , added scraped data from
+	scraper.py and scraper-sil.py and fixed bug in scraper.py * Removed sql files and fixed slicing issue * Removed unnecessary databases and scraper.py modified * Fixed scraper-sil.py to output tsv and updated readme * Split manual.tsv into two and changed scraper files * Added script to sort files and updated makefile * Sorting added to scraper files * Fixed travis-ci check * Clean up build-db script and add some logging * Cleanup SIL scraper * Fix README filename mentions * Force sorted TSVs * Sort turkic.csv * Cleanup cldr scraping script * Update CLDR scraped TSV * Improve README * Fix type error * Satisfy bad typings in py3.5 * Remove/move fixes in manual-additions.tsv
+
+2019-03-28  Sushain Cherivirala <sushain@skc.name>
+
+	* Dockerfile: Fix dockerfile
+
+2019-03-28  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tools/systemd/apy.service: Set LimitNOFILE for systemd
+
+2019-03-25  Sushain Cherivirala <sushain@skc.name>
+
+	* apertium_apy/handlers/base.py: Fix issue #60 (#133)
+
+2019-03-05  Sushain Cherivirala <sushain@skc.name>
+
+	* README.md, setup.py: Restore Tornado version ceiling (tornado 6
+	does not support py3.4)
+
+2019-03-05  Ayush Jain <ayushjainrksh@gmail.com>
+
+	* apertium_apy/apy.py, index.html, tests/test.py: Nicer landing page
+	#124 (#125) * Added a basic html page to be rendered on visiting localhost:2737/ * Index.html added * apertium-apy renders index.html page * Added a test for rootHandler * Testing if same html is received from the route * name changed from File to files * Changed file opening format * Testing the home route for header * Travis integration tested * Removed bad quotes * Searching for heading in contents * Finding heading using in * Update index.html
+
+2019-02-20  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* tests/sanity-test-apy.py: update tat-kaz test
+
+2019-02-02  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* language_names/variants.sql: nno_e → nynorsk e-infinitiv for lack of a better term
+
+2018-12-06  Kevin Brubeck Unhammer <unhammer@fsfe.org>
+
+	* language_names/manual.sql: s/anársámegiella/anárašgiella/g
+
+2018-11-18  Milan Andreew <Milan.Andreew@gmail.com>
+
+	* .flake8, Pipfile, Pipfile.lock: Upgrading flake8 version whilst
+	fixing style issues it's complaining about (#123) * Upgrading flake8 version * Fixing W504 issues Everything should be straight forward * Style update * Reverting to previous state * Revert "Reverting to previous state" This reverts commit 22eb5eacdec948d12686d4e399f7eb0e777c13fe.  * Revert "Style update" This reverts commit 4342d417a972de973b4b693e414e2a482e9b422b.  * flake8 * trying something * All clear * Remaining Issues fixed * W292?
+
+2018-11-13  Kevin Brubeck Unhammer <unhammer+dill@mm.st>
+
+	* : Merge pull request #122 from bentley/master Fix typo in README.
+
+2018-11-11  Sushain Cherivirala <sushain@skc.name>
+
+	* Makefile, Pipfile, Pipfile.lock: Switch release process to twine
+
+2018-11-11  Sushain Cherivirala <sushain@skc.name>
+
+	* CHANGELOG, NEWS: Update NEWS and changelog
+
 2018-11-11  Sushain Cherivirala <sushain@skc.name>
 
 	* apertium_apy/apy.py: Bump version
