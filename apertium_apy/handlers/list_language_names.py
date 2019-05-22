@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from tornado import gen
 
 from apertium_apy.handlers.base import BaseHandler
-from apertium_apy.utils import to_alpha2_code, iso639Codes  # noqa: F401
+from apertium_apy.utils import to_alpha2_code, iso639_codes  # noqa: F401
 
 if False:
     from typing import Optional  # noqa: F401
@@ -44,9 +44,9 @@ def get_localized_languages(locale, db_path, languages=[]):
     converted_languages, duplicated_languages = {}, {}
 
     for language in languages:
-        if language in iso639Codes and iso639Codes[language] in languages:
-            duplicated_languages[iso639Codes[language]] = language
-            duplicated_languages[language] = iso639Codes[language]
+        if language in iso639_codes and iso639_codes[language] in languages:
+            duplicated_languages[iso639_codes[language]] = language
+            duplicated_languages[language] = iso639_codes[language]
 
         converted_languages[to_alpha2_code(language)] = language
 

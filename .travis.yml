@@ -1,14 +1,14 @@
 language: python
 sudo: required
-dist: trusty
+dist: xenial
 cache:
     pip: true
     directories:
         - /tmp/languages
 python:
-    - '3.4'
     - '3.5'
     - '3.6'
+    - '3.7'
     - 'nightly'
 install:
     - pip install pipenv
@@ -21,13 +21,7 @@ before_script:
     - git clone --depth 1 https://github.com/apertium/apertium-nno /tmp/languages/apertium-nno || echo 'Using cached apertium-nno'
     - ( cd /tmp/languages/apertium-nno && ./autogen.sh && make -j2 )
 script:
-    - flake8 *.py apertium_apy/ language_names/ tests/
-    - if [[ $TRAVIS_PYTHON_VERSION != 3.4 ]]; then
-        mypy --config-file mypy.ini **/*.py;
-      fi
-    - NONPAIRS=/tmp/languages python -m unittest tests/test*.py
-    - coverage combine
-    - coverage report --fail-under 40
+    - NONPAIRS=/tmp/languages make test
 after_success:
     - coveralls
 notifications:

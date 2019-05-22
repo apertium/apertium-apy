@@ -11,12 +11,12 @@ __version__ = '0.11.5'
 
 import argparse
 import configparser
-import importlib
 import logging
 import os
 import re
 import signal
 import sys
+from importlib import util as importlib_util
 from datetime import timedelta
 from logging import handlers as logging_handlers  # type: ignore
 
@@ -276,10 +276,10 @@ def setup_application(args):
         (r'/pipedebug', PipeDebugHandler),
     ]
 
-    if importlib.util.find_spec('streamparser'):
+    if importlib_util.find_spec('streamparser'):
         handlers.append((r'/speller', SpellerHandler))
 
-    if all([args.wiki_username, args.wiki_password]) and importlib.util.find_spec('requests'):
+    if all([args.wiki_username, args.wiki_password]) and importlib_util.find_spec('requests'):
         import requests
         logging.info('Logging into Apertium Wiki with username %s', args.wiki_username)
 
@@ -326,18 +326,18 @@ def setup_logging(args):
 def main():
     check_utf8()
     args = parse_args()
-    setup_logging(args)         # before we start logging anything!
+    setup_logging(args)  # before we start logging anything!
 
-    if importlib.util.find_spec('cld2full') is None:
+    if importlib_util.find_spec('cld2full') is None:
         logging.warning('Unable to import CLD2, continuing using naive method of language detection')
 
-    if importlib.util.find_spec('chardet') is None:
+    if importlib_util.find_spec('chardet') is None:
         logging.warning('Unable to import chardet, assuming utf-8 encoding for all websites')
 
-    if importlib.util.find_spec('streamparser') is None:
+    if importlib_util.find_spec('streamparser') is None:
         logging.warning('Apertium streamparser not installed, spelling handler disabled')
 
-    if importlib.util.find_spec('requests') is None:
+    if importlib_util.find_spec('requests') is None:
         logging.warning('requests not installed, suggestions disabled')
 
     if args.bypass_token:

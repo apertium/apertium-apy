@@ -16,6 +16,6 @@ coveralls = "*"
 flake8-commas = "*"
 flake8-quotes = "*"
 flake8 = "*"
-mypy = {version = "*", "python_version" = ">= '3.5'"}
+mypy = "*"
 pep8-naming = "*"
 twine = "*"
