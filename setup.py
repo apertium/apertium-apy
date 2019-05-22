@@ -51,7 +51,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3 :: Only',
     ],
-    python_requires='>=3.4',
+    python_requires='>=3.5',
     install_requires=['tornado>=4.2,<6'],
     extras_require={
         'spelling': ['apertium-streamparser'],
