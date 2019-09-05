@@ -871,7 +871,8 @@ class TranslateDocHandler(TranslateHandler):
                     break
 
         mimeType = commands[TranslateDocHandler.mimeTypeCommand](f).decode('utf-8')
-        if mimeType == 'application/zip':
+        isZipAnyway = open(f, 'rb').read(4) == b'PK\x03\x04'  # On CentOS, some .docx files are identified as application/msword
+        if mimeType == 'application/zip' or isZipAnyway:
             with zipfile.ZipFile(f) as zf:
                 for typeFile in typeFiles:
                     if typeFile in zf.namelist():
