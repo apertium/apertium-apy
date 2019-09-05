@@ -3,3 +3,4 @@
 /__pycache__/
 /langNames.db
 /cache/
+/.mypy_cache/
