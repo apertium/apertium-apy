@@ -31,8 +31,8 @@ notifications:
     on_failure: change
     on_success: change
 matrix:
-  allow_failures:
-    - python: nightly
+    allow_failures:
+        - python: nightly
 
     # The irc channel is encrypted for apertium/apertium-apy, so build notifications from forks won't show up on the IRC channel
     # Encrypt with:
