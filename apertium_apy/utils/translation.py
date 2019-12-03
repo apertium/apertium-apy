@@ -28,6 +28,7 @@ class Pipeline(object):
         self.users = 0
         self.last_usage = 0
         self.use_count = 0
+        self.stuck = False
 
     @contextmanager
     def use(self):

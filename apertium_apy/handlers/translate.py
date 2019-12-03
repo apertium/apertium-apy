@@ -5,6 +5,7 @@ import time
 from datetime import datetime
 
 from tornado import gen
+import tornado.iostream
 
 from apertium_apy import missing_freqs_db  # noqa: F401
 from apertium_apy.handlers.base import BaseHandler
@@ -49,6 +50,10 @@ class TranslateHandler(BaseHandler):
                 missing_freqs_db.note_unknown(token, pair)
 
     def cleanable(self, i, pair, pipe):
+        if pipe.stuck:
+            logging.info('A pipe for pair %s-%s seems stuck, scheduling restart',
+                         pair[0], pair[1])
+            return True
         if pipe.use_count > self.restart_pipe_after:
             # Not affected by min_pipes_per_pair
             logging.info('A pipe for pair %s-%s has handled %d requests, scheduling restart',
@@ -163,15 +168,20 @@ class TranslateHandler(BaseHandler):
         mark_unknown = mark_unknown in ['yes', 'true', '1']
         self.note_pair_usage(pair)
         before = self.log_before_translation()
-        translated = yield pipeline.translate(to_translate, nosplit, deformat, reformat)
-        self.log_after_translation(before, len(to_translate))
-        self.send_response({
-            'responseData': {
-                'translatedText': self.maybe_strip_marks(mark_unknown, pair, translated),
-            },
-            'responseDetails': None,
-            'responseStatus': 200,
-        })
+        try:
+            translated = yield pipeline.translate(to_translate, nosplit, deformat, reformat)
+            self.log_after_translation(before, len(to_translate))
+            self.send_response({
+                'responseData': {
+                    'translatedText': self.maybe_strip_marks(mark_unknown, pair, translated),
+                },
+                'responseDetails': None,
+                'responseStatus': 200,
+            })
+        except tornado.iostream.StreamClosedError as e:
+            logging.warning("Translation error in pair %s-%s: %s", pair[0], pair[1], e)
+            pipeline.stuck = True
+            self.send_error(503, explanation="internal error")
         self.clean_pairs()
 
     @gen.coroutine
