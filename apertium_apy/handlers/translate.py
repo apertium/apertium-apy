@@ -179,9 +179,9 @@ class TranslateHandler(BaseHandler):
                 'responseStatus': 200,
             })
         except tornado.iostream.StreamClosedError as e:
-            logging.warning("Translation error in pair %s-%s: %s", pair[0], pair[1], e)
+            logging.warning('Translation error in pair %s-%s: %s', pair[0], pair[1], e)
             pipeline.stuck = True
-            self.send_error(503, explanation="internal error")
+            self.send_error(503, explanation='internal error')
         self.clean_pairs()
 
     @gen.coroutine
