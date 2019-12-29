@@ -4,7 +4,7 @@ import os
 import re
 import time
 from hashlib import sha1
-from urllib.parse import urlparse, urlunsplit
+from urllib.parse import urlparse, urlunsplit, urljoin
 
 from tornado import gen
 from tornado import httpclient
