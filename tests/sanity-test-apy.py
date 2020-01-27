@@ -96,6 +96,7 @@ tests = {
     'por-glg': ('tenho', 'teño'),
     'por-spa': ('tenho', 'tengo'),
     'ron-spa': ('Liberă', 'Libre'),
+    'ron-cat': ('Liberă', 'Lliure'),
     'slv-hbs_BS': ('Svobodnemu', 'Slobodnu'),
     'slv-hbs_HR': ('Svobodnemu', 'Slobodnu'),
     'slv-hbs_SR': ('Svobodnemu', 'Slobodnu'),
