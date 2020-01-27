@@ -8,7 +8,8 @@ from apertium_apy.utils.translation import translate_simple
 
 
 class AnalyzeHandler(BaseHandler):
-    def postproc_text(self, in_text, result):
+    @staticmethod
+    def postproc_text(in_text, result):
         lexical_units = remove_dot_from_deformat(in_text, re.findall(r'\^([^\$]*)\$([^\^]*)', result))  # TODO: replace with streamparser
         return [(lu[0], lu[0].split('/')[0] + lu[1])
                 for lu
