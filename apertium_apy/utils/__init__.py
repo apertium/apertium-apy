@@ -48,8 +48,8 @@ def to_alpha3_code(code):
 def remove_dot_from_deformat(query, analyses):
     """When using the txt format, a dot is added at EOF (also, double line
     breaks) if the last part of the query isn't itself a dot"""
-    dotana = re.compile(r"^\.[/<]")
-    if len(query)>0 and len(analyses)>0 and not query[-1] == '.' and re.search(dotana, analyses[-1][0]):
+    dotana = re.compile(r'^\.[/<]')
+    if len(query) > 0 and len(analyses) > 0 and not query[-1] == '.' and re.search(dotana, analyses[-1][0]):
         return analyses[:-1]
     else:
         return analyses
