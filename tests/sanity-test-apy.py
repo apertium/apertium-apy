@@ -136,7 +136,13 @@ def test_pair(pair, host):
         response = urllib.request.urlopen('%s/translate?langpair=%s&q=%s' %
                                           (host, langpair, intext), timeout=TIMEOUT).read().decode('utf-8')
     except urllib.error.HTTPError as e:
-        print('%s failed with error code %s and reason: %s' % (pair, e.code, e.reason))
+        explanation = ''
+        try:
+            explanation = e.read().decode()
+        except Exception:
+            pass
+        print('%s failed with error code %s and reason: %s, response body: %s' %
+              (pair, e.code, e.reason, explanation))
         return False
     except socket.timeout as e:
         print('%s failed: %s' % (pair, e))
