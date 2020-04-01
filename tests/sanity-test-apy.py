@@ -8,7 +8,6 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-unescape = html.parser.HTMLParser().unescape  # type: ignore
 
 TIMEOUT = 15
 tests = {
@@ -152,7 +151,7 @@ def test_pair(pair, host):
         return False
     js = json.loads(response)
     translation_raw = js['responseData']['translatedText']
-    translation = unescape(urllib.parse.unquote_plus(translation_raw)).strip()
+    translation = html.unescape(urllib.parse.unquote_plus(translation_raw)).strip()
     if translation != expected:
         print("%s: expected '%s', got '%s' (for input: %s)" % (pair, expected, translation, intext))
         return False
