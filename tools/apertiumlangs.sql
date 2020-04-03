@@ -9200,5 +9200,24 @@ INSERT INTO "fixes" VALUES(NULL,'crh','gag','Ğağauzça');
 INSERT INTO "fixes" VALUES(NULL,'kaz','gag','Ғағауызша');
 INSERT INTO "fixes" VALUES(NULL,'kaz','gag','Гагаузча');
 
+INSERT INTO "fixes" VALUES(NULL,'nb'  ,'sma'       ,'sørsamisk (kortformer)');
+INSERT INTO "fixes" VALUES(NULL,'nb'  ,'sma_North' ,'sørsamisk (langformer)');
+INSERT INTO "fixes" VALUES(NULL,'se'  ,'sma'       ,'lullisámegiella (SH)');
+INSERT INTO "fixes" VALUES(NULL,'se'  ,'sma_North' ,'lullisámegiella (L)');
+INSERT INTO "fixes" VALUES(NULL,'en'  ,'sma'       ,'South Saami (short forms)');
+INSERT INTO "fixes" VALUES(NULL,'en'  ,'sma_North' ,'South Saami (long forms)');
+INSERT INTO "fixes" VALUES(NULL,'et'  ,'sma'       ,'lõunasaami (SH)');
+INSERT INTO "fixes" VALUES(NULL,'et'  ,'sma_North' ,'lõunasaami (L)');
+INSERT INTO "fixes" VALUES(NULL,'fi'  ,'sma'       ,'eteläsaame (SH)');
+INSERT INTO "fixes" VALUES(NULL,'fi'  ,'sma_North' ,'eteläsaame (L)');
+INSERT INTO "fixes" VALUES(NULL,'ru'  ,'sma'       ,'саамский (южный) (SH)');
+INSERT INTO "fixes" VALUES(NULL,'ru'  ,'sma_North' ,'саамский (южный) (L)');
+INSERT INTO "fixes" VALUES(NULL,'sma' ,'sma'       ,'åarjelsaemiengïele (SH)');
+INSERT INTO "fixes" VALUES(NULL,'sma' ,'sma_North' ,'åarjelsaemiengïele (L)');
+INSERT INTO "fixes" VALUES(NULL,'smj' ,'sma'       ,'oarjjelsámegiella (SH)');
+INSERT INTO "fixes" VALUES(NULL,'smj' ,'sma_North' ,'oarjjelsámegiella (L)');
+INSERT INTO "fixes" VALUES(NULL,'smn' ,'sma'       ,'maadâsämikielâ (SH)');
+INSERT INTO "fixes" VALUES(NULL,'smn' ,'sma_North' ,'maadâsämikielâ (L)');
+
 INSERT INTO "languageNames" (lg, inLg, name) select lg, inLg, name from "fixes";
 COMMIT;
