@@ -1,12 +1,12 @@
 from datetime import datetime, timedelta
 
-import tornado.web
+import tornado.gen
 
 from apertium_apy.handlers.base import BaseHandler
 
 
 class StatsHandler(BaseHandler):
-    @tornado.web.asynchronous
+    @tornado.gen.coroutine
     def get(self):
         num_requests = self.get_argument('requests', 1000)
         try:

@@ -1,11 +1,11 @@
-import tornado.web
+import tornado.gen
 
 from apertium_apy.handlers.base import BaseHandler
 from apertium_apy.utils import to_alpha2_code
 
 
 class ListHandler(BaseHandler):
-    @tornado.web.asynchronous
+    @tornado.gen.coroutine
     def get(self):
         query = self.get_argument('q', default='pairs')
 
