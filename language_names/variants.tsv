@@ -64,3 +64,9 @@ szl	por_BR	portugalskŏ brazylijskŏ
 tr	cat_valencia	valensiyaca
 tr	oci_aran	Aranca
 tr	por_BR	Brezilya Portekizcesi
+en	kaz_Arab	Kazakh (Perso-Arabic script)
+en	kaz_Cyrl	Kazakh (Cyrillic script)
+kaz	kaz_Arab	қазақша (араб жазуымен)
+kaz	kaz_Cyrl	қазақша (кирил жазуымен)
+kir	kaz_Arab	казакча (арап жазуусу)
+kir	kaz_Cyrl	казакча (кирилл жазуусу)
