@@ -145,6 +145,8 @@ crh	crh	qırımtatarca
 crh	gag	ğağauzça
 de	szl	Schlesisch
 en	ain	Ainu
+en	alt	Southern Altay
+en	bak	Bashqort
 en	bas	Basaa
 en	btc	Bati
 en	chm	Mari
@@ -157,12 +159,14 @@ en	kmr	Kurdish Kurmanji
 en	ky	Kyrgyz
 en	lvs	Latvian
 en	ne	Nepali
+en	nog	Noghay
 en	oc	Occitan
 en	olo	Livvi-Karelian
 en	os	Ossetian
 en	ota	Ottoman Turkish
 en	pa	Punjabi
 en	qve	Quechua
+en	sah	Sakha
 en	scn	Sicilian
 en	smj	Lule Saami
 en	smn	Inari Saami
@@ -205,6 +209,7 @@ kk	tt	татарша
 kk	tyv	тываша
 kk	ug	ұйғұрша
 kk	uz	өзбекше
+kk	kjh	хақасша
 ky	ar	арабча
 ky	ba	башкортчо
 ky	crh	кырымтатарча
@@ -221,6 +226,7 @@ ky	tr	түркчө
 ky	tyv	тывача
 ky	ug	уйгурча
 ky	uz	өзбекче
+ky	kjh	хакасча
 nb	smj	lulesamisk
 nb	smn	enaresamisk
 nn	smj	lulesamisk
