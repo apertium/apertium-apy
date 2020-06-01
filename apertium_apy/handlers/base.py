@@ -5,6 +5,7 @@ import sys
 from datetime import datetime
 
 import tornado
+import tornado.gen
 import tornado.web
 from tornado.escape import utf8
 from tornado.locks import Semaphore
@@ -180,9 +181,9 @@ class BaseHandler(tornado.web.RequestHandler):
         self.set_header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
         self.set_header('Access-Control-Allow-Headers', 'accept, cache-control, origin, x-requested-with, x-file-name, content-type')
 
-    @tornado.web.asynchronous
+    @tornado.gen.coroutine
     def post(self):
-        self.get()
+        yield self.get()
 
     def options(self):
         self.set_status(204)
