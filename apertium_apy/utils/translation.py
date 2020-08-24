@@ -362,13 +362,5 @@ def translate_modefile_bytes(to_translate_bytes, fmt, mode_file, unknown_marks=F
 
 @gen.coroutine
 def translate_html_mark_headings(to_translate, mode_file, unknown_marks=False):
-    proc_deformat = Popen(['apertium-deshtml', '-o'], stdin=PIPE, stdout=PIPE)
-    deformatted = proc_deformat.communicate(bytes(to_translate, 'utf-8'))[0]
-    check_ret_code('Deformatter', proc_deformat)
-
-    translated = yield translate_modefile_bytes(deformatted, 'none', mode_file, unknown_marks)
-
-    proc_reformat = Popen(['apertium-rehtml-noent'], stdin=PIPE, stdout=PIPE)
-    reformatted = proc_reformat.communicate(translated)[0]
-    check_ret_code('Reformatter', proc_reformat)
-    return reformatted.decode('utf-8')
+    translated = yield translate_modefile_bytes(bytes(to_translate, 'utf-8'), 'html', mode_file, unknown_marks)
+    return translated.decode('utf-8')
