@@ -1,0 +1,83 @@
+lg	inLg	name
+an	cat_valencia	valenciana
+an	oci_aran	aranés
+an	por_BR	portugués brasileño
+an	por_PTpre1990	portugués europeu (ortografía tradicional)
+ca	cat_valencia	valencià
+ca	oci_aran	aranès
+ca	por_BR	portuguès brasiler
+ca	por_PTpre1990	portuguès europeu (ortografia tradicional)
+de	cat_valencia	valencianische
+de	oci_aran	aranesische
+de	por_BR	brasilianisches portugiesisch
+en	cat_valencia	Valencian
+en	eng_GB	British English
+en	eng_US	American English
+en	fra_eco	Quebec French
+en	hbs_BS	Bosnian
+en	hbs_HR	Croatian
+en	hbs_SR	Serbian
+en	hbs_SRcyr	Serbian (Cyrillic)
+en	mlt_translit	Maltese Transliterated
+en	nno_e	East Norwegian
+en	oci_aran	Aranese
+en	oci_gascon	Gascon
+en	pan_Arab	Punjabi (Arabic)
+en	pan_Guru	Punjabi (Gurmukhi)
+en	por_BR	Brazilian Portuguese
+en	por_PTpre1990	European Portuguese (traditional spelling)
+en	tgk_translit	Tajik Transliterated
+es	cat_valencia	valenciano
+es	oci_aran	aranés
+es	por_BR	portugués brasileño
+es	por_PTpre1990	portugués europeo (ortografía tradicional)
+eu	cat_valencia	valentziera
+eu	oci_aran	aranera
+eu	por_BR	brasilgo portugesa
+ita	cat_valencia	valenzano
+ita	oci_aran	aranese
+ita	por_BR	portoghese brasiliano
+ita	por_PTpre1990	portoghese europeo (ortografia tradizionale)
+fi	cat_valencia	valencian
+fi	oci_aran	araneesi
+fi	por_BR	brasilianportugali
+fr	cat_valencia	valencien
+fr	oci_aran	aranais
+fr	por_BR	portugais brésilien
+fr	por_PTpre1990	portugais européen (orthographe traditionnelle)
+nb	cat_valencia	valensiansk
+nb	nno_e	nynorsk e-infinitiv
+nb	oci_aran	araneisk
+nb	por_BR	brasiliansk portugisisk
+nn	cat_valencia	valensiansk
+nn	nno_e	nynorsk e-infinitiv
+nn	oci_aran	araneisk
+nn	por_BR	brasiliansk portugisisk
+no	cat_valencia	valensiansk
+no	nno_e	nynorsk e-infinitiv
+no	oci_aran	araneisk
+no	por_BR	brasiliansk portugisisk
+oci	cat_valencia	Valencian
+oci	oci_aran	Aranés
+oci	por_BR	Portugués brasilian
+oci	por_PTpre1990	Portugués europèu (ortografia tradicionala)
+pt	cat_valencia	valenciano
+pt	oci_aran	aranês
+pt	por_BR	português brasileiro
+pt	por_PTpre1990	português europeu (ortografia tradicional)
+ru	cat_valencia	валенсийский
+ru	oci_aran	aра́нский
+ru	por_BR	брази́льский португа́льский
+srd	cat_valencia	valentzianu
+srd	oci_aran	aranesu
+srd	por_BR	portughesu brasilianu
+srd	por_PTpre1990	portughesu europeu (ortografia traditzionale)
+sv	cat_valencia	valencianska
+sv	oci_aran	araneiska
+sv	por_BR	brasiliansk portugisiska
+szl	cat_valencia	walyncjańskŏ
+szl	oci_aran	arańskŏ
+szl	por_BR	portugalskŏ brazylijskŏ
+tr	cat_valencia	valensiyaca
+tr	oci_aran	Aranca
+tr	por_BR	Brezilya Portekizcesi
