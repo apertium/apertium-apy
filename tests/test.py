@@ -231,7 +231,7 @@ class TestTranslateWebpageHandler(BaseTestCase):
             'url': 'http://example.org/',
             'markUnknown': 'no',
         })
-        self.assertIn('Ámbito', response['responseData']['translatedText'])
+        self.assertIn('literatura', response['responseData']['translatedText'])
 
     def test_translate_invalid_webpage(self):
         response = self.fetch_json('/translatePage', params={
