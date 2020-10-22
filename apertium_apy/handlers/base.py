@@ -22,7 +22,7 @@ def dump_json(data):
 
 class Stats:
     startdate = datetime.now()
-    useCount = {}               # type: Dict[Tuple[str, str], int]
+    usecount = {}               # type: Dict[Tuple[str, str], int]
     vmsize = 0
     timing = []                 # type: List[Tuple[datetime, datetime, int]]
 

@@ -23,7 +23,7 @@ class TranslateRawHandler(TranslateHandler):
                                       len(self.get_argument('q', strip=False)))
         if pair is not None:
             pipeline = self.get_pipeline(pair)
-            deformat = self.get_argument('deformat', default="True") != "False"
+            deformat = self.get_argument('deformat', default='True') != 'False'
             yield self.translate_and_respond(pair,
                                              pipeline,
                                              self.get_argument('q', strip=False),

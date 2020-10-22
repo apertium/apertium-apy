@@ -8,7 +8,7 @@ from apertium_apy.handlers.base import BaseHandler
 class StatsHandler(BaseHandler):
     @tornado.gen.coroutine
     def get(self):
-        num_requests_arg = self.get_argument('requests', default="1000")
+        num_requests_arg = self.get_argument('requests', default='1000')
         try:
             num_requests = int(num_requests_arg)
         except ValueError:
@@ -27,7 +27,7 @@ class StatsHandler(BaseHandler):
 
         uptime = int((datetime.now() - self.stats.startdate).total_seconds())
         use_count = {'%s-%s' % pair: use_count
-                     for pair, use_count in self.stats.useCount.items()}
+                     for pair, use_count in self.stats.usecount.items()}
         running_pipes = {'%s-%s' % (l1, l2): len(pipes)
                          for (l1, l2), pipes in self.pipelines.items()
                          if pipes != []}

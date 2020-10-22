@@ -49,7 +49,7 @@ def setUpModule():  # noqa: N802
         logging.warning("Couldn't find `coverage` executable, not running coverage tests!")
         for _ in range(3):
             time.sleep(1)
-            print(".")
+            print('.')
     server_handle = subprocess.Popen(coverage_cli_args + [os.path.join(base_path, 'servlet.py')] + cli_args)  # TODO: print only on error?
 
     started = False
