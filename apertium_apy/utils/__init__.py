@@ -55,13 +55,12 @@ def remove_dot_from_deformat(query, analyses):
         return analyses
 
 
-@gen.coroutine
-def apertium(apertium_input, mode_dir, mode, formatting='txt'):
+async def apertium(apertium_input, mode_dir, mode, formatting='txt'):
     logging.debug('util.apertium({!r}, {!r}, {!r}, {!r})'.format(apertium_input, mode_dir, mode, formatting))
     proc = Subprocess(['apertium', '-d', mode_dir, '-f', formatting, mode], stdin=Subprocess.STREAM, stdout=Subprocess.STREAM)
-    yield gen.Task(proc.stdin.write, apertium_input.encode('utf-8'))
+    await proc.stdin.write(apertium_input.encode('utf-8'))
     proc.stdin.close()
-    output = yield gen.Task(proc.stdout.read_until_close)
+    output = await proc.stdout.read_until_close()
     proc.stdout.close()
     return output.decode('utf-8')
 

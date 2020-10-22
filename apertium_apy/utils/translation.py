@@ -257,9 +257,8 @@ def coreduce(init, funcs, *args):
     return result
 
 
-@gen.coroutine
-def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_reformat):
-    with (yield pipeline.lock.acquire()):
+async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_reformat):
+    with (await pipeline.lock.acquire()):
         proc_in, proc_out = pipeline.inpipe, pipeline.outpipe
         deformat, reformat = validate_formatters(unsafe_deformat, unsafe_reformat)
 
@@ -280,7 +279,7 @@ def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_reformat
         # pipeline. If there's no way to put a timeout right here, we
         # might need a timeout using Pipeline.use(), like servlet.py's
         # cleanable but called *before* trying to translate anew
-        output = yield gen.Task(proc_out.stdout.read_until, bytes('\0', 'utf-8'))
+        output = await proc_out.stdout.read_until(bytes('\0', 'utf-8'))
 
         if reformat:
             proc_reformat = Popen(reformat, stdin=PIPE, stdout=PIPE)
@@ -328,13 +327,12 @@ def translate_pipeline(to_translate, commands):
     return output, all_cmds
 
 
-@gen.coroutine
-def translate_simple(to_translate, commands):
+async def translate_simple(to_translate, commands):
     proc_in, proc_out = start_pipeline(commands)
     assert proc_in == proc_out
-    yield gen.Task(proc_in.stdin.write, bytes(to_translate, 'utf-8'))
+    await proc_in.stdin.write(bytes(to_translate, 'utf-8'))
     proc_in.stdin.close()
-    translated = yield gen.Task(proc_out.stdout.read_until_close)
+    translated = await proc_out.stdout.read_until_close()
     proc_in.stdout.close()
     return translated.decode('utf-8')
 
@@ -349,13 +347,12 @@ def start_pipeline_from_modefile(mode_file, fmt, unknown_marks=False):
     return start_pipeline([cmd])
 
 
-@gen.coroutine
-def translate_modefile_bytes(to_translate_bytes, fmt, mode_file, unknown_marks=False):
+async def translate_modefile_bytes(to_translate_bytes, fmt, mode_file, unknown_marks=False):
     proc_in, proc_out = start_pipeline_from_modefile(mode_file, fmt, unknown_marks)
     assert proc_in == proc_out
-    yield gen.Task(proc_in.stdin.write, to_translate_bytes)
+    await proc_in.stdin.write(to_translate_bytes)
     proc_in.stdin.close()
-    translated_bytes = yield gen.Task(proc_out.stdout.read_until_close)
+    translated_bytes = await proc_out.stdout.read_until_close()
     proc_in.stdout.close()
     return translated_bytes
 
