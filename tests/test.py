@@ -7,6 +7,7 @@ import logging
 import mimetypes
 import os
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -41,7 +42,14 @@ server_handle = None
 
 def setUpModule():  # noqa: N802
     global server_handle
-    coverage_cli_args = shlex.split('coverage run --rcfile {}'.format(os.path.join(base_path, '.coveragerc')))
+    coverage_cli_args = []
+    if shutil.which('coverage'):
+        coverage_cli_args = shlex.split('coverage run --rcfile {}'.format(os.path.join(base_path, '.coveragerc')))
+    else:
+        logging.warning("Couldn't find `coverage` executable, not running coverage tests!")
+        for _ in range(3):
+            time.sleep(1)
+            print(".")
     server_handle = subprocess.Popen(coverage_cli_args + [os.path.join(base_path, 'servlet.py')] + cli_args)  # TODO: print only on error?
 
     started = False
