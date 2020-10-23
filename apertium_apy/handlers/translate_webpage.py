@@ -8,11 +8,14 @@ from urllib.parse import urlparse, urlunsplit
 
 from tornado import gen
 from tornado import httpclient
+from typing import Optional  # noqa: F401
+
 
 try:
     import chardet
-except ImportError:
-    chardet = None
+except ImportError:             # type should be Optional[Module] but there's no module in mypy? TODO
+    chardet = None              # type: ignore
+
 
 from apertium_apy.utils import translation
 from apertium_apy.handlers.translate import TranslateHandler
@@ -70,7 +73,7 @@ class TranslateWebpageHandler(TranslateHandler):
         if self.url_cache_path is None:
             logging.info('No --url-cache-path, not storing cached url to disk')
             return
-        dirname, basename = self.cache_path(pair, url)
+        dirname, basename = self.cache_path(self.url_cache_path, pair, url)
         os.makedirs(dirname, exist_ok=True)
         statvfs = os.statvfs(dirname)
         if (statvfs.f_frsize * statvfs.f_bavail) < self.min_free_space_disk_url_cache:
@@ -88,11 +91,11 @@ class TranslateWebpageHandler(TranslateHandler):
         with open(origpath, 'w') as f:
             f.write(origtext)
 
-    def cache_path(self, pair, url):
+    def cache_path(self, url_cache_path, pair, url):
         """Give the directory for where to cache the translation of this url,
         and the file name to use for this pair."""
         hsh = sha1(url.encode('utf-8')).hexdigest()
-        dirname = os.path.join(self.url_cache_path,
+        dirname = os.path.join(url_cache_path,
                                # split it to avoid too many files in one dir:
                                hsh[:1], hsh[1:2], hsh[2:])
         return (dirname, '{}-{}'.format(*pair))
@@ -105,7 +108,7 @@ class TranslateWebpageHandler(TranslateHandler):
         if url in self.url_cache[pair]:
             logging.info('Got cache from memory')
             return self.url_cache[pair][url]
-        dirname, basename = self.cache_path(pair, url)
+        dirname, basename = self.cache_path(self.url_cache_path, pair, url)
         path = os.path.join(dirname, basename)
         if os.path.exists(path):
             logging.info('Got cache on disk, we want to retranslate in background …')
@@ -119,19 +122,11 @@ class TranslateWebpageHandler(TranslateHandler):
         pair.
         """
         mem_cached = self.url_cache.get(pair, {}).get(url)
-        if mem_cached is None and cached is not None:
-            dirname, _ = self.cache_path(pair, url)
+        if mem_cached is None and cached is not None and self.url_cache_path is not None:
+            dirname, _ = self.cache_path(self.url_cache_path, pair, url)
             origpath = os.path.join(dirname, pair[0])
             if os.path.exists(origpath):
                 return open(origpath, 'r').read()
-
-    def handle_fetch(self, response):
-        if response.error is None:
-            return
-        elif response.code == 304:  # means we can use cache, so don't fail on this
-            return
-        else:
-            self.send_error(503, explanation='{} on fetching url: {}'.format(response.code, response.error))
 
     @gen.coroutine
     def get(self):
@@ -159,13 +154,14 @@ class TranslateWebpageHandler(TranslateHandler):
             self.send_error(404, explanation='{} on fetching url: {}'.format('Error 404', e))
             return
         try:
-            response = yield httpclient.AsyncHTTPClient().fetch(request, self.handle_fetch)
+            response = yield httpclient.AsyncHTTPClient().fetch(request, raise_error=True)
         except httpclient.HTTPError as e:
             if e.code == 304:
                 got304 = True
                 logging.info('304, can use cache')
             else:
                 logging.error(e)
+                self.send_error(503, explanation='{} on fetching url: {}'.format(response.code, response.error))
                 return
         if got304 and cached is not None:
             translation_catpipeline = translation.CatPipeline  # type: ignore

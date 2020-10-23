@@ -36,6 +36,7 @@ class SuggestionHandler(BaseHandler):
     wiki_edit_token = None
     SUGGEST_URL = None
     recaptcha_secret = None
+    auth_token = None
 
     @gen.coroutine
     def get(self):

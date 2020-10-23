@@ -26,7 +26,7 @@ class Pipeline(object):
         # pipeline for translation. If this is 0, we can safely shut
         # down the pipeline.
         self.users = 0
-        self.last_usage = 0
+        self.last_usage = 0.0
         self.use_count = 0
         self.stuck = False
 
@@ -264,6 +264,7 @@ async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_re
 
         if deformat:
             proc_deformat = Popen(deformat, stdin=PIPE, stdout=PIPE)
+            assert proc_deformat.stdin is not None  # stupid mypy
             proc_deformat.stdin.write(bytes(to_translate, 'utf-8'))
             deformatted = proc_deformat.communicate()[0]
             check_ret_code('Deformatter', proc_deformat)
@@ -283,6 +284,7 @@ async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_re
 
         if reformat:
             proc_reformat = Popen(reformat, stdin=PIPE, stdout=PIPE)
+            assert proc_reformat.stdin is not None  # stupid mypy
             proc_reformat.stdin.write(output)
             result = proc_reformat.communicate()[0]
             check_ret_code('Reformatter', proc_reformat)
@@ -294,6 +296,7 @@ async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_re
 @gen.coroutine
 def translate_pipeline(to_translate, commands):
     proc_deformat = Popen('apertium-deshtml', stdin=PIPE, stdout=PIPE)
+    assert proc_deformat.stdin is not None  # stupid mypy
     proc_deformat.stdin.write(bytes(to_translate, 'utf-8'))
     deformatted = proc_deformat.communicate()[0]
     check_ret_code('Deformatter', proc_deformat)
@@ -309,6 +312,7 @@ def translate_pipeline(to_translate, commands):
 
     for cmd in commands:
         proc = Popen(cmd, stdin=PIPE, stdout=PIPE)
+        assert proc.stdin is not None  # stupid mypy
         proc.stdin.write(towrite)
         towrite = proc.communicate()[0]
         check_ret_code(' '.join(cmd), proc)
@@ -317,8 +321,9 @@ def translate_pipeline(to_translate, commands):
         all_cmds.append(cmd)
 
     proc_reformat = Popen('apertium-rehtml-noent', stdin=PIPE, stdout=PIPE)
+    assert proc_reformat.stdin is not None  # stupid mypy
     proc_reformat.stdin.write(towrite)
-    towrite = proc_reformat.communicate()[0].decode('utf-8')
+    towrite = proc_reformat.communicate()[0].decode('utf-8').encode('utf-8')
     check_ret_code('Reformatter', proc_reformat)
 
     output.append(towrite)

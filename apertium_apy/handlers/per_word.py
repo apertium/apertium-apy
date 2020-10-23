@@ -5,12 +5,13 @@ from subprocess import Popen, PIPE
 from tornado import gen
 
 from apertium_apy.handlers.base import BaseHandler
-from apertium_apy.utils import apertium, run_async_thread, remove_dot_from_deformat, to_alpha3_code
+from apertium_apy.utils import apertium, remove_dot_from_deformat, to_alpha3_code
 
 
 def bilingual_translate(to_translate, mode_dir, mode):
     p1 = Popen(['echo', to_translate], stdout=PIPE)
     p2 = Popen(['lt-proc', '-b', mode], stdin=p1.stdout, stdout=PIPE, cwd=mode_dir)
+    assert p1.stdout is not None  # stupid mypy
     p1.stdout.close()
     output = p2.communicate()[0].decode('utf-8')
     return output
@@ -135,13 +136,11 @@ class PerWordHandler(BaseHandler):
         result = pool.apply_async(process_per_word, (self.analyzers, self.taggers, lang, modes, query))
         pool.close()
 
-        @run_async_thread
-        def worker(callback):
+        def worker():
             try:
-                callback(result.get(timeout=self.timeout))
+                return result.get(timeout=self.timeout)
             except TimeoutError:
                 pool.terminate()
-                callback(None)
+                return None
 
-        output = yield gen.Task(worker)
-        handle_output(output)
+        handle_output(worker())

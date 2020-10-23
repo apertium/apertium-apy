@@ -66,7 +66,10 @@ class TranslateDocHandler(TranslateHandler):
                     cls.mime_type_command = command
                     break
 
-        mime_type = MIMETYPE_COMMANDS[cls.mime_type_command](f).split(';')[0]
+        if not cls.mime_type_command:
+            return None
+        mime_command = MIMETYPE_COMMANDS[cls.mime_type_command]
+        mime_type = mime_command(f).split(';')[0]
         if mime_type == 'application/zip':
             with zipfile.ZipFile(f) as zf:
                 file_names = zf.namelist()

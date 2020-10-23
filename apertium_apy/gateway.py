@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-import functools
 import itertools
 import json
 import logging
@@ -43,8 +42,7 @@ class RedirectRequestHandler(RequestHandler):
     def initialize(self, balancer):
         self.balancer = balancer
 
-    @tornado.gen.coroutine
-    def get(self):
+    async def get(self):
         path = self.request.path
         mode, lang_pair, per_word_modes = [None] * 3
         path_to_mode = {
@@ -86,11 +84,12 @@ class RedirectRequestHandler(RequestHandler):
         logging.info('Redirecting %s?%s to %s%s?%s', path, query, server_port, path, query)
 
         http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch(
+        response = await http.fetch(
             server_port + path + '?' + query,
-            functools.partial(self._on_download, (server, port), lang_pair),
+            raise_error=False,
             validate_cert=verify_ssl_cert, headers=headers)
         self.balancer.inform('start', (server, port), url=path)
+        self._on_download((server, port), lang_pair, response)
 
     def _on_download(self, server, lang_pair, response):
         response_body = response.body
@@ -127,9 +126,8 @@ class ListRequestHandler(apy.BaseHandler):
         if self.request.path != '/listPairs' and self.request.path != '/list':
             self.send_error(400)
         else:
-            query = self.get_arguments('q')
-            if query:
-                query = query[0]
+            q = self.get_arguments('q')
+            query = q[0] if q else None
             if self.request.path == '/listPairs' or query == 'pairs':
                 logging.info('Responding to request for pairs')
                 response_data = []
@@ -363,9 +361,9 @@ class Fastest(Balancer):
                 if '/list' not in self.serverlist[server][1]:
                     self.serverlist[server][1]['list'] = 0
                 self.serverlist[server][1]['list'] += test_sum / (self.num_responses * len(results.items()))
-        self.calcAggregateScores()
+        # self.calcAggregateScores()  TODO: Does not exist
         self.serverlist = OrderedDict(filter(lambda x: x[1][0] != float('inf'), self.serverlist.items()))
-        self.sortServerList()
+        # self.sortServerList()  TODO: Does not exist
 
 
 def test_server_pool(server_list):
@@ -546,5 +544,5 @@ if __name__ == '__main__':
     http_server.start(args.num_processes)
     main_loop = tornado.ioloop.IOLoop.instance()
     if isinstance(balancer, Fastest):
-        tornado.ioloop.PeriodicCallback(lambda: balancer.init_server_list(), args.test_interval, io_loop=main_loop).start()
+        tornado.ioloop.PeriodicCallback(lambda: balancer.init_server_list(), args.test_interval).start()
     main_loop.start()
