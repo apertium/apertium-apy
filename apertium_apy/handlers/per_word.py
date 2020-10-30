@@ -1,8 +1,7 @@
 import re
 from multiprocessing import Pool
 from subprocess import Popen, PIPE
-
-from tornado import gen
+import asyncio
 
 from apertium_apy.handlers.base import BaseHandler
 from apertium_apy.utils import apertium, remove_dot_from_deformat, to_alpha3_code
@@ -33,7 +32,7 @@ def process_per_word(analyzers, taggers, lang, modes, query):
     if 'morph' in modes or 'biltrans' in modes:
         if lang in analyzers:
             mode_info = analyzers[lang]
-            analysis = apertium(query, mode_info[0], mode_info[1])
+            analysis = asyncio.run(apertium(query, mode_info[0], mode_info[1]))
             morph_lexical_units = remove_dot_from_deformat(query, re.findall(lexical_unit_re, analysis))
             outputs['morph'] = [lu.split('/')[1:] for lu in morph_lexical_units]
             outputs['morph_inputs'] = [strip_tags(lu.split('/')[0]) for lu in morph_lexical_units]
@@ -43,7 +42,7 @@ def process_per_word(analyzers, taggers, lang, modes, query):
     if 'tagger' in modes or 'disambig' in modes or 'translate' in modes:
         if lang in taggers:
             mode_info = taggers[lang]
-            analysis = apertium(query, mode_info[0], mode_info[1])
+            analysis = asyncio.run(apertium(query, mode_info[0], mode_info[1]))
             tagger_lexical_units = remove_dot_from_deformat(query, re.findall(lexical_unit_re, analysis))
             outputs['tagger'] = [lu.split('/')[1:] if '/' in lu else lu for lu in tagger_lexical_units]
             outputs['tagger_inputs'] = [strip_tags(lu.split('/')[0]) for lu in tagger_lexical_units]
@@ -80,7 +79,7 @@ def process_per_word(analyzers, taggers, lang, modes, query):
 
 
 class PerWordHandler(BaseHandler):
-    @gen.coroutine
+
     def get(self):
         lang = to_alpha3_code(self.get_argument('lang'))
         modes = set(self.get_argument('modes').split(' '))

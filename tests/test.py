@@ -172,6 +172,36 @@ class TestListHandler(BaseTestCase):
         self.assertTrue(response.items() >= expect.items(), '{} is missing {}'.format(response, expect))
 
 
+class TestPerWordHandler(BaseTestCase):
+    def test_per_word_nno(self):
+        response = self.fetch_json('/perWord', {'lang': 'nno', 'modes': 'morph tagger', 'q': 'og ikkje'})
+        expected = [
+            {
+                'input': 'og',
+                'tagger': 'og<cnjcoo><clb>',
+                'morph': [
+                    'og<cnjcoo>',
+                    'og<cnjcoo><clb>',
+                ],
+            },
+            {
+                'input': 'ikkje',
+                'tagger': 'ikkje<adv>',
+                'morph': [
+                    'ikkje<adv>',
+                ],
+            },
+            {
+                'input': '.',
+                'tagger': '.<sent><clb>',
+                'morph': [
+                    '.<sent><clb>',
+                ],
+            },
+        ]
+        self.assertEqual(response, expected)
+
+
 class TestTranslateHandler(BaseTestCase):
     def fetch_translation(self, query, pair, **kwargs):
         params = kwargs.get('params', {})
