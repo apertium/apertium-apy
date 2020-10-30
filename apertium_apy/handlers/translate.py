@@ -11,7 +11,8 @@ from apertium_apy import missing_freqs_db  # noqa: F401
 from apertium_apy.handlers.base import BaseHandler
 from apertium_apy.keys import ApiKeys
 from apertium_apy.utils import to_alpha3_code, scale_mt_log
-from apertium_apy.utils.translation import parse_mode_file, make_pipeline
+from apertium_apy.utils.translation import parse_mode_file, make_pipeline, FlushingPipeline, SimplePipeline
+from typing import Union
 
 
 class TranslationInfo:
@@ -34,7 +35,7 @@ class TranslateHandler(BaseHandler):
         return self.get_argument('markUnknown', default='yes').lower() in ['yes', 'true', '1']
 
     def note_pair_usage(self, pair):
-        self.stats['useCount'][pair] = 1 + self.stats['useCount'].get(pair, 0)
+        self.stats.usecount[pair] = 1 + self.stats.usecount.get(pair, 0)
 
     def maybe_strip_marks(self, mark_unknown, pair, translated):
         self.note_unknown_tokens('%s-%s' % pair, translated)
@@ -126,10 +127,11 @@ class TranslateHandler(BaseHandler):
             scale_mt_log(self.get_status(), after - before, t_info, key, length)
 
         if self.get_status() == 200:
-            oldest = self.stats['timing'][0][0] if self.stats['timing'] else datetime.now()
-            if datetime.now() - oldest > self.STAT_PERIOD_MAX_AGE:
-                self.stats['timing'].pop(0)
-            self.stats['timing'].append(
+            timings = self.stats.timing
+            oldest = timings[0][0] if timings else datetime.now()
+            if datetime.now() - oldest > self.stat_period_max_age:
+                self.stats.timing.pop(0)
+            self.stats.timing.append(
                 (before, after, length))
 
     def get_pair_or_error(self, langpair, text_length):
@@ -189,7 +191,7 @@ class TranslateHandler(BaseHandler):
         pair = self.get_pair_or_error(self.get_argument('langpair'),
                                       len(self.get_argument('q')))
         if pair is not None:
-            pipeline = self.get_pipeline(pair)
+            pipeline = self.get_pipeline(pair)  # type: Union[FlushingPipeline, SimplePipeline]
             deformat, reformat = self.get_format()
             yield self.translate_and_respond(pair,
                                              pipeline,

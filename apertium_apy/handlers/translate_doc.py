@@ -38,8 +38,7 @@ OPEN_OFFICE_XML_FILE_MARKERS = {
 }
 
 
-@gen.coroutine
-def translate_doc(file_to_translate, fmt, mode_file, unknown_marks=False):
+async def translate_doc(file_to_translate, fmt, mode_file, unknown_marks=False):
     modes_dir = os.path.dirname(os.path.dirname(mode_file))
     mode = os.path.splitext(os.path.basename(mode_file))[0]
     if unknown_marks:
@@ -49,7 +48,7 @@ def translate_doc(file_to_translate, fmt, mode_file, unknown_marks=False):
     proc = tornado.process.Subprocess(cmd,
                                       stdin=file_to_translate,
                                       stdout=tornado.process.Subprocess.STREAM)
-    translated = yield gen.Task(proc.stdout.read_until_close)
+    translated = await proc.stdout.read_until_close()
     proc.stdout.close()
     # TODO: raises but not caught:
     # check_ret_code(' '.join(cmd), proc)
@@ -67,7 +66,10 @@ class TranslateDocHandler(TranslateHandler):
                     cls.mime_type_command = command
                     break
 
-        mime_type = MIMETYPE_COMMANDS[cls.mime_type_command](f).split(';')[0]
+        if not cls.mime_type_command:
+            return None
+        mime_command = MIMETYPE_COMMANDS[cls.mime_type_command]
+        mime_type = mime_command(f).split(';')[0]
         if mime_type == 'application/zip':
             with zipfile.ZipFile(f) as zf:
                 file_names = zf.namelist()

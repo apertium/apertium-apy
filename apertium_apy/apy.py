@@ -3,7 +3,7 @@
 # -*- indent-tabs-mode: nil -*-
 
 __author__ = 'Kevin Brubeck Unhammer, Sushain K. Cherivirala'
-__copyright__ = 'Copyright 2013--2018, Kevin Brubeck Unhammer, Sushain K. Cherivirala'
+__copyright__ = 'Copyright 2013--2020, Kevin Brubeck Unhammer, Sushain K. Cherivirala'
 __credits__ = ['Kevin Brubeck Unhammer', 'Sushain K. Cherivirala', 'Jonathan North Washington', 'Xavi Ivars', 'Shardul Chiplunkar']
 __license__ = 'GPLv3'
 __status__ = 'Beta'
@@ -28,6 +28,8 @@ import tornado.process
 import tornado.web
 from tornado.locks import Semaphore
 from tornado.log import enable_pretty_logging
+
+from typing import Sequence, Iterable, Type, List, Tuple, Any  # noqa: F401
 
 from apertium_apy import BYPASS_TOKEN, missing_freqs_db  # noqa: F401
 from apertium_apy import missingdb
@@ -249,7 +251,7 @@ def parse_args(cli_args=sys.argv[1:]):
 
 def setup_application(args):
     if args.stat_period_max_age:
-        BaseHandler.STAT_PERIOD_MAX_AGE = timedelta(0, args.stat_period_max_age, 0)
+        BaseHandler.stat_period_max_age = timedelta(0, args.stat_period_max_age, 0)
 
     setup_handler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
                   args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs,
@@ -274,7 +276,7 @@ def setup_application(args):
         (r'/identifyLang', IdentifyLangHandler),
         (r'/getLocale', GetLocaleHandler),
         (r'/pipedebug', PipeDebugHandler),
-    ]
+    ]  # type: List[Tuple[str, Type[tornado.web.RequestHandler]]]
 
     if importlib_util.find_spec('streamparser'):
         handlers.append((r'/speller', SpellerHandler))
@@ -295,7 +297,8 @@ def setup_application(args):
 
         handlers.append((r'/suggest', SuggestionHandler))
 
-    return tornado.web.Application(handlers)
+    # TODO: fix mypy. Application expects List but List is invariant and we use subclasses
+    return tornado.web.Application(handlers)  # type:ignore
 
 
 def setup_logging(args):
