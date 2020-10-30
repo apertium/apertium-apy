@@ -323,7 +323,7 @@ def translate_pipeline(to_translate, commands):
     proc_reformat = Popen('apertium-rehtml-noent', stdin=PIPE, stdout=PIPE)
     assert proc_reformat.stdin is not None  # stupid mypy
     proc_reformat.stdin.write(towrite)
-    towrite = proc_reformat.communicate()[0].decode('utf-8').encode('utf-8')
+    towrite = proc_reformat.communicate()[0]
     check_ret_code('Reformatter', proc_reformat)
 
     output.append(towrite)
