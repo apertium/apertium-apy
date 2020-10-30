@@ -14,8 +14,8 @@ information is available on the [Apertium Wiki][1].
 Requirements
 ------------
 
-- Python 3.5+
-- Tornado 4.3-6.0.4 (`python3-tornado` on Debian)
+- Python 3.6+
+- Tornado 6.0.3-6.0.4 (`python3-tornado` on Debian)
 
 Additional functionality is provided by installation
 of the following packages:
