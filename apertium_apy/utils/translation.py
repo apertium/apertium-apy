@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from select import PIPE_BUF
 from subprocess import Popen, PIPE
 from time import time
+from secrets import token_urlsafe
 
 import tornado.iostream
 import tornado.locks as locks
@@ -271,8 +272,9 @@ async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_re
         else:
             deformatted = bytes(to_translate, 'utf-8')
 
+        nonce = '[/NONCE:' + token_urlsafe(8) + ']'
         proc_in.stdin.write(deformatted)
-        proc_in.stdin.write(bytes('\0', 'utf-8'))
+        proc_in.stdin.write(bytes('\0' + nonce + '\0', 'utf-8'))
         # TODO: PipeIOStream has no flush, but seems to work anyway?
         # proc_in.stdin.flush()
 
@@ -280,7 +282,8 @@ async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_re
         # pipeline. If there's no way to put a timeout right here, we
         # might need a timeout using Pipeline.use(), like servlet.py's
         # cleanable but called *before* trying to translate anew
-        output = await proc_out.stdout.read_until(bytes('\0', 'utf-8'))
+        output = await proc_out.stdout.read_until(bytes(nonce + '\0', 'utf-8'))
+        output = output.replace(bytes(nonce, 'utf-8'), b'')
 
         if reformat:
             proc_reformat = Popen(reformat, stdin=PIPE, stdout=PIPE)
@@ -289,7 +292,7 @@ async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_re
             result = proc_reformat.communicate()[0]
             check_ret_code('Reformatter', proc_reformat)
         else:
-            result = re.sub(rb'\0$', b'', output)
+            result = output.replace(b'\0', b'')
         return result.decode('utf-8')
 
 
