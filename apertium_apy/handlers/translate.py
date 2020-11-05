@@ -6,6 +6,7 @@ from datetime import datetime
 
 from tornado import gen
 import tornado.iostream
+import asyncio
 
 from apertium_apy import missing_freqs_db  # noqa: F401
 from apertium_apy.handlers.base import BaseHandler
@@ -112,7 +113,7 @@ class TranslateHandler(BaseHandler):
             logging.info('Starting up a new pipeline for %s-%s …', l1, l2)
             if pair not in self.pipelines:
                 self.pipelines[pair] = []
-            p = make_pipeline(self.get_pipe_cmds(l1, l2))
+            p = make_pipeline(self.get_pipe_cmds(l1, l2), self.timeout)
             heapq.heappush(self.pipelines[pair], p)
         return self.pipelines[pair][0]
 
@@ -180,6 +181,10 @@ class TranslateHandler(BaseHandler):
                 'responseDetails': None,
                 'responseStatus': 200,
             })
+        except asyncio.TimeoutError as e:
+            logging.warning('Translation error in pair %s-%s: %s', pair[0], pair[1], e)
+            pipeline.stuck = True
+            self.send_error(503, explanation='internal error')
         except tornado.iostream.StreamClosedError as e:
             logging.warning('Translation error in pair %s-%s: %s', pair[0], pair[1], e)
             pipeline.stuck = True
