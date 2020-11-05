@@ -15,7 +15,7 @@ Requirements
 ------------
 
 - Python 3.6+
-- Tornado 6.0.3-6.0.4 (`python3-tornado` on Debian)
+- Tornado 4.5.3 - 6.0.4 (`python3-tornado` on Debian/Ubuntu)
 
 Additional functionality is provided by installation
 of the following packages:
