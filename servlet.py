@@ -541,7 +541,7 @@ class TranslateHandler(BaseHandler):
             deformat, reformat = self.getFormat()
             yield self.translateAndRespond(pair,
                                            pipeline,
-                                           self.get_argument('q'),
+                                           self.get_argument('q').replace('­', ''),  # literal soft hyphen
                                            self.get_argument('markUnknown', default='yes'),
                                            nosplit=False,
                                            deformat=deformat, reformat=reformat)
@@ -920,7 +920,7 @@ class TranslateDocHandler(TranslateHandler):
             self.send_error(400, explanation='That pair is not installed')
             return
 
-        body = self.request.files['file'][0]['body']
+        body = self.request.files['file'][0]['body']  # type: bytes
         if len(body) > 32E6:
             self.send_error(413, explanation='That file is too large')
             return
@@ -933,6 +933,10 @@ class TranslateDocHandler(TranslateHandler):
             if mtype not in allowedMimeTypes:
                 self.send_error(400, explanation='Invalid file type %s' % mtype)
                 return
+            if mtype == 'text/html':
+                page = body.replace('­'.encode('utf-8'), b'').replace(b'&shy;', b'')  # strip any literal (utf-8) and entity soft hyphens
+                tempFile.write(page)
+                tempFile.seek(0)
             if allowedMimeTypes[mtype] == 'pdf':
                 mtype = 'text/html'
                 page = yield translation.pdf2html(pdfconverter, tempFile, l1)
