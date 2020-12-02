@@ -88,7 +88,7 @@ class GetLocaleHandler(BaseHandler):
 
 
 def setup_handler(
-    port, pairs_path, nonpairs_path, lang_names, missing_freqs_path, timeout,
+    pairs_path, nonpairs_path, lang_names, missing_freqs_path, timeout,
     max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs,
     restart_pipe_after, max_doc_pipes, verbosity=0, scale_mt_logs=False,
     memory=1000, apy_keys=None,
@@ -253,7 +253,7 @@ def setup_application(args):
     if args.stat_period_max_age:
         BaseHandler.stat_period_max_age = timedelta(0, args.stat_period_max_age, 0)
 
-    setup_handler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
+    setup_handler(args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
                   args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs,
                   args.restart_pipe_after, args.max_doc_pipes, args.verbosity, args.scalemt_logs,
                   args.unknown_memory_limit, args.api_keys)
