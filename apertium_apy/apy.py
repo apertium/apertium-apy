@@ -353,10 +353,10 @@ def main():
             'certfile': args.ssl_cert,
             'keyfile': args.ssl_key,
         })
-        logging.info('Serving at https://localhost:%s', args.port)
+        logging.info('Serving on all interfaces/families, e.g. https://localhost:%s', args.port)
     else:
         http_server = tornado.httpserver.HTTPServer(application)
-        logging.info('Serving at http://localhost:%s', args.port)
+        logging.info('Serving on all interfaces/families, e.g. http://localhost:%s', args.port)
 
     signal.signal(signal.SIGTERM, sig_handler)
     signal.signal(signal.SIGINT, sig_handler)
