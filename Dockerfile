@@ -1,5 +1,5 @@
 FROM apertium/base
-LABEL maintainer sushain@skc.name
+LABEL maintainer hanspeter@nynodata.no
 WORKDIR /root
 
 # Install packaged dependencies
@@ -29,7 +29,9 @@ RUN cd /root/chromium-compact-language-detector && \
 # Install Apertium-related libraries (and a test pair)
 
 RUN apt-get -qq update && apt-get -qq install giella-core giella-shared hfst-ospell
-RUN apt-get -qq update && apt-get -qq install apertium-en-es
+RUN apt-get -qq update && apt-get -qq install apertium-nno-nob
+RUN apt-get -qq update && apt-get -qq install apertium-nob
+RUN apt-get -qq update && apt-get -qq install apertium-nno
 
 # Install APy
 
