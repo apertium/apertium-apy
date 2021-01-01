@@ -3,7 +3,7 @@
 # -*- indent-tabs-mode: nil -*-
 
 __author__ = 'Kevin Brubeck Unhammer, Sushain K. Cherivirala'
-__copyright__ = 'Copyright 2013--2018, Kevin Brubeck Unhammer, Sushain K. Cherivirala'
+__copyright__ = 'Copyright 2013--2020, Kevin Brubeck Unhammer, Sushain K. Cherivirala'
 __credits__ = ['Kevin Brubeck Unhammer', 'Sushain K. Cherivirala', 'Jonathan North Washington', 'Xavi Ivars', 'Shardul Chiplunkar']
 __license__ = 'GPLv3'
 __status__ = 'Beta'
@@ -28,6 +28,8 @@ import tornado.process
 import tornado.web
 from tornado.locks import Semaphore
 from tornado.log import enable_pretty_logging
+
+from typing import Sequence, Iterable, Type, List, Tuple, Any  # noqa: F401
 
 from apertium_apy import BYPASS_TOKEN, missing_freqs_db  # noqa: F401
 from apertium_apy import missingdb
@@ -86,7 +88,7 @@ class GetLocaleHandler(BaseHandler):
 
 
 def setup_handler(
-    port, pairs_path, nonpairs_path, lang_names, missing_freqs_path, timeout,
+    pairs_path, nonpairs_path, lang_names, missing_freqs_path, timeout,
     max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs,
     restart_pipe_after, max_doc_pipes, verbosity=0, scale_mt_logs=False,
     memory=1000, apy_keys=None,
@@ -249,9 +251,9 @@ def parse_args(cli_args=sys.argv[1:]):
 
 def setup_application(args):
     if args.stat_period_max_age:
-        BaseHandler.STAT_PERIOD_MAX_AGE = timedelta(0, args.stat_period_max_age, 0)
+        BaseHandler.stat_period_max_age = timedelta(0, args.stat_period_max_age, 0)
 
-    setup_handler(args.port, args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
+    setup_handler(args.pairs_path, args.nonpairs_path, args.lang_names, args.missing_freqs, args.timeout,
                   args.max_pipes_per_pair, args.min_pipes_per_pair, args.max_users_per_pipe, args.max_idle_secs,
                   args.restart_pipe_after, args.max_doc_pipes, args.verbosity, args.scalemt_logs,
                   args.unknown_memory_limit, args.api_keys)
@@ -274,7 +276,7 @@ def setup_application(args):
         (r'/identifyLang', IdentifyLangHandler),
         (r'/getLocale', GetLocaleHandler),
         (r'/pipedebug', PipeDebugHandler),
-    ]
+    ]  # type: List[Tuple[str, Type[tornado.web.RequestHandler]]]
 
     if importlib_util.find_spec('streamparser'):
         handlers.append((r'/speller', SpellerHandler))
@@ -295,7 +297,8 @@ def setup_application(args):
 
         handlers.append((r'/suggest', SuggestionHandler))
 
-    return tornado.web.Application(handlers)
+    # TODO: fix mypy. Application expects List but List is invariant and we use subclasses
+    return tornado.web.Application(handlers)  # type:ignore
 
 
 def setup_logging(args):
@@ -350,10 +353,10 @@ def main():
             'certfile': args.ssl_cert,
             'keyfile': args.ssl_key,
         })
-        logging.info('Serving at https://localhost:%s', args.port)
+        logging.info('Serving on all interfaces/families, e.g. https://localhost:%s', args.port)
     else:
         http_server = tornado.httpserver.HTTPServer(application)
-        logging.info('Serving at http://localhost:%s', args.port)
+        logging.info('Serving on all interfaces/families, e.g. http://localhost:%s', args.port)
 
     signal.signal(signal.SIGTERM, sig_handler)
     signal.signal(signal.SIGINT, sig_handler)

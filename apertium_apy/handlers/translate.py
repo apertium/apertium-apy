@@ -6,12 +6,14 @@ from datetime import datetime
 
 from tornado import gen
 import tornado.iostream
+import asyncio
 
 from apertium_apy import missing_freqs_db  # noqa: F401
 from apertium_apy.handlers.base import BaseHandler
 from apertium_apy.keys import ApiKeys
 from apertium_apy.utils import to_alpha3_code, scale_mt_log
-from apertium_apy.utils.translation import parse_mode_file, make_pipeline
+from apertium_apy.utils.translation import parse_mode_file, make_pipeline, FlushingPipeline, SimplePipeline
+from typing import Union
 
 
 class TranslationInfo:
@@ -34,7 +36,7 @@ class TranslateHandler(BaseHandler):
         return self.get_argument('markUnknown', default='yes').lower() in ['yes', 'true', '1']
 
     def note_pair_usage(self, pair):
-        self.stats['useCount'][pair] = 1 + self.stats['useCount'].get(pair, 0)
+        self.stats.usecount[pair] = 1 + self.stats.usecount.get(pair, 0)
 
     def maybe_strip_marks(self, mark_unknown, pair, translated):
         self.note_unknown_tokens('%s-%s' % pair, translated)
@@ -111,7 +113,7 @@ class TranslateHandler(BaseHandler):
             logging.info('Starting up a new pipeline for %s-%s …', l1, l2)
             if pair not in self.pipelines:
                 self.pipelines[pair] = []
-            p = make_pipeline(self.get_pipe_cmds(l1, l2))
+            p = make_pipeline(self.get_pipe_cmds(l1, l2), self.timeout)
             heapq.heappush(self.pipelines[pair], p)
         return self.pipelines[pair][0]
 
@@ -126,10 +128,11 @@ class TranslateHandler(BaseHandler):
             scale_mt_log(self.get_status(), after - before, t_info, key, length)
 
         if self.get_status() == 200:
-            oldest = self.stats['timing'][0][0] if self.stats['timing'] else datetime.now()
-            if datetime.now() - oldest > self.STAT_PERIOD_MAX_AGE:
-                self.stats['timing'].pop(0)
-            self.stats['timing'].append(
+            timings = self.stats.timing
+            oldest = timings[0][0] if timings else datetime.now()
+            if datetime.now() - oldest > self.stat_period_max_age:
+                self.stats.timing.pop(0)
+            self.stats.timing.append(
                 (before, after, length))
 
     def get_pair_or_error(self, langpair, text_length):
@@ -178,6 +181,10 @@ class TranslateHandler(BaseHandler):
                 'responseDetails': None,
                 'responseStatus': 200,
             })
+        except asyncio.TimeoutError as e:
+            logging.warning('Translation error in pair %s-%s: %s', pair[0], pair[1], e)
+            pipeline.stuck = True
+            self.send_error(503, explanation='internal error')
         except tornado.iostream.StreamClosedError as e:
             logging.warning('Translation error in pair %s-%s: %s', pair[0], pair[1], e)
             pipeline.stuck = True
@@ -189,7 +196,7 @@ class TranslateHandler(BaseHandler):
         pair = self.get_pair_or_error(self.get_argument('langpair'),
                                       len(self.get_argument('q')))
         if pair is not None:
-            pipeline = self.get_pipeline(pair)
+            pipeline = self.get_pipeline(pair)  # type: Union[FlushingPipeline, SimplePipeline]
             deformat, reformat = self.get_format()
             yield self.translate_and_respond(pair,
                                              pipeline,

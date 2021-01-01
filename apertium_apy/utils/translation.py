@@ -6,6 +6,8 @@ from contextlib import contextmanager
 from select import PIPE_BUF
 from subprocess import Popen, PIPE
 from time import time
+import asyncio
+from secrets import token_urlsafe
 
 import tornado.iostream
 import tornado.locks as locks
@@ -26,7 +28,7 @@ class Pipeline(object):
         # pipeline for translation. If this is 0, we can safely shut
         # down the pipeline.
         self.users = 0
-        self.last_usage = 0
+        self.last_usage = 0.0
         self.use_count = 0
         self.stuck = False
 
@@ -50,7 +52,8 @@ class Pipeline(object):
 
 
 class FlushingPipeline(Pipeline):
-    def __init__(self, commands, *args, **kwargs):
+    def __init__(self, timeout, commands, *args, **kwargs):
+        self.timeout = timeout
         self.inpipe, self.outpipe = start_pipeline(commands)
         super().__init__(*args, **kwargs)
 
@@ -66,11 +69,11 @@ class FlushingPipeline(Pipeline):
     def translate(self, to_translate, nosplit=False, deformat=True, reformat=True):
         with self.use():
             if nosplit:
-                res = yield translate_nul_flush(to_translate, self, deformat, reformat)
+                res = yield translate_nul_flush(to_translate, self, deformat, reformat, self.timeout)
                 return res
             else:
                 all_split = split_for_translation(to_translate, n_users=self.users)
-                parts = yield [translate_nul_flush(part, self, deformat, reformat)
+                parts = yield [translate_nul_flush(part, self, deformat, reformat, self.timeout)
                                for part in all_split]
                 return ''.join(parts)
 
@@ -91,9 +94,9 @@ class SimplePipeline(Pipeline):
 ParsedModes = namedtuple('ParsedModes', 'do_flush commands')
 
 
-def make_pipeline(modes_parsed):
+def make_pipeline(modes_parsed, timeout):
     if modes_parsed.do_flush:
-        return FlushingPipeline(modes_parsed.commands)
+        return FlushingPipeline(timeout, modes_parsed.commands)
     else:
         return SimplePipeline(modes_parsed.commands)
 
@@ -257,44 +260,46 @@ def coreduce(init, funcs, *args):
     return result
 
 
-@gen.coroutine
-def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_reformat):
-    with (yield pipeline.lock.acquire()):
+async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_reformat, timeout):
+    with (await pipeline.lock.acquire()):
         proc_in, proc_out = pipeline.inpipe, pipeline.outpipe
         deformat, reformat = validate_formatters(unsafe_deformat, unsafe_reformat)
 
         if deformat:
             proc_deformat = Popen(deformat, stdin=PIPE, stdout=PIPE)
+            assert proc_deformat.stdin is not None  # stupid mypy
             proc_deformat.stdin.write(bytes(to_translate, 'utf-8'))
             deformatted = proc_deformat.communicate()[0]
             check_ret_code('Deformatter', proc_deformat)
         else:
             deformatted = bytes(to_translate, 'utf-8')
 
+        nonce = '[/NONCE:' + token_urlsafe(8) + ']'
         proc_in.stdin.write(deformatted)
-        proc_in.stdin.write(bytes('\0', 'utf-8'))
+        proc_in.stdin.write(bytes('\0' + nonce + '\0', 'utf-8'))
         # TODO: PipeIOStream has no flush, but seems to work anyway?
         # proc_in.stdin.flush()
 
-        # TODO: If the output has no \0, this hangs, locking the
-        # pipeline. If there's no way to put a timeout right here, we
-        # might need a timeout using Pipeline.use(), like servlet.py's
-        # cleanable but called *before* trying to translate anew
-        output = yield gen.Task(proc_out.stdout.read_until, bytes('\0', 'utf-8'))
+        # If the output has no \0, this hangs, locking the pipeline, so we use a timeout
+        noncereader = proc_out.stdout.read_until(bytes(nonce + '\0', 'utf-8'))
+        output = await asyncio.wait_for(noncereader, timeout=timeout)
+        output = output.replace(bytes(nonce, 'utf-8'), b'')
 
         if reformat:
             proc_reformat = Popen(reformat, stdin=PIPE, stdout=PIPE)
+            assert proc_reformat.stdin is not None  # stupid mypy
             proc_reformat.stdin.write(output)
             result = proc_reformat.communicate()[0]
             check_ret_code('Reformatter', proc_reformat)
         else:
-            result = re.sub(rb'\0$', b'', output)
+            result = output.replace(b'\0', b'')
         return result.decode('utf-8')
 
 
 @gen.coroutine
 def translate_pipeline(to_translate, commands):
     proc_deformat = Popen('apertium-deshtml', stdin=PIPE, stdout=PIPE)
+    assert proc_deformat.stdin is not None  # stupid mypy
     proc_deformat.stdin.write(bytes(to_translate, 'utf-8'))
     deformatted = proc_deformat.communicate()[0]
     check_ret_code('Deformatter', proc_deformat)
@@ -310,6 +315,7 @@ def translate_pipeline(to_translate, commands):
 
     for cmd in commands:
         proc = Popen(cmd, stdin=PIPE, stdout=PIPE)
+        assert proc.stdin is not None  # stupid mypy
         proc.stdin.write(towrite)
         towrite = proc.communicate()[0]
         check_ret_code(' '.join(cmd), proc)
@@ -318,8 +324,9 @@ def translate_pipeline(to_translate, commands):
         all_cmds.append(cmd)
 
     proc_reformat = Popen('apertium-rehtml-noent', stdin=PIPE, stdout=PIPE)
+    assert proc_reformat.stdin is not None  # stupid mypy
     proc_reformat.stdin.write(towrite)
-    towrite = proc_reformat.communicate()[0].decode('utf-8')
+    towrite = proc_reformat.communicate()[0]
     check_ret_code('Reformatter', proc_reformat)
 
     output.append(towrite)
@@ -328,13 +335,12 @@ def translate_pipeline(to_translate, commands):
     return output, all_cmds
 
 
-@gen.coroutine
-def translate_simple(to_translate, commands):
+async def translate_simple(to_translate, commands):
     proc_in, proc_out = start_pipeline(commands)
     assert proc_in == proc_out
-    yield gen.Task(proc_in.stdin.write, bytes(to_translate, 'utf-8'))
+    await proc_in.stdin.write(bytes(to_translate, 'utf-8'))
     proc_in.stdin.close()
-    translated = yield gen.Task(proc_out.stdout.read_until_close)
+    translated = await proc_out.stdout.read_until_close()
     proc_in.stdout.close()
     return translated.decode('utf-8')
 
@@ -349,26 +355,17 @@ def start_pipeline_from_modefile(mode_file, fmt, unknown_marks=False):
     return start_pipeline([cmd])
 
 
-@gen.coroutine
-def translate_modefile_bytes(to_translate_bytes, fmt, mode_file, unknown_marks=False):
+async def translate_modefile_bytes(to_translate_bytes, fmt, mode_file, unknown_marks=False):
     proc_in, proc_out = start_pipeline_from_modefile(mode_file, fmt, unknown_marks)
     assert proc_in == proc_out
-    yield gen.Task(proc_in.stdin.write, to_translate_bytes)
+    await proc_in.stdin.write(to_translate_bytes)
     proc_in.stdin.close()
-    translated_bytes = yield gen.Task(proc_out.stdout.read_until_close)
+    translated_bytes = await proc_out.stdout.read_until_close()
     proc_in.stdout.close()
     return translated_bytes
 
 
 @gen.coroutine
 def translate_html_mark_headings(to_translate, mode_file, unknown_marks=False):
-    proc_deformat = Popen(['apertium-deshtml', '-o'], stdin=PIPE, stdout=PIPE)
-    deformatted = proc_deformat.communicate(bytes(to_translate, 'utf-8'))[0]
-    check_ret_code('Deformatter', proc_deformat)
-
-    translated = yield translate_modefile_bytes(deformatted, 'none', mode_file, unknown_marks)
-
-    proc_reformat = Popen(['apertium-rehtml-noent'], stdin=PIPE, stdout=PIPE)
-    reformatted = proc_reformat.communicate(translated)[0]
-    check_ret_code('Reformatter', proc_reformat)
-    return reformatted.decode('utf-8')
+    translated = yield translate_modefile_bytes(bytes(to_translate, 'utf-8'), 'html', mode_file, unknown_marks)
+    return translated.decode('utf-8')

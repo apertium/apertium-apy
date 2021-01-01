@@ -13,17 +13,10 @@ class ListHandler(BaseHandler):
             src = self.get_argument('src', default=None)
             response_data = []
             if src:
-                pairs_list = self.paths[src]
-
-                def langs(foo):
-                    return (src, foo)
+                pairs = [(src, trg) for trg in self.paths[src]]
             else:
-                pairs_list = self.pairs
-
-                def langs(foo):
-                    return (foo.split('-')[0], foo.split('-')[1])
-            for pair in pairs_list:
-                l1, l2 = langs(pair)
+                pairs = [(p[0], p[1]) for par in self.pairs for p in [par.split('-')]]
+            for (l1, l2) in pairs:
                 response_data.append({'sourceLanguage': l1, 'targetLanguage': l2})
                 if self.get_arguments('include_deprecated_codes'):
                     response_data.append({'sourceLanguage': to_alpha2_code(l1), 'targetLanguage': to_alpha2_code(l2)})

@@ -7,6 +7,7 @@ import logging
 import mimetypes
 import os
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -41,7 +42,14 @@ server_handle = None
 
 def setUpModule():  # noqa: N802
     global server_handle
-    coverage_cli_args = shlex.split('coverage run --rcfile {}'.format(os.path.join(base_path, '.coveragerc')))
+    coverage_cli_args = []
+    if shutil.which('coverage'):
+        coverage_cli_args = shlex.split('coverage run --rcfile {}'.format(os.path.join(base_path, '.coveragerc')))
+    else:
+        logging.warning("Couldn't find `coverage` executable, not running coverage tests!")
+        for _ in range(3):
+            time.sleep(1)
+            print('.')
     server_handle = subprocess.Popen(coverage_cli_args + [os.path.join(base_path, 'servlet.py')] + cli_args)  # TODO: print only on error?
 
     started = False
@@ -164,6 +172,36 @@ class TestListHandler(BaseTestCase):
         self.assertTrue(response.items() >= expect.items(), '{} is missing {}'.format(response, expect))
 
 
+class TestPerWordHandler(BaseTestCase):
+    def test_per_word_nno(self):
+        response = self.fetch_json('/perWord', {'lang': 'nno', 'modes': 'morph tagger', 'q': 'og ikkje'})
+        expected = [
+            {
+                'input': 'og',
+                'tagger': 'og<cnjcoo><clb>',
+                'morph': [
+                    'og<cnjcoo>',
+                    'og<cnjcoo><clb>',
+                ],
+            },
+            {
+                'input': 'ikkje',
+                'tagger': 'ikkje<adv>',
+                'morph': [
+                    'ikkje<adv>',
+                ],
+            },
+            {
+                'input': '.',
+                'tagger': '.<sent><clb>',
+                'morph': [
+                    '.<sent><clb>',
+                ],
+            },
+        ]
+        self.assertEqual(response, expected)
+
+
 class TestTranslateHandler(BaseTestCase):
     def fetch_translation(self, query, pair, **kwargs):
         params = kwargs.get('params', {})
@@ -231,7 +269,7 @@ class TestTranslateWebpageHandler(BaseTestCase):
             'url': 'http://example.org/',
             'markUnknown': 'no',
         })
-        self.assertIn('Ámbito', response['responseData']['translatedText'])
+        self.assertIn('literatura', response['responseData']['translatedText'])
 
     def test_translate_invalid_webpage(self):
         response = self.fetch_json('/translatePage', params={

@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import tornado
 import tornado.gen
@@ -10,14 +10,21 @@ import tornado.web
 from tornado.escape import utf8
 from tornado.locks import Semaphore
 
-if False:
-    from typing import Dict, Optional, List, Tuple  # noqa: F401
+from typing import Union, Dict, Optional, List, Any, Tuple  # noqa: F401
+from apertium_apy.utils.translation import FlushingPipeline, SimplePipeline
 
 
 def dump_json(data):
     # This acts very similarly to Tornado's escape.json_encode but doesn't
     # result in ugly \u codes. Tornado does not support this natively.
     return json.dumps(data, ensure_ascii=False).replace('</', '<\\/')
+
+
+class Stats:
+    startdate = datetime.now()
+    usecount = {}               # type: Dict[Tuple[str, str], int]
+    vmsize = 0
+    timing = []                 # type: List[Tuple[datetime, datetime, int]]
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -27,13 +34,15 @@ class BaseHandler(tornado.web.RequestHandler):
     taggers = {}  # type: Dict[str, Tuple[str, str]]
     spellers = {}  # type: Dict[str, Tuple[str, str]]
     # (l1, l2): [translation.Pipeline], only contains flushing pairs!
-    pipelines = {}  # type: Dict[str, List]
+    pipelines = {}  # type: Dict[Tuple[str, str], List[Union[FlushingPipeline, SimplePipeline]]]
     pipelines_holding = []  # type: List
     callback = None
-    timeout = None
+    timeout = 10
+    lang_names = None           # type: Optional[str]
     scale_mt_logs = False
     verbosity = 0
     api_keys_conf = None
+    stat_period_max_age = timedelta.max
 
     # dict representing a graph of translation pairs; keys are source languages
     # e.g. pairs_graph['eng'] = ['fra', 'spa']
@@ -43,12 +52,7 @@ class BaseHandler(tornado.web.RequestHandler):
     # e.g. paths['eng']['fra'] = ['eng', 'spa', 'fra']
     paths = {}  # type: Dict[str, Dict[str, List[str]]]
 
-    stats = {
-        'startdate': datetime.now(),
-        'useCount': {},
-        'vmsize': 0,
-        'timing': [],
-    }
+    stats = Stats()
 
     # (l1, l2): translation.ParsedModes
     pipeline_cmds = {}  # type: Dict
@@ -60,7 +64,7 @@ class BaseHandler(tornado.web.RequestHandler):
     doc_pipe_sem = Semaphore(3)
     # Empty the url_cache[pair] when it's this full:
     max_inmemory_url_cache = 1000  # type: int
-    url_cache = {}  # type: Dict[Tuple[str, str], Dict[str, str]]
+    url_cache = {}       # type: Dict[Tuple[str, str], Dict[str, Tuple[str, str]]]
     url_cache_path = None  # type: Optional[str]
     # Keep half a gig free when storing url_cache to disk:
     min_free_space_disk_url_cache = 512 * 1024 * 1024  # type: int
@@ -99,7 +103,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
         cls.paths[start] = {}
         for u in prevs:
-            prev = prevs[u]
+            prev = prevs[u]     # type: Optional[str]
             path = [u]
             while prev:
                 path.append(prev)
@@ -122,9 +126,9 @@ class BaseHandler(tornado.web.RequestHandler):
                     _, num, unit = line.split()
                     break
             vmsize = int(num) * scale[unit]
-            if vmsize > self.stats['vmsize']:
-                logging.warning('VmSize of %s from %d to %d', os.getpid(), self.stats['vmsize'], vmsize)
-                self.stats['vmsize'] = vmsize
+            if vmsize > self.stats.vmsize:
+                logging.warning('VmSize of %s from %d to %d', os.getpid(), self.stats.vmsize, vmsize)
+                self.stats.vmsize = vmsize
         except Exception as e:
             # Don't fail just because we couldn't log:
             logging.info('Exception in log_vmsize: %s', e)
