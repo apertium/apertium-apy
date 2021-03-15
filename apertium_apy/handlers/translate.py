@@ -214,3 +214,21 @@ class TranslateHandler(BaseHandler):
             cls.api_keys = ApiKeys(cls.api_keys_conf)
 
         return cls.api_keys.get_key(key)
+
+
+class PairPrefsHandler(BaseHandler):
+    @gen.coroutine
+    def get(self):
+        self.send_response({
+            'nob-nno': {
+                'ggj_gg': 'byggje → bygge',
+                'kj_k': 'søkje → søke',
+                'anten_enten': 'anten → enten',
+                'medan_mens': 'medan → mens',
+                'me_vi': 'me → vi',
+                'infa_infe': ' å skriva → å skriv',
+                'mellom_blant': 'mellom anna → blant anna',
+                'samd_einig': 'samd → einig',
+                'forskjell_skilnad': 'forskjell → skilnad',
+            }
+        })

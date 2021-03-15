@@ -11,6 +11,7 @@ from apertium_apy.handlers.speller import SpellerHandler  # noqa: F401
 from apertium_apy.handlers.stats import StatsHandler  # noqa: F401
 from apertium_apy.handlers.suggestion import SuggestionHandler  # noqa: F401
 from apertium_apy.handlers.translate import TranslateHandler  # noqa: F401
+from apertium_apy.handlers.translate import PairPrefsHandler  # noqa: F401
 from apertium_apy.handlers.translate_chain import TranslateChainHandler  # noqa: F401
 from apertium_apy.handlers.translate_doc import TranslateDocHandler  # noqa: F401
 from apertium_apy.handlers.translate_raw import TranslateRawHandler  # noqa: F401
