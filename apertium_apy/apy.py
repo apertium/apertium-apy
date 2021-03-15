@@ -53,6 +53,7 @@ from apertium_apy.handlers import (
     TranslateChainHandler,
     TranslateDocHandler,
     TranslateHandler,
+    PairPrefsHandler,
     TranslateRawHandler,
     TranslateWebpageHandler,
 )
@@ -263,6 +264,7 @@ def setup_application(args):
         (r'/list', ListHandler),
         (r'/listPairs', ListHandler),
         (r'/stats', StatsHandler),
+        (r'/pairprefs', PairPrefsHandler),
         (r'/translate', TranslateHandler),
         (r'/translateChain', TranslateChainHandler),
         (r'/translateDoc', TranslateDocHandler),
