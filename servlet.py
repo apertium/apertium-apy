@@ -658,7 +658,7 @@ class TranslatePageHandler(TranslateHandler):
                       lambda m: self.urlRepl(base, m.group(1), m.group(2), m.group(3)),
                       text)
 
-    def setCached(self, pair, url, translated, origtext):
+    def setCached(self, pair, url, translated, origtext, unknownMark):
         """Cache translated text for a pair and url to memory, and disk.
         Also caches origtext to disk; see cachePath."""
         if pair not in self.url_cache:
@@ -666,11 +666,12 @@ class TranslatePageHandler(TranslateHandler):
         elif len(self.url_cache[pair]) > self.max_inmemory_url_cache:
             self.url_cache[pair] = {}
         ts = time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(time.time()))
-        self.url_cache[pair][url] = (ts, translated)
+        cacheUrl = self.cacheUrl(url, unknownMark)
+        self.url_cache[pair][cacheUrl] = (ts, translated)
         if self.url_cache_path is None:
             logging.info("No --url-cache-path, not storing cached url to disk")
             return
-        dirname, basename = self.cachePath(pair, url)
+        dirname, basename = self.cachePath(pair, cacheUrl)
         os.makedirs(dirname, exist_ok=True)
         statvfs = os.statvfs(dirname)
         if (statvfs.f_frsize * statvfs.f_bavail) < self.min_free_space_disk_url_cache:
@@ -688,24 +689,28 @@ class TranslatePageHandler(TranslateHandler):
         with open(origpath, 'w') as f:
             f.write(origtext)
 
-    def cachePath(self, pair, url):
-        """Give the directory for where to cache the translation of this url,
+    def cacheUrl(self, url, unknownMark):
+        return "{}#markUnknown={}".format(url, unknownMark)
+
+    def cachePath(self, pair, cacheUrl):
+        """Give the directory for where to cache the translation of this cacheUrl,
         and the file name to use for this pair."""
-        hsh = sha1(url.encode('utf-8')).hexdigest()
+        hsh = sha1(cacheUrl.encode('utf-8')).hexdigest()
         dirname = os.path.join(self.url_cache_path,
                                # split it to avoid too many files in one dir:
                                hsh[:1], hsh[1:2], hsh[2:])
         return (dirname, "{}-{}".format(*pair))
 
-    def getCached(self, pair, url):
+    def getCached(self, pair, url, unknownMark):
+        cacheUrl = self.cacheUrl(url, unknownMark)
         if not self.url_cache_path:
             return None
         if pair not in self.url_cache:
             self.url_cache[pair] = {}
-        if url in self.url_cache[pair]:
+        if cacheUrl in self.url_cache[pair]:
             logging.info("Got cache from memory")
-            return self.url_cache[pair][url]
-        dirname, basename = self.cachePath(pair, url)
+            return self.url_cache[pair][cacheUrl]
+        dirname, basename = self.cachePath(pair, cacheUrl)
         path = os.path.join(dirname, basename)
         if os.path.exists(path):
             logging.info("Got cache on disk, we want to retranslate in background …")
@@ -767,7 +772,7 @@ class TranslatePageHandler(TranslateHandler):
             'User-Agent': self.request.headers.get('User-Agent', '')
         }
         got304 = False
-        cached = self.getCached(pair, url)
+        cached = self.getCached(pair, url, markUnknown)
         if cached is not None:
             headers['If-Modified-Since'] = cached[0]
         request = httpclient.HTTPRequest(url=url,
@@ -820,12 +825,12 @@ class TranslatePageHandler(TranslateHandler):
                 })
                 return
             before = self.logBeforeTranslation()
-            translated = yield translation.translateHtmlMarkHeadings(toTranslate, mode_path)
+            translated = yield translation.translateHtmlMarkHeadings(toTranslate, mode_path, unknownMarks=markUnknown)
             self.logAfterTranslation(before, len(toTranslate))
-            self.setCached(pair, url, translated, toTranslate)
+            self.setCached(pair, url, translated, toTranslate, markUnknown)
         self.sendResponse({
             'responseData': {
-                'translatedText': self.maybeStripMarks(markUnknown, pair, translated)
+                'translatedText': translated
             },
             'responseDetails': None,
             'responseStatus': 200
@@ -833,9 +838,9 @@ class TranslatePageHandler(TranslateHandler):
         retranslate = self.retranslateCache(pair, url, cached)
         if got304 and retranslate is not None:
             logging.info("Retranslating {}".format(url))
-            translated = yield translation.translateHtmlMarkHeadings(retranslate, mode_path)
+            translated = yield translation.translateHtmlMarkHeadings(retranslate, mode_path, unknownMarks=markUnknown)
             logging.info("Done retranslating {}".format(url))
-            self.setCached(pair, url, translated, retranslate)
+            self.setCached(pair, url, translated, retranslate, markUnknown)
         # TODO: can't keep pipelines open with url translation, see issue 53
         # pipeline = self.getPipeline(pair)
         # translated = yield self.translateAndRespond(pair,
