@@ -6,7 +6,6 @@ from contextlib import contextmanager
 from select import PIPE_BUF
 from subprocess import Popen, PIPE
 from time import time
-import asyncio
 from secrets import token_urlsafe
 
 import tornado.iostream
@@ -52,8 +51,7 @@ class Pipeline(object):
 
 
 class FlushingPipeline(Pipeline):
-    def __init__(self, timeout, commands, *args, **kwargs):
-        self.timeout = timeout
+    def __init__(self, commands, *args, **kwargs):
         self.inpipe, self.outpipe = start_pipeline(commands)
         super().__init__(*args, **kwargs)
 
@@ -69,11 +67,11 @@ class FlushingPipeline(Pipeline):
     def translate(self, to_translate, nosplit=False, deformat=True, reformat=True, prefs=''):
         with self.use():
             if nosplit:
-                res = yield translate_nul_flush(to_translate, self, deformat, reformat, self.timeout, prefs)
+                res = yield translate_nul_flush(to_translate, self, deformat, reformat, prefs)
                 return res
             else:
                 all_split = split_for_translation(to_translate, n_users=self.users)
-                parts = yield [translate_nul_flush(part, self, deformat, reformat, self.timeout, prefs)
+                parts = yield [translate_nul_flush(part, self, deformat, reformat, prefs)
                                for part in all_split]
                 return ''.join(parts)
 
@@ -94,9 +92,9 @@ class SimplePipeline(Pipeline):
 ParsedModes = namedtuple('ParsedModes', 'do_flush commands')
 
 
-def make_pipeline(modes_parsed, timeout):
+def make_pipeline(modes_parsed):
     if modes_parsed.do_flush:
-        return FlushingPipeline(timeout, modes_parsed.commands)
+        return FlushingPipeline(modes_parsed.commands)
     else:
         return SimplePipeline(modes_parsed.commands)
 
@@ -259,8 +257,7 @@ def coreduce(init, funcs, *args):
         result = yield func(result, *args)
     return result
 
-
-async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_reformat, timeout, prefs):
+async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_reformat, prefs):
     with (await pipeline.lock.acquire()):
         proc_in, proc_out = pipeline.inpipe, pipeline.outpipe
         deformat, reformat = validate_formatters(unsafe_deformat, unsafe_reformat)
@@ -282,9 +279,11 @@ async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_re
         # TODO: PipeIOStream has no flush, but seems to work anyway?
         # proc_in.stdin.flush()
 
-        # If the output has no \0, this hangs, locking the pipeline, so we use a timeout
-        noncereader = proc_out.stdout.read_until(bytes(nonce + '\0', 'utf-8'))
-        output = await asyncio.wait_for(noncereader, timeout=timeout)
+        # TODO: If the output has no \0, this hangs, locking the
+        # pipeline. If there's no way to put a timeout right here, we
+        # might need a timeout using Pipeline.use(), like servlet.py's
+        # cleanable but called *before* trying to translate anew
+        output = await proc_out.stdout.read_until(bytes(nonce + '\0', 'utf-8'))
         output = output.replace(bytes(nonce, 'utf-8'), b'')
         output = strip_prefs(output)
 
