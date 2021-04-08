@@ -1,6 +1,7 @@
 import re
 import os
 import logging
+from lxml import etree
 
 from apertium_apy.utils import to_alpha3_code
 
@@ -78,6 +79,23 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
         _log_modes(modes)
 
     return modes
+
+
+def search_prefs(rootpath):
+    real_root = os.path.abspath(os.path.realpath(rootpath))
+    prefspath = real_root + "/prefs"
+    pairprefs = {}
+    for f in os.listdir(prefspath):
+        fp = os.path.join(prefspath, f)
+        try:
+            mode = re.sub(r'[.]xml$', '', f)
+            pairprefs[mode] = {pref.get('id'): {dsc.get('lang'): dsc.text
+                               for dsc in pref}
+                               for pref
+                               in etree.parse(fp).xpath('//preference')}
+        except Exception:
+            logging.warning("Couldn't parse preferences file {}".format(fp,))
+    return pairprefs
 
 
 def _log_modes(modes):
