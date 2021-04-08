@@ -34,7 +34,7 @@ from typing import Sequence, Iterable, Type, List, Tuple, Any  # noqa: F401
 from apertium_apy import BYPASS_TOKEN, missing_freqs_db  # noqa: F401
 from apertium_apy import missingdb
 from apertium_apy import systemd
-from apertium_apy.mode_search import search_path
+from apertium_apy.mode_search import search_path, search_prefs
 from apertium_apy.utils.wiki import wiki_login, wiki_get_token
 
 from apertium_apy.handlers import (
@@ -117,6 +117,7 @@ def setup_handler(
         src_modes = search_path(nonpairs_path, include_pairs=False, verbosity=verbosity)
         for mtype in modes:
             modes[mtype] += src_modes[mtype]
+    handler.pairprefs = search_prefs(pairs_path)
 
     for mtype in modes:
         logging.info('%d %s modes found', len(modes[mtype]), mtype)
