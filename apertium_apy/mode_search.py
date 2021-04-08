@@ -1,7 +1,10 @@
 import re
 import os
 import logging
-from lxml import etree
+try:
+    from lxml import etree
+except ImportError:
+    etree = None
 
 from apertium_apy.utils import to_alpha3_code
 
@@ -82,6 +85,9 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
 
 
 def search_prefs(rootpath):
+    if etree is None:
+        logging.warning("Please install python3-lxml to enable /pairprefs endpoint")
+        return
     real_root = os.path.abspath(os.path.realpath(rootpath))
     prefspath = real_root + "/prefs"
     pairprefs = {}
