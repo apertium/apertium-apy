@@ -86,10 +86,10 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
 
 def search_prefs(rootpath):
     if etree is None:
-        logging.warning("Please install python3-lxml to enable /pairprefs endpoint")
+        logging.warning('Please install python3-lxml to enable /pairprefs endpoint')
         return
     real_root = os.path.abspath(os.path.realpath(rootpath))
-    prefspath = real_root + "/prefs"
+    prefspath = real_root + '/prefs'
     pairprefs = {}
     for f in os.listdir(prefspath):
         fp = os.path.join(prefspath, f)
@@ -100,7 +100,7 @@ def search_prefs(rootpath):
                                for pref
                                in etree.parse(fp).xpath('//preference')}
         except Exception:
-            logging.warning("Couldn't parse preferences file {}".format(fp,))
+            logging.warning('Exception on parsing preferences file {}'.format(fp))
     return pairprefs
 
 

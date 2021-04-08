@@ -351,15 +351,15 @@ async def translate_simple(to_translate, commands, prefs):
 
 def format_prefs(prefs):
     """Assumes prefs is a string of comma-separated preference values."""
-    if prefs and prefs != "":
-        return "[<STREAMCMD:SETVAR:{}>]".format(prefs)
+    if prefs and prefs != '':
+        return '[<STREAMCMD:SETVAR:{}>]'.format(prefs)
     else:
         return ''
 
 
 def strip_prefs(translation):
     """Remove what was inserted by format_prefs; works on bytes."""
-    return re.sub(rb"\[<STREAMCMD:SETVAR:[^>]*>]", b"", translation)
+    return re.sub(rb'\[<STREAMCMD:SETVAR:[^>]*>]', b'', translation)
 
 
 def start_pipeline_from_modefile(mode_file, fmt, unknown_marks=False):
