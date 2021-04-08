@@ -338,7 +338,7 @@ def translate_pipeline(to_translate, commands):
     return output, all_cmds
 
 
-async def translate_simple(to_translate, commands, prefs):
+async def translate_simple(to_translate, commands, prefs=''):
     proc_in, proc_out = start_pipeline(commands)
     assert proc_in == proc_out
     await proc_in.stdin.write(bytes(format_prefs(prefs), 'utf-8'))

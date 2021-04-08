@@ -33,6 +33,7 @@ class BaseHandler(tornado.web.RequestHandler):
     generators = {}  # type: Dict[str, Tuple[str, str]]
     taggers = {}  # type: Dict[str, Tuple[str, str]]
     spellers = {}  # type: Dict[str, Tuple[str, str]]
+    pairprefs = {}        # type: Dict[str, Dict[str, Dict[str, str]]]
     # (l1, l2): [translation.Pipeline], only contains flushing pairs!
     pipelines = {}  # type: Dict[Tuple[str, str], List[Union[FlushingPipeline, SimplePipeline]]]
     pipelines_holding = []  # type: List

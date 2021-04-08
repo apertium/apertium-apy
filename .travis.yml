@@ -17,7 +17,7 @@ install:
 before_script:
     - wget http://apertium.projectjj.com/apt/install-nightly.sh -O - | sudo bash
     - sudo apt-get -f --allow-unauthenticated install apertium-all-dev
-    - sudo apt-get -f --allow-unauthenticated install apertium-sme-nob apertium-es-en
+    - sudo apt-get -f --allow-unauthenticated install apertium-sme-nob apertium-eng-spa
     - git clone --depth 1 https://github.com/apertium/apertium-nno /tmp/languages/apertium-nno || echo 'Using cached apertium-nno'
     - ( cd /tmp/languages/apertium-nno && ./autogen.sh && make -j2 )
 script:
