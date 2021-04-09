@@ -1,6 +1,6 @@
 language: python
 sudo: required
-dist: xenial
+dist: focal
 cache:
     pip: true
     directories:
