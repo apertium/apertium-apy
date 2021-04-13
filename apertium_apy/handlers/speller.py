@@ -45,8 +45,8 @@ class SpellerHandler(BaseHandler):
                         if line.count('Corrections for'):
                             found_sugg = True
                             continue
-                        if found_sugg and '\t' in line:
-                            s, w = line.split('\t')
+                        if found_sugg and line:
+                            s, w = line.split()
                             suggestion.append((s, w))
 
                     units.append({'token': token.wordform, 'known': False, 'sugg': suggestion})
