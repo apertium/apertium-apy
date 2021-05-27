@@ -147,7 +147,7 @@ APy uses [TravisCI][4] for continuous integration. Locally, use `make test`
 to run the same checks it does. Use `pipenv install --dev`
 to install the requirements required for development, e.g. linters.
 
-[1]: http://wiki.apertium.org/wiki/Apertium-apy
-[2]: https://www.apertium.org/apy/listPairs
+[1]: https://wiki.apertium.org/wiki/Apertium-apy
+[2]: https://apertium.org/apy/listPairs
 [3]: https://hub.docker.com/r/apertium/apy/
 [4]: https://travis-ci.org/apertium/apertium-apy

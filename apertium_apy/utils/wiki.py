@@ -1,7 +1,7 @@
 import logging
 import json
 
-WIKI_API_URL = 'http://wiki.apertium.org/w/api.php'
+WIKI_API_URL = 'https://wiki.apertium.org/w/api.php'
 
 
 # Apertium Wiki utility functions

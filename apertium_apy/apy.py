@@ -237,11 +237,11 @@ def parse_args(cli_args=sys.argv[1:]):
 
         if not os.path.isfile(args.config):
             logging.warning('Configuration file does not exist,'
-                            ' please see http://wiki.apertium.org/'
+                            ' please see https://wiki.apertium.org/'
                             'wiki/Apy#Configuration for more information')
         elif 'APY' not in conf:
             logging.warning('Configuration file does not have APY section,'
-                            ' please see http://wiki.apertium.org/'
+                            ' please see https://wiki.apertium.org/'
                             'wiki/Apy#Configuration for more information')
         else:
             logging.info('Using configuration file ' + args.config)
