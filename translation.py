@@ -285,7 +285,7 @@ def translateNULFlush(toTranslate, pipeline, unsafe_deformat, unsafe_reformat):
         deformat, reformat = validateFormatters(unsafe_deformat, unsafe_reformat)
 
         if deformat:
-            proc_deformat = Popen(deformat, stdin=PIPE, stdout=PIPE)
+            proc_deformat = Popen([deformat, "-o"], stdin=PIPE, stdout=PIPE)
             deformatted = proc_deformat.communicate(bytes(toTranslate, 'utf-8'))[0]
             checkRetCode("Deformatter", proc_deformat)
         else:
@@ -316,7 +316,7 @@ def translateNULFlush(toTranslate, pipeline, unsafe_deformat, unsafe_reformat):
 @gen.coroutine
 def translatePipeline(toTranslate, commands):
 
-    proc_deformat = Popen("apertium-deshtml", stdin=PIPE, stdout=PIPE)
+    proc_deformat = Popen(['apertium-deshtml', '-o'], stdin=PIPE, stdout=PIPE)
     deformatted = proc_deformat.communicate(bytes(toTranslate, 'utf-8'))[0]
     checkRetCode("Deformatter", proc_deformat)
 
