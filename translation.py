@@ -404,15 +404,17 @@ def translateHtmlMarkHeadings(toTranslate, modeFile, unknownMarks=False):
 def translateDoc(fileToTranslate, fmt, modeFile, unknownMarks=False):
     modesdir = os.path.dirname(os.path.dirname(modeFile))
     mode = os.path.splitext(os.path.basename(modeFile))[0]
+    os.environ['APERTIUM_TRANSFUSE'] = 'no'
     if unknownMarks:
-        cmd = ['apertium', '-f', fmt,       '-d', modesdir, mode]
+        cmd = ['apertium', '-H', '-f', fmt,       '-d', modesdir, mode]
     else:
-        cmd = ['apertium', '-f', fmt, '-u', '-d', modesdir, mode]
+        cmd = ['apertium', '-H', '-f', fmt, '-u', '-d', modesdir, mode]
     proc = tornado.process.Subprocess(cmd,
                                       stdin=fileToTranslate,
                                       stdout=tornado.process.Subprocess.STREAM)
     translated = yield gen.Task(proc.stdout.read_until_close)
     proc.stdout.close()
+    os.environ['APERTIUM_TRANSFUSE'] = 'yes'
     # TODO: raises but not caught:
     # checkRetCode(" ".join(cmd), proc)
     return translated
