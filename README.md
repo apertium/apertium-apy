@@ -8,8 +8,8 @@ Apertium APy
 [![Docker Automated build](https://img.shields.io/docker/automated/apertium/apy.svg)](https://hub.docker.com/r/apertium/apy/)
 
 Apertium APy, **Apertium A**PI in **Py**thon, is a web server exposing Apertium
-morphological functions including text, document and webpage translation. More
-information is available on the [Apertium Wiki][1].
+functions including text, document, and webpage translation, as well as morphological
+analysis and generation. More information is available on the [Apertium Wiki][1].
 
 Requirements
 ------------
