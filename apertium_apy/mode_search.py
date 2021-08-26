@@ -90,7 +90,9 @@ def search_prefs(rootpath):
         return
     real_root = os.path.abspath(os.path.realpath(rootpath))
     prefspath = real_root + '/prefs'
-    pairprefs = {}
+    pairprefs = {}        # type: Dict[str, Dict[str, Dict[str, str]]]
+    if not os.path.exists(prefspath):
+        return pairprefs
     for f in os.listdir(prefspath):
         fp = os.path.join(prefspath, f)
         try:
