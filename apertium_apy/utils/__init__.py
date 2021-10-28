@@ -30,7 +30,7 @@ def run_async_thread(func):
 
 def to_alpha2_code(code):
     if '_' in code:
-        code, variant = code.split('_')
+        code, variant = code.split('_', 1)
         return '%s_%s' % ((iso639_codes[code], variant) if code in iso639_codes else (code, variant))
     else:
         return iso639_codes[code] if code in iso639_codes else code
@@ -39,7 +39,7 @@ def to_alpha2_code(code):
 def to_alpha3_code(code):
     iso639_codes_inverse = {v: k for k, v in iso639_codes.items()}
     if '_' in code:
-        code, variant = code.split('_')
+        code, variant = code.split('_', 1)
         return '%s_%s' % ((iso639_codes_inverse[code], variant) if code in iso639_codes_inverse else (code, variant))
     else:
         return iso639_codes_inverse[code] if code in iso639_codes_inverse else code
