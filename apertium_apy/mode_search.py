@@ -33,7 +33,7 @@ def is_loop(dirpath, rootpath, real_root=None):
 
 
 def search_path(rootpath, include_pairs=True, verbosity=1):
-    lang_code = r'[a-z]{2,3}(?:_[A-Za-z0-9]+)?'
+    lang_code = r'[a-z]{2,3}(?:_[A-Za-z0-9]+)*'
     type_re = {
         'pair': re.compile(r'({0})-({0})\.mode'.format(lang_code)),
         'analyzer': re.compile(r'(({0}(-{0})?)-(an)?mor(ph)?)\.mode'.format(lang_code)),
