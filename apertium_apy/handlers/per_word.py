@@ -81,6 +81,9 @@ class PerWordHandler(BaseHandler):
 
     async def get(self):
         lang = to_alpha3_code(self.get_argument('lang'))
+        if '-' in lang:
+            l1, l2 = map(to_alpha3_code, lang.split('-'))
+            lang = '%s-%s' % (l1, l2)
         modes = set(self.get_argument('modes').split(' '))
         query = self.get_argument('q')
 
