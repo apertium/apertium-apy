@@ -20,8 +20,9 @@ class AnalyzeHandler(BaseHandler):
         in_text = self.get_argument('q')
         in_mode = to_alpha3_code(self.get_argument('lang'))
         if '-' in in_mode:
-            l1, l2 = map(to_alpha3_code, in_mode.split('-'))
+            l1, l2 = map(to_alpha3_code, in_mode.split('-', 1))
             in_mode = '%s-%s' % (l1, l2)
+        in_mode = self.find_fallback_mode(in_mode, self.analyzers)
         if in_mode in self.analyzers:
             [path, mode] = self.analyzers[in_mode]
             formatting = 'txt'

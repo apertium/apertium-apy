@@ -45,6 +45,22 @@ def to_alpha3_code(code):
         return iso639_codes_inverse[code] if code in iso639_codes_inverse else code
 
 
+def to_fallback_code(code, installed_modes):
+    if '-' in code:
+        l1, l2 = tuple(code.split('-', 1))
+        for k in range(l2.count('_') + 1):
+            for c in range(l1.count('_') + 1):
+                variant = '%s-%s' % (l1.rsplit('_', c + 1)[0], l2.rsplit('_', k)[0])
+                if variant in installed_modes:
+                    return variant
+    else:
+        for k in range(code.count('_')):
+            variant = code.rsplit('_', k + 1)[0]
+            if variant in installed_modes:
+                return variant
+    return None
+
+
 def remove_dot_from_deformat(query, analyses):
     """When using the txt format, a dot is added at EOF (also, double line
     breaks) if the last part of the query isn't itself a dot"""

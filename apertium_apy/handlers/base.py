@@ -11,6 +11,7 @@ from tornado.escape import utf8
 from tornado.locks import Semaphore
 
 from typing import Union, Dict, Optional, List, Any, Tuple  # noqa: F401
+from apertium_apy.utils import to_fallback_code
 from apertium_apy.utils.translation import FlushingPipeline, SimplePipeline
 
 
@@ -52,6 +53,10 @@ class BaseHandler(tornado.web.RequestHandler):
     # keys are source and target languages
     # e.g. paths['eng']['fra'] = ['eng', 'spa', 'fra']
     paths = {}  # type: Dict[str, Dict[str, List[str]]]
+
+    # dict representing equivalent languages and pairs
+    # keys are languages or pairs with variants
+    fallback_codes = {}  # type: Dict[str, str]
 
     stats = Stats()
 
@@ -185,6 +190,17 @@ class BaseHandler(tornado.web.RequestHandler):
         self.set_header('Access-Control-Allow-Origin', '*')
         self.set_header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
         self.set_header('Access-Control-Allow-Headers', 'accept, cache-control, origin, x-requested-with, x-file-name, content-type')
+
+    def find_fallback_mode(self, in_mode, installed_modes):
+        if in_mode not in installed_modes and '_' in in_mode:
+            if in_mode in self.fallback_codes:
+                in_mode = self.fallback_codes[in_mode]
+            else:
+                fallback_mode = to_fallback_code(in_mode, installed_modes)
+                if fallback_mode != None:
+                    self.fallback_codes[in_mode] = fallback_mode
+                    in_mode = fallback_mode
+        return in_mode
 
     @tornado.gen.coroutine
     def post(self):

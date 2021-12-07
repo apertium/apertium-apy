@@ -138,16 +138,18 @@ class TranslateHandler(BaseHandler):
     def get_pair_or_error(self, langpair, text_length):
         try:
             l1, l2 = map(to_alpha3_code, langpair.split('|'))
+            in_mode = '%s-%s' % (l1, l2)
         except ValueError:
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
             self.log_after_translation(self.log_before_translation(), text_length)
             return None
-        if '%s-%s' % (l1, l2) not in self.pairs:
+        in_mode = self.find_fallback_mode(in_mode, self.pairs)
+        if in_mode not in self.pairs:
             self.send_error(400, explanation='That pair is not installed')
             self.log_after_translation(self.log_before_translation(), text_length)
             return None
         else:
-            return (l1, l2)
+            return tuple(in_mode.split('-'))
 
     def get_format(self):
         dereformat = self.get_argument('format', default=None)
