@@ -8,6 +8,7 @@ RUN apt-get -qq update
 RUN apt-get -f -y install wget
 RUN wget https://apertium.projectjj.com/apt/install-nightly.sh -O - | bash
 RUN apt-get -qq update
+RUN apt-get -f -y --allow-unauthenticated install python3-pip
 RUN apt-get -f -y --allow-unauthenticated install apertium-all-dev
 RUN apt-get -f -y --allow-unauthenticated install apertium-sme-nob apertium-eng-spa
 RUN git clone --depth 1 https://github.com/apertium/apertium-nno /tmp/languages/apertium-nno || echo 'Using cached apertium-nno'
