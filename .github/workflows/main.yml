@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip3 install pipenv
-          pipenv install --dev
+          pipenv install --dev --system
           make
       - name: Test
         run: |
