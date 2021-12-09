@@ -14,11 +14,11 @@ jobs:
     steps:
     #  setup-python doesn't work with containers
     #  see https://stackoverflow.com/a/69801253/200472
-    #  - uses: actions/checkout@v2
     #  - name: Set up Python ${{ matrix.python-version }}
     #    uses: actions/setup-python@v2
     #    with:
     #      python-version: ${{ matrix.python-version }}
+      - uses: actions/checkout@v2
       - name: Install dependencies
         run: |
           pip3 install pipenv
