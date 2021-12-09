@@ -21,7 +21,6 @@ jobs:
     #      python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          python3 -m pip3 install --upgrade pip3
           pip3 install pipenv
           pipenv install --dev --system
           make
