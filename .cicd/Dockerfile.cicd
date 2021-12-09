@@ -9,6 +9,8 @@ RUN apt-get -qq update
 RUN apt-get -f -y install wget
 RUN wget https://apertium.projectjj.com/apt/install-nightly.sh -O - | bash
 RUN apt-get -qq update
+RUN apt-get -f -y --allow-unauthenticated install locales
+RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && dpkg-reconfigure --frontend=noninteractive locales
 RUN apt-get -f -y --allow-unauthenticated install python3-pip
 RUN apt-get -f -y --allow-unauthenticated install apertium-all-dev
 RUN apt-get -f -y --allow-unauthenticated install apertium-sme-nob apertium-eng-spa
