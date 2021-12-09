@@ -7,16 +7,18 @@ jobs:
 
     runs-on: ubuntu-latest
     container: xavivars/apertium-apy-cicd
-    strategy:
-      matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9, nightly]
+    # strategy:
+    #  matrix:
+    #    python-version: [3.6, 3.7, 3.8, 3.9, nightly]
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
+    #  setup-python doesn't work with containers
+    #  see https://stackoverflow.com/a/69801253/200472
+    #  - uses: actions/checkout@v2
+    #  - name: Set up Python ${{ matrix.python-version }}
+    #    uses: actions/setup-python@v2
+    #    with:
+    #      python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
