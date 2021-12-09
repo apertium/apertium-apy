@@ -46,6 +46,10 @@ def to_alpha3_code(code):
 
 
 def to_fallback_code(code, installed_modes):
+
+    if code in installed_modes:
+        return code
+
     if '-' in code:
         l1, l2 = tuple(code.split('-', 1))
         for k in range(l2.count('_') + 1):
