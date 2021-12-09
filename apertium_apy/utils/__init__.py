@@ -54,7 +54,7 @@ def to_fallback_code(code, installed_modes):
         l1, l2 = tuple(code.split('-', 1))
         for k in range(l2.count('_') + 1):
             for c in range(l1.count('_') + 1):
-                variant = '%s-%s' % (l1.rsplit('_', c + 1)[0], l2.rsplit('_', k)[0])
+                variant = '%s-%s' % (l1.rsplit('_', c)[0], l2.rsplit('_', k)[0])
                 if variant in installed_modes:
                     return variant
     else:
