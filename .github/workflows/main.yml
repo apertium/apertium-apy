@@ -31,4 +31,4 @@ jobs:
         run: |
           coveralls --service=github
         env:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
