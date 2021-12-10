@@ -6,7 +6,7 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    container: xavivars/apertium-apy-cicd
+    container: ghcr.io/apertium/apertium-apy-cicd
     # strategy:
     #  matrix:
     #    python-version: [3.6, 3.7, 3.8, 3.9, nightly]
