@@ -1,6 +1,6 @@
 name: apertium-apy
 
-on: ["push", "pull_request"]
+on: [ "pull_request"]
 
 jobs:
   build:
@@ -28,6 +28,7 @@ jobs:
         run: |
           NONPAIRS=/tmp/languages make test
       - name: Coveralls
-        uses: coverallsapp/github-action@master
-        with:
+        run: |
+          coveralls --service=github
+        env:
           github-token: ${{ secrets.GITHUB_TOKEN }}
