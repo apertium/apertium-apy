@@ -197,7 +197,7 @@ class BaseHandler(tornado.web.RequestHandler):
                 in_mode = self.fallback_codes[in_mode]
             else:
                 fallback_mode = to_fallback_code(in_mode, installed_modes)
-                if fallback_mode != None:
+                if fallback_mode is not None:
                     self.fallback_codes[in_mode] = fallback_mode
                     in_mode = fallback_mode
         return in_mode
