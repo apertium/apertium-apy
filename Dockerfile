@@ -1,4 +1,4 @@
-FROM apertium/base
+FROM ghcr.io/apertium/base
 LABEL maintainer sushain@skc.name
 WORKDIR /root
 
