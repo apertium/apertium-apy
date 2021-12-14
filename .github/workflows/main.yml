@@ -1,4 +1,4 @@
-name: apertium-apy
+name: Test and coverage
 
 on:
   push:
