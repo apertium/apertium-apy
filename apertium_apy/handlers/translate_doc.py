@@ -1,8 +1,7 @@
 import os
-import shutil
-import subprocess
 import tempfile
 import zipfile
+import magic
 
 import tornado
 from tornado import gen
@@ -10,12 +9,6 @@ from tornado import gen
 from apertium_apy.handlers.translate import TranslateHandler
 
 FILE_SIZE_LIMIT_BYTES = 32E6
-
-MIMETYPE_COMMANDS = {
-    'mimetype': lambda x: subprocess.check_output(['mimetype', '-b', x], universal_newlines=True).strip(),
-    'xdg-mime': lambda x: subprocess.check_output(['xdg-mime', 'query', 'filetype', x], universal_newlines=True).strip(),
-    'file': lambda x: subprocess.check_output(['file', '--mime-type', '-b', x], universal_newlines=True).strip(),
-}
 
 ALLOWED_MIME_TYPES = {
     'text/plain': 'txt',
@@ -56,20 +49,11 @@ async def translate_doc(file_to_translate, fmt, mode_file, unknown_marks=False):
 
 
 class TranslateDocHandler(TranslateHandler):
-    mime_type_command = None
 
     @classmethod
     def get_mime_type(cls, f):
-        if not cls.mime_type_command:
-            for command in MIMETYPE_COMMANDS.keys():
-                if shutil.which(command):
-                    cls.mime_type_command = command
-                    break
-
-        if not cls.mime_type_command:
-            return None
-        mime_command = MIMETYPE_COMMANDS[cls.mime_type_command]
-        mime_type = mime_command(f).split(';')[0]
+        mime = magic.Magic(mime = True)
+        mime_type = mime.from_file(f).split(';')[0]
         if mime_type == 'application/zip':
             with zipfile.ZipFile(f) as zf:
                 file_names = zf.namelist()
