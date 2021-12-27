@@ -9,6 +9,7 @@ chardet = "*"
 requests = "*"
 tornado = "==6.0.3"
 commentjson = "*"
+python-magic = "*"
 
 [dev-packages]
 coverage = "*"

@@ -25,6 +25,7 @@ of the following packages:
 - `chromium_compact_language_detector` enables improved language detection (cld2)
 - `chardet` enables website character encoding detection
 - `commentjson` allows to keep API keys in commented json
+- `python-magic` allows file type detection
 
 Precise versions are available in `requirements.txt` and `setup.py`.
 
