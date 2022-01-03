@@ -1,4 +1,4 @@
-name: Test and coverage
+name: Main
 
 on:
   push:
@@ -6,33 +6,80 @@ on:
       - master
   pull_request:
 
-jobs:
-  build:
+env:
+  LANG: C.UTF-8
 
+jobs:
+  test:
     runs-on: ubuntu-latest
     container: ghcr.io/apertium/apertium-apy-cicd
-    # strategy:
-    #  matrix:
-    #    python-version: [3.6, 3.7, 3.8, 3.9, nightly]
-
+    strategy:
+      matrix:
+        python-version:
+          - 3.6.15
+          - 3.7.12
+          - 3.8.12
+          - 3.9.9
+          - 3.10.1
+    env:
+      PYENV_VERSION: ${{ matrix.python-version }}
     steps:
-    #  setup-python doesn't work with containers
-    #  see https://stackoverflow.com/a/69801253/200472
-    #  - name: Set up Python ${{ matrix.python-version }}
-    #    uses: actions/setup-python@v2
-    #    with:
-    #      python-version: ${{ matrix.python-version }}
-      - uses: actions/checkout@v2
-      - name: Install dependencies
-        run: |
-          pip3 install pipenv
-          pipenv install --dev --system
-          make
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Cache Python installation
+        uses: actions/cache@v2
+        id: cache-python
+        with:
+          path: ${{ env.PYENV_ROOT }}/versions/${{ matrix.python-version }}
+          key: ${{ runner.os }}-python${{ matrix.python-version }}-v1
+      - name: Install Python
+        run: pyenv install ${{ matrix.python-version }}
+        if: steps.cache-python.outputs.cache-hit != 'true'
+
+      - name: Install Pipenv
+        run: pip install pipenv
+      - name: Cache Pip dependencies
+        id: cache-pipenv
+        uses: actions/cache@v2
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-python${{ matrix.python-version }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}-v1
+      - name: Install Pip dependencies
+        if: steps.cache-pipenv.outputs.cache-hit != 'true'
+        run: pipenv install --dev
+
+      - name: Build
+        run: pipenv run make
+
       - name: Test
-        run: |
-          NONPAIRS=/tmp/languages make test
+        run: NONPAIRS=/tmp/languages pipenv run make test
+  coverage:
+    runs-on: ubuntu-latest
+    container: ghcr.io/apertium/apertium-apy-cicd
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Pipenv
+        run: pip3 install pipenv
+      - name: Cache Pip dependencies
+        id: cache-pipenv
+        uses: actions/cache@v2
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}-v1
+      - name: Install Pip dependencies
+        if: steps.cache-pipenv.outputs.cache-hit != 'true'
+        run: pipenv install --dev
+
+      - name: Build
+        run: pipenv run make
+
+      - name: Test
+        run: NONPAIRS=/tmp/languages pipenv run make coverage
+
       - name: Coveralls
-        run: |
-          coveralls --service=github
+        run: pipenv run coveralls --service=github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -3,13 +3,15 @@ LABEL maintainer xavi.ivars@gmail.com
 WORKDIR /root
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Install packaged dependencies
-RUN apt-get -qq update
-RUN apt-get -f -y install wget
+RUN apt-get -qq update && \
+    apt-get -y install wget libssl-dev libffi-dev libsqlite3-dev zlib1g-dev git python3-pip
+
+RUN wget -nv -O- https://raw.githubusercontent.com/pyenv/pyenv-installer/master/bin/pyenv-installer | bash
+ENV PATH="/root/.pyenv/bin:/root/.pyenv/shims:$PATH" PYENV_ROOT="/root/.pyenv"
+
 RUN wget https://apertium.projectjj.com/apt/install-nightly.sh -O - | bash
-RUN apt-get -f -y --allow-unauthenticated install python3-pip
-RUN apt-get -f -y --allow-unauthenticated install apertium-all-dev
-RUN apt-get -f -y --allow-unauthenticated install apertium-sme-nob apertium-eng-spa
+RUN apt-get -qq update && \
+    apt-get -y install apertium-all-dev apertium-sme-nob apertium-eng-spa
+
 RUN git clone --depth 1 https://github.com/apertium/apertium-nno /tmp/languages/apertium-nno || echo 'Using cached apertium-nno'
 RUN cd /tmp/languages/apertium-nno && ./autogen.sh && make -j2
-
