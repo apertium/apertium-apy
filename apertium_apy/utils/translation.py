@@ -332,7 +332,7 @@ def translate_pipeline(to_translate, commands):
     towrite = proc_reformat.communicate()[0]
     check_ret_code('Reformatter', proc_reformat)
 
-    output.append(towrite)
+    output.append(towrite.decode('utf-8'))
     all_cmds.append('apertium-rehtml-noent')
 
     return output, all_cmds
