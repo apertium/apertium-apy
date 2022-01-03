@@ -1,11 +1,10 @@
 Apertium APy
 ============
 
-[![Build Status](https://api.travis-ci.org/apertium/apertium-apy.svg?branch=master)](https://travis-ci.org/apertium/apertium-apy)
+[![Build Status](https://github.com/apertium/apertium-apy/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/apertium/apertium-apy/actions/workflows/main.yml?query=branch%3Amaster++)
 [![Coverage Status](https://coveralls.io/repos/github/apertium/apertium-apy/badge.svg?branch=master)](https://coveralls.io/github/apertium/apertium-apy?branch=master)
 [![PyPI](https://img.shields.io/pypi/v/apertium-apy.svg)](https://pypi.org/project/apertium-apy/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/apertium-apy.svg)](https://pypi.org/project/apertium-apy/)
-[![Docker Automated build](https://img.shields.io/docker/automated/apertium/apy.svg)](https://hub.docker.com/r/apertium/apy/)
 
 Apertium APy, **Apertium A**PI in **Py**thon, is a web server exposing Apertium
 functions including text, document, and webpage translation, as well as morphological
@@ -42,10 +41,10 @@ On Ubuntu/Debian, it is also available through `apt`:
     $ wget -qO- https://apertium.projectjj.com/apt/install-nightly.sh | bash
     $ apt-get install apertium-apy
 
-Finally, [Docker Hub][3] hosts an image of the provided `Dockerfile` with
-entry point `apertium-apy` exposing port 2737:
+Finally, [GitHub Container Registry][3] hosts an image of the provided
+`Dockerfile` with entry point `apertium-apy` exposing port 2737:
 
-    $ docker pull apertium/apy
+    $ docker pull ghcr.io/apertium/apy
 
 Usage
 -----
@@ -149,6 +148,6 @@ to install the requirements required for development, e.g. linters.
 
 [1]: https://wiki.apertium.org/wiki/Apertium-apy
 [2]: https://apertium.org/apy/listPairs
-[3]: https://hub.docker.com/r/apertium/apy/
+[3]: https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry
 [4]: https://github.com/apertium/apertium-apy/actions
 [5]: https://pipenv.pypa.io/en/latest/
