@@ -4,7 +4,7 @@ WORKDIR /root
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get -qq update && \
-    apt-get -y install wget libssl-dev libffi-dev libsqlite3-dev zlib1g-dev git
+    apt-get -y install wget libssl-dev libffi-dev libsqlite3-dev zlib1g-dev git python3-pip
 
 RUN wget -nv -O- https://raw.githubusercontent.com/pyenv/pyenv-installer/master/bin/pyenv-installer | bash
 ENV PATH="/root/.pyenv/bin:/root/.pyenv/shims:$PATH" PYENV_ROOT="/root/.pyenv"
