@@ -46,7 +46,7 @@ def setUpModule():  # noqa: N802
     if shutil.which('coverage'):
         coverage_cli_args = shlex.split('coverage run --rcfile {}'.format(os.path.join(base_path, '.coveragerc')))
     else:
-        logging.warning("Couldn't find `coverage` executable, not running coverage tests!")
+        logging.warning("Couldn't find `coverage` executable, not running server with coverage instrumentation!")
         for _ in range(3):
             time.sleep(1)
             print('.')
@@ -448,6 +448,26 @@ class TestCoverageHandler(BaseTestCase):
             'code': 400,
             'message': 'Bad Request',
             'explanation': 'That mode is not installed',
+        })
+
+
+class TestPipeDebugHandler(BaseTestCase):
+    def test_pipe_debug(self):
+        response = self.fetch_json('/pipedebug', {'q': 'house', 'langpair': 'eng|spa'})
+        self.assertEqual(response['responseStatus'], 200)
+
+        pipeline = response['responseData']['pipeline']
+        output = response['responseData']['output']
+        self.assertEqual(len(pipeline) + 1, len(output))
+        self.assertGreater(len(output), 10)
+
+    def test_invalid_mode(self):
+        response = self.fetch_json('/pipedebug', {'q': 'ignored', 'langpair': 'eng-spa'}, expect_success=False)
+        self.assertDictEqual(response, {
+            'status': 'error',
+            'code': 400,
+            'message': 'Bad Request',
+            'explanation': 'That pair is invalid, use e.g. eng|spa',
         })
 
 
