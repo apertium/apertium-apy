@@ -67,11 +67,13 @@ jobs:
         id: cache-pipenv
         uses: actions/cache@v2
         with:
-          path: ~/.local/share/virtualenvs
+          path: .venv
           key: ${{ runner.os }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}-v1
       - name: Install Pip dependencies
         if: steps.cache-pipenv.outputs.cache-hit != 'true'
         run: pipenv install --dev
+        env:
+          PIPENV_VENV_IN_PROJECT: 1
 
       - name: Build
         run: pipenv run make
