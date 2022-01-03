@@ -46,7 +46,7 @@ def setUpModule():  # noqa: N802
     if shutil.which('coverage'):
         coverage_cli_args = shlex.split('coverage run --rcfile {}'.format(os.path.join(base_path, '.coveragerc')))
     else:
-        logging.warning("Couldn't find `coverage` executable, not running coverage tests!")
+        logging.warning("Couldn't find `coverage` executable, not running server with coverage instrumentation!")
         for _ in range(3):
             time.sleep(1)
             print('.')
