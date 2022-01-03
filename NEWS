@@ -1,6 +1,23 @@
 # -*- mode:org -*-
 #+STARTUP: showall
 
+* Version 0.12.0 2022-01-03
+  Git rev: d4d9d1e99d6dfc6542ac2c5ae75d2ea859682bc6
+  Changes since 0.11.7:
+
+  - Added preferences support to /translate
+
+  - Added /pairprefs endpoint (requires lxml)
+
+  - Added language code fallback for variants
+    and 2-letter codes (for all endpoints)
+
+  - Added support for modes with multiple variants
+
+  - Improved language names
+
+  - Fixed /pipedebug endpoint
+
 * Version 0.11.7 2021-04-01
   Git rev: df5f5c6c03052439318a150714cba04c00a0deaa
   Changes since 0.11.6:
