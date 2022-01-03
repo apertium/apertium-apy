@@ -18,15 +18,16 @@ def strip_tags(analysis):
         return analysis
 
 
-async def process_per_word(analyzers, taggers, lang, modes, query):
+async def process_per_word(self, lang, modes, query):
     outputs = {}
     morph_lexical_units = None
     tagger_lexical_units = None
     lexical_unit_re = r'\^([^\$]*)\$'
 
     if 'morph' in modes or 'biltrans' in modes:
-        if lang in analyzers:
-            mode_info = analyzers[lang]
+        lang = self.find_fallback_mode(lang, self.analyzers)
+        if lang in self.analyzers:
+            mode_info = self.analyzers[lang]
             analysis = await apertium(query, mode_info[0], mode_info[1])
             morph_lexical_units = remove_dot_from_deformat(query, re.findall(lexical_unit_re, analysis))
             outputs['morph'] = [lu.split('/')[1:] for lu in morph_lexical_units]
@@ -35,8 +36,9 @@ async def process_per_word(analyzers, taggers, lang, modes, query):
             return
 
     if 'tagger' in modes or 'disambig' in modes or 'translate' in modes:
-        if lang in taggers:
-            mode_info = taggers[lang]
+        lang = self.find_fallback_mode(lang, self.taggers)
+        if lang in self.taggers:
+            mode_info = self.taggers[lang]
             analysis = await apertium(query, mode_info[0], mode_info[1])
             tagger_lexical_units = remove_dot_from_deformat(query, re.findall(lexical_unit_re, analysis))
             outputs['tagger'] = [lu.split('/')[1:] if '/' in lu else lu for lu in tagger_lexical_units]
@@ -81,6 +83,9 @@ class PerWordHandler(BaseHandler):
 
     async def get(self):
         lang = to_alpha3_code(self.get_argument('lang'))
+        if '-' in lang:
+            l1, l2 = map(to_alpha3_code, lang.split('-', 1))
+            lang = '%s-%s' % (l1, l2)
         modes = set(self.get_argument('modes').split(' '))
         query = self.get_argument('q')
 
@@ -130,5 +135,5 @@ class PerWordHandler(BaseHandler):
             else:
                 self.send_response(to_return)
 
-        output = await process_per_word(self.analyzers, self.taggers, lang, modes, query)
+        output = await process_per_word(self, lang, modes, query)
         handle_output(output)

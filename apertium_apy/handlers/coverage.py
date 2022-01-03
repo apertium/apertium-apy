@@ -10,6 +10,10 @@ class CoverageHandler(BaseHandler):
     @gen.coroutine
     def get(self):
         mode = to_alpha3_code(self.get_argument('lang'))
+        if '-' in mode:
+            l1, l2 = map(to_alpha3_code, mode.split('-', 1))
+            mode = '%s-%s' % (l1, l2)
+        mode = self.find_fallback_mode(mode, self.analyzers)
         text = self.get_argument('q')
         if not text:
             self.send_error(400, explanation='Missing q argument')

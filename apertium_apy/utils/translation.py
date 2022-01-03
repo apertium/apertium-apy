@@ -237,13 +237,13 @@ def validate_formatters(deformat, reformat):
     return valid1(deformat, deformatters), valid1(reformat, reformatters)
 
 
-class ProcessFailure(Exception):
+class ProcessFailureError(Exception):
     pass
 
 
 def check_ret_code(name, proc):
     if proc.returncode != 0:
-        raise ProcessFailure('%s failed, exit code %s', name, proc.returncode)
+        raise ProcessFailureError('%s failed, exit code %s', name, proc.returncode)
 
 
 @gen.coroutine

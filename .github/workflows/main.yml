@@ -1,0 +1,38 @@
+name: Test and coverage
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    container: ghcr.io/apertium/apertium-apy-cicd
+    # strategy:
+    #  matrix:
+    #    python-version: [3.6, 3.7, 3.8, 3.9, nightly]
+
+    steps:
+    #  setup-python doesn't work with containers
+    #  see https://stackoverflow.com/a/69801253/200472
+    #  - name: Set up Python ${{ matrix.python-version }}
+    #    uses: actions/setup-python@v2
+    #    with:
+    #      python-version: ${{ matrix.python-version }}
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          pip3 install pipenv
+          pipenv install --dev --system
+          make
+      - name: Test
+        run: |
+          NONPAIRS=/tmp/languages make test
+      - name: Coveralls
+        run: |
+          coveralls --service=github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
