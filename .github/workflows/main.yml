@@ -1,4 +1,4 @@
-name: Test and coverage
+name: Main
 
 on:
   push:
@@ -10,7 +10,7 @@ env:
   LANG: C.UTF-8
 
 jobs:
-  main:
+  test:
     runs-on: ubuntu-latest
     container: ghcr.io/apertium/apertium-apy-cicd
     strategy:
@@ -54,6 +54,30 @@ jobs:
 
       - name: Test
         run: NONPAIRS=/tmp/languages pipenv run make test
+  coverage:
+    runs-on: ubuntu-latest
+    container: ghcr.io/apertium/apertium-apy-cicd
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Pipenv
+        run: pip3 install pipenv
+      - name: Cache Pip dependencies
+        id: cache-pipenv
+        uses: actions/cache@v2
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}-v1
+      - name: Install Pip dependencies
+        if: steps.cache-pipenv.outputs.cache-hit != 'true'
+        run: pipenv install --dev
+
+      - name: Build
+        run: pipenv run make
+
+      - name: Test
+        run: NONPAIRS=/tmp/languages pipenv run make coverage
 
       - name: Coveralls
         run: pipenv run coveralls --service=github

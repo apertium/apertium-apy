@@ -17,6 +17,9 @@ test:
 	flake8 *.py apertium_apy/ language_names/ tests/
 	LC_ALL=C find language_names/*.tsv -exec sh -c 'tail -n +2 {} | sort -c' \;
 	mypy --config-file mypy.ini **/*.py
+	python3 -m unittest tests/test*.py
+
+coverage:
 	coverage run -m unittest tests/test*.py
 	coverage combine
 	coverage report --fail-under 40
