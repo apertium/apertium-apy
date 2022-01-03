@@ -451,5 +451,25 @@ class TestCoverageHandler(BaseTestCase):
         })
 
 
+class TestPipeDebugHandler(BaseTestCase):
+    def test_pipe_debug(self):
+        response = self.fetch_json('/pipedebug', {'q': 'house', 'langpair': 'eng|spa'})
+        self.assertEqual(response['responseStatus'], 200)
+
+        pipeline = response['responseData']['pipeline']
+        output = response['responseData']['output']
+        self.assertEqual(len(pipeline) + 1, len(output))
+        self.assertGreater(len(output), 10)
+
+    def test_invalid_mode(self):
+        response = self.fetch_json('/pipedebug', {'q': 'ignored', 'langpair': 'eng-spa'}, expect_success=False)
+        self.assertDictEqual(response, {
+            'status': 'error',
+            'code': 400,
+            'message': 'Bad Request',
+            'explanation': 'That pair is invalid, use e.g. eng|spa',
+        })
+
+
 if __name__ == '__main__':
     unittest.main()
