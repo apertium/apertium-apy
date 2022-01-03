@@ -88,7 +88,7 @@ class ListLanguageNamesHandler(BaseHandler):
             return
 
         if 'Accept-Language' in self.request.headers:
-            locales = [locale.split(';')[0] for locale in self.request.headers['Accept-Language'].split(',')]
+            locales = [locale.split(';')[0].strip() for locale in self.request.headers['Accept-Language'].split(',')]
 
             for locale in locales:
                 result = yield get_localized_languages(locale, self.lang_names)

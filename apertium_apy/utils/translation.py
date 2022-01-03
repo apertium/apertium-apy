@@ -275,7 +275,6 @@ async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_re
             deformatted = bytes(to_translate, 'utf-8')
 
         nonce = '[/NONCE:' + token_urlsafe(8) + ']'
-        logging.error(bytes(format_prefs(prefs), 'utf-8'))
         await proc_in.stdin.write(bytes(format_prefs(prefs), 'utf-8'))
         await proc_in.stdin.write(deformatted)
         await proc_in.stdin.write(bytes('\0' + nonce + '\0', 'utf-8'))
