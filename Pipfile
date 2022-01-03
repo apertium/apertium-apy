@@ -9,6 +9,7 @@ chardet = "*"
 requests = "*"
 tornado = "==6.0.3"
 commentjson = "*"
+lxml = "*"
 
 [dev-packages]
 coverage = "*"

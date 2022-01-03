@@ -60,7 +60,8 @@ setup(
         'suggestions': ['requests'],
         'website_encoding_detect': ['chardet'],
         'lang_detect': ['chromium_compact_language_detector'],
-        'full': ['apertium-streamparser', 'requests', 'chardet', 'chromium_compact_language_detector', 'commentjson'],
+        'pair_preferences': ['lxml'],
+        'full': ['apertium-streamparser', 'requests', 'chardet', 'chromium_compact_language_detector', 'commentjson', 'lxml'],
     },
     entry_points={
         'console_scripts': ['apertium-apy=apertium_apy.apy:main'],
