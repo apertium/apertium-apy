@@ -21,7 +21,8 @@ jobs:
           - 3.8.12
           - 3.9.9
           - 3.10.1
-
+    env:
+      PYENV_VERSION: ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v2
 
@@ -49,8 +50,6 @@ jobs:
       - name: Install Python
         run: pyenv install ${{ matrix.python-version }}
         if: steps.cache-python.outputs.cache-hit != 'true'
-      - name: Setup Python
-        run: echo 'PYENV_VERSION=${{ matrix.python-version }}' >> $GITHUB_ENV
 
       - name: Install Pipenv
         run: pip install pipenv
