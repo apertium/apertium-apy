@@ -414,12 +414,11 @@ class TestListLanguageNamesHandler(BaseTestCase):
         response = self.fetch_json('/listLanguageNames')
         self.assertEqual(response['en'], 'English')
 
-    @unittest.skip('Failing for unknown reasons')
     def test_accept_languages_header_lang_names_list(self):
         response = self.fetch_json('/listLanguageNames', headers={
             'Accept-Language': 'fr-CH, fr;q=0.9, en;q=0.8, de;q=0.7, *;q=0.5',
         })
-        self.assertEqual(response['en'], 'Anglais')
+        self.assertEqual(response['en'], 'anglais')
 
 
 class TestIdentifyLangHandler(BaseTestCase):
