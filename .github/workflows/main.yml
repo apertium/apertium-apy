@@ -8,6 +8,7 @@ on:
 
 env:
   LANG: C.UTF-8
+  PIPENV_VENV_IN_PROJECT: 1
 
 jobs:
   test:
@@ -23,7 +24,6 @@ jobs:
           - 3.10.1
     env:
       PYENV_VERSION: ${{ matrix.python-version }}
-      PIPENV_VENV_IN_PROJECT: 1
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -69,7 +69,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: .venv
-          key: ${{ runner.os }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}-v2
+          key: ${{ runner.os }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}-v3
       - name: Install Pip dependencies
         if: steps.cache-pipenv.outputs.cache-hit != 'true'
         run: pipenv install --dev
