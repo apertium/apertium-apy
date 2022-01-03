@@ -14,6 +14,7 @@ class PipeDebugHandler(BaseHandler):
             l1, l2 = map(to_alpha3_code, self.get_argument('langpair').split('|'))
         except ValueError:
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
+            return
 
         mode_path = self.pairs['%s-%s' % (l1, l2)]
         try:
