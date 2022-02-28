@@ -136,12 +136,15 @@ class TranslateWebpageHandler(TranslateHandler):
         if pair is None:
             return
         self.note_pair_usage(pair)
+        prefs = self.get_argument('prefs', default='')
         mode_path = self.pairs['%s-%s' % pair]
         url = self.get_argument('url')
         if not url.startswith('http'):
             url = 'http://' + url
         got304 = False
         cached = self.get_cached(pair, url)
+        if prefs:
+            logging.warn("Web translation with prefs doesn't work with caching yet")
         request = httpclient.HTTPRequest(url=url,
                                          # TODO: tweak timeouts:
                                          connect_timeout=20.0,
@@ -178,7 +181,7 @@ class TranslateWebpageHandler(TranslateHandler):
                 self.send_error(503, explanation="Couldn't decode (or detect charset/encoding of) {}".format(url))
                 return
             before = self.log_before_translation()
-            translated = yield translation.translate_html_mark_headings(to_translate, mode_path)
+            translated = yield translation.translate_html_mark_headings(to_translate, mode_path, prefs)
             self.log_after_translation(before, len(to_translate))
             self.set_cached(pair, url, translated, to_translate)
         self.send_response({
@@ -191,6 +194,6 @@ class TranslateWebpageHandler(TranslateHandler):
         retranslate = self.retranslate_cache(pair, url, cached)
         if got304 and retranslate is not None:
             logging.info('Retranslating {}'.format(url))
-            translated = yield translation.translate_html_mark_headings(retranslate, mode_path)
+            translated = yield translation.translate_html_mark_headings(retranslate, mode_path, prefs)
             logging.info('Done retranslating {}'.format(url))
             self.set_cached(pair, url, translated, retranslate)

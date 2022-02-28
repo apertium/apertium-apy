@@ -371,17 +371,18 @@ def start_pipeline_from_modefile(mode_file, fmt, unknown_marks=False):
     return start_pipeline([cmd])
 
 
-async def translate_modefile_bytes(to_translate_bytes, fmt, mode_file, unknown_marks=False):
+async def translate_modefile_bytes(to_translate_bytes, fmt, mode_file, unknown_marks=False, prefs=''):
     proc_in, proc_out = start_pipeline_from_modefile(mode_file, fmt, unknown_marks)
     assert proc_in == proc_out
+    await proc_in.stdin.write(bytes(format_prefs(prefs), 'utf-8'))
     await proc_in.stdin.write(to_translate_bytes)
     proc_in.stdin.close()
     translated_bytes = await proc_out.stdout.read_until_close()
     proc_in.stdout.close()
-    return translated_bytes
+    return strip_prefs(translated_bytes)
 
 
 @gen.coroutine
-def translate_html_mark_headings(to_translate, mode_file, unknown_marks=False):
-    translated = yield translate_modefile_bytes(bytes(to_translate, 'utf-8'), 'html', mode_file, unknown_marks)
+def translate_html_mark_headings(to_translate, mode_file, unknown_marks=False, prefs=''):
+    translated = yield translate_modefile_bytes(bytes(to_translate, 'utf-8'), 'html', mode_file, unknown_marks, prefs)
     return translated.decode('utf-8')
