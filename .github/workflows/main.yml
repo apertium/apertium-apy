@@ -53,6 +53,11 @@ jobs:
       - name: Build
         run: pipenv run make
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          sudo: false
+
       - name: Test
         run: NONPAIRS=/tmp/languages pipenv run make unit-test
   lint:
