@@ -55,6 +55,30 @@ jobs:
 
       - name: Test
         run: NONPAIRS=/tmp/languages pipenv run make test
+  lint:
+    runs-on: ubuntu-latest
+    container: ghcr.io/apertium/apertium-apy-cicd
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Pipenv
+        run: pip3 install pipenv
+      - name: Cache Pip dependencies
+        id: cache-pipenv
+        uses: actions/cache@v2
+        with:
+          path: .venv
+          key: ${{ runner.os }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}-v3
+      - name: Install Pip dependencies
+        if: steps.cache-pipenv.outputs.cache-hit != 'true'
+        run: pipenv install --dev
+
+      - name: Build
+        run: pipenv run make
+
+      - name: Lint
+        run: pipenv run make lint
   coverage:
     runs-on: ubuntu-latest
     container: ghcr.io/apertium/apertium-apy-cicd
