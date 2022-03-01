@@ -1,9 +1,17 @@
 lg	inLg	name
+alt	alt	алтайча
 an	frp	arpitán
+av	av	Магӏарул мацӏ
+bua	bua	буряад
 byv	byv	Mə̀dʉ̂mbɑ̀
+byv	byv	Mə̀dʉ̂mbɑ̀
+cro	cro	Apsáalooke
+dlg	dlg	дулҕан
+en	tki	Iraqi Turkman
 es	frp	francoprovenzal
 es	szl	silesiano
 eu	szl	silesiera
+evn	evn	Эвэды̄ турэ̄н
 fr	frp	francoprovençal
 frp	af	afrikâns
 frp	an	aragonês
@@ -86,11 +94,11 @@ frp	oc	occitan
 frp	os	ossèto
 frp	pl	polonês
 frp	pt	português
+frp	qve	quèchoua
 frp	rm	roumancho
 frp	ro	roumen
 frp	ru	russo
 frp	rup	aroumen
-frp	qve	quèchoua
 frp	sa	sanscrit
 frp	sah	yakouto
 frp	sc	sârdo
@@ -105,6 +113,7 @@ frp	sq	albanês
 frp	sr	sèrbo
 frp	sv	suèdouès
 frp	sw	souahili
+frp	szl	silèsien
 frp	ta	tamoul
 frp	te	tèlougou
 frp	tet	tètoum
@@ -123,18 +132,29 @@ frp	vi	viètnamien
 frp	xh	xhosa
 frp	zh	chinouès
 frp	zu	zoulou
-frp	szl	silèsien
 gl	frp	francoprovenzal
+gld	gld	Нанай
 it	frp	francoprovenzale
+kbd	kbd	адыгэбзэ
+khk	khk	монгол (халх)
+ki	ki	Gĩkũyũ
+kjh	kjh	хакас тілі
 kmr	kmr	Kurmancî
+krl	krl	varšinaiskarjala
+liv	liv	livõ
 lvs	lvs	latviešu valoda
+mvf	mvf	ᠮᠣᠩᠭᠣᠯ
 nn	szl	schlesisk
-oc	szl	silesian
 oc	frp	arpitan
+oc	szl	silesian
+olo	olo	livvinkarjala
+pcd	pcd	picard
 pt	frp	francoprovençal
 ro	szl	sileziană
 ru	frp	франкопровансальский
+sjo	sjo	ᠰᡳᠪᡝ ᡤᡳᠰᡠᠨ
 srd	frp	francuproventzale
+srd	srd	sardu
 szl	af	afrikaans
 szl	an	aragōńskŏ
 szl	ar	arabskŏ
@@ -260,28 +280,8 @@ szl	vi	wietnamskŏ
 szl	xh	xosa
 szl	zh	chińskŏ
 szl	zu	zulu
-byv	byv	Mə̀dʉ̂mbɑ̀
-alt	alt	алтайча
-khk	khk	монгол (халх)
-kjh	kjh	хакас тілі
-av	av	Магӏарул мацӏ
-cro	cro	Apsáalooke
-kbd	kbd	адыгэбзэ
-pcd	pcd	picard
 tki	tki	توركمانجه
-ki	ki	Gĩkũyũ
-krl	krl	varšinaiskarjala
-olo	olo	livvinkarjala
-sjo	sjo	ᠰᡳᠪᡝ ᡤᡳᠰᡠᠨ
-evn	evn	Эвэды̄ турэ̄н
-gld	gld	Нанай
-dlg	dlg	дулҕан
-mvf	mvf	ᠮᠣᠩᠭᠣᠯ
-wal	wal	Wolaytta
-wad	wad	Wamesa
-yaq	yaq	Yoem Noki
 vro	vro	võro
-liv	liv	livõ
-bua	bua	буряад
-srd	srd	sardu
-en	tki	Iraqi Turkman
+wad	wad	Wamesa
+wal	wal	Wolaytta
+yaq	yaq	Yoem Noki
