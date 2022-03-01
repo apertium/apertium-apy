@@ -54,7 +54,7 @@ jobs:
         run: pipenv run make
 
       - name: Test
-        run: NONPAIRS=/tmp/languages pipenv run make test
+        run: NONPAIRS=/tmp/languages pipenv run make unit-test
   lint:
     runs-on: ubuntu-latest
     container: ghcr.io/apertium/apertium-apy-cicd

@@ -14,6 +14,7 @@ test-release: langNames.db
 	twine upload --sign --repository-url https://test.pypi.org/legacy/ dist/*
 
 unit-test:
+	env
 	python3 -m unittest tests/test*.py
 
 lint:
