@@ -14,7 +14,11 @@ test-release: langNames.db
 	twine upload --sign --repository-url https://test.pypi.org/legacy/ dist/*
 
 unit-test:
-	env
+	pipenv --venv
+	pipenv --where
+	which python3
+	which python
+	pipenv --support
 	python3 -m unittest tests/test*.py
 
 lint:
