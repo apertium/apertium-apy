@@ -47,7 +47,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: .venv
-          key: ${{ runner.os }}-python${{ matrix.python-version }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}-v2
+          key: ${{ runner.os }}-python${{ matrix.python-version }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}-v3
       - name: Install Pip dependencies
         if: steps.cache-pipenv.outputs.cache-hit != 'true'
         run: pyenv exec pipenv install --dev
