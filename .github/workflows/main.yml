@@ -28,6 +28,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Set PYENV_ROOT
+        run: echo "PYENV_ROOT=${RUNNER_TEMP}/pyenv" >> $GITHUB_ENV
       - name: Cache Python installation
         uses: actions/cache@v2
         id: cache-python
@@ -39,22 +41,22 @@ jobs:
         if: steps.cache-python.outputs.cache-hit != 'true'
 
       - name: Install Pipenv
-        run: pip install pipenv
+        run: pyenv exec pip install pipenv
       - name: Cache Pip dependencies
         id: cache-pipenv
         uses: actions/cache@v2
         with:
           path: .venv
-          key: ${{ runner.os }}-python${{ matrix.python-version }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}-v2
+          key: ${{ runner.os }}-python${{ matrix.python-version }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}-v3
       - name: Install Pip dependencies
         if: steps.cache-pipenv.outputs.cache-hit != 'true'
-        run: pipenv install --dev
+        run: pyenv exec pipenv install --dev
 
       - name: Build
-        run: pipenv run make
+        run: pyenv exec pipenv run make
 
       - name: Test
-        run: NONPAIRS=/tmp/languages pipenv run make test
+        run: NONPAIRS=/tmp/languages pyenv exec pipenv run make unit-test
   lint:
     runs-on: ubuntu-latest
     container: ghcr.io/apertium/apertium-apy-cicd
