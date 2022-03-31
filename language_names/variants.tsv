@@ -36,6 +36,8 @@ en	hbs_SRcyr	Serbian (Cyrillic)
 en	kaz_Arab	Kazakh (Perso-Arabic script)
 en	kaz_Cyrl	Kazakh (Cyrillic script)
 en	mlt_translit	Maltese Transliterated
+en	niv_Amur	Amur Nivkh
+en	niv_Sakh	Sakhalin Nivkh
 en	nno_a_vi	Norwegian Nynorsk, vi→vi
 en	nno_e	East Norwegian, vi→vi
 en	nno_e_me	East Norwegian, vi→me
@@ -46,6 +48,8 @@ en	pan_Guru	Punjabi (Gurmukhi)
 en	por_BR	Brazilian Portuguese
 en	por_PTpre1990	European Port. (trad. spelling)
 en	tgk_translit	Tajik Transliterated
+en	zab_Phon	Dìiʼzhsah (Phonemic spelling)
+en	zab_Simp	Dizhsa (Simplified spelling)
 eng_US	eng_US	English (US)
 es	cat_valencia	valenciano
 es	oci_aran	aranés
