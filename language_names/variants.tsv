@@ -33,6 +33,8 @@ en	hbs_BS	Bosnian
 en	hbs_HR	Croatian
 en	hbs_SR	Serbian
 en	hbs_SRcyr	Serbian (Cyrillic)
+en	hyx_hye	Armenian (Eastern)
+en	hyx_hyw	Armenian (Western)
 en	kaz_Arab	Kazakh (Perso-Arabic script)
 en	kaz_Cyrl	Kazakh (Cyrillic script)
 en	mlt_translit	Maltese Transliterated
@@ -99,6 +101,8 @@ kaz_Arab	kaz_Arab	قازاقشا (اراب جازۋىمەن)
 kaz_Cyrl	kaz_Cyrl	қазақша (кирил жазуымен)
 kk	kaz_Arab	қазақша (араб жазуымен)
 kk	kaz_Cyrl	қазақша (кирил жазуымен)
+ky	hyx_hye	армянча (чыгыш)
+ky	hyx_hyw	армянча (батыш)
 ky	kaz_Arab	казакча (арап жазуусу)
 ky	kaz_Cyrl	казакча (кирилл жазуусу)
 nb	cat_valencia	valensiansk
