@@ -26,7 +26,6 @@ RUN rm -rf /root/tmp
 
 RUN apt-get -qq update && apt-get -qq install \
     giella-core \
-    giella-shared \
     hfst-ospell \
     apertium-eng-spa
 
