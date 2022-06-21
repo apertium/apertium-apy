@@ -98,7 +98,7 @@ def search_prefs(rootpath):
         try:
             mode = re.sub(r'[.]xml$', '', f)
             pairprefs[mode] = {pref.get('id'): {dsc.get('lang'): dsc.text
-                               for dsc in pref}
+                               for dsc in pref.xpath('./description')}
                                for pref
                                in etree.parse(fp).xpath('//preference')}
         except Exception:
