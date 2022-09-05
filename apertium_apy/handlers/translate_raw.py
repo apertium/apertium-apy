@@ -30,4 +30,6 @@ class TranslateRawHandler(TranslateHandler):
                                              self.get_argument('markUnknown', default='yes'),
                                              nosplit=False,
                                              deformat=deformat,
-                                             reformat=False)
+                                             reformat=False,
+                                             prefs='',
+                                             use_nonce=False)

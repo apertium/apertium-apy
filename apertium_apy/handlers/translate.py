@@ -169,12 +169,12 @@ class TranslateHandler(BaseHandler):
         return deformat, reformat
 
     @gen.coroutine
-    def translate_and_respond(self, pair, pipeline, to_translate, mark_unknown, nosplit=False, deformat=True, reformat=True, prefs=''):
+    def translate_and_respond(self, pair, pipeline, to_translate, mark_unknown, nosplit=False, deformat=True, reformat=True, prefs='', use_nonce=True):
         mark_unknown = mark_unknown in ['yes', 'true', '1']
         self.note_pair_usage(pair)
         before = self.log_before_translation()
         try:
-            translated = yield pipeline.translate(to_translate, nosplit, deformat, reformat, prefs)
+            translated = yield pipeline.translate(to_translate, nosplit, deformat, reformat, prefs, use_nonce)
             self.log_after_translation(before, len(to_translate))
             self.send_response({
                 'responseData': {

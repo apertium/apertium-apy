@@ -66,14 +66,14 @@ class FlushingPipeline(Pipeline):
         # server – why?
 
     @gen.coroutine
-    def translate(self, to_translate, nosplit=False, deformat=True, reformat=True, prefs=''):
+    def translate(self, to_translate, nosplit=False, deformat=True, reformat=True, prefs='', use_nonce=True):
         with self.use():
             if nosplit:
-                res = yield translate_nul_flush(to_translate, self, deformat, reformat, self.timeout, prefs)
+                res = yield translate_nul_flush(to_translate, self, deformat, reformat, self.timeout, prefs, use_nonce)
                 return res
             else:
                 all_split = split_for_translation(to_translate, n_users=self.users)
-                parts = yield [translate_nul_flush(part, self, deformat, reformat, self.timeout, prefs)
+                parts = yield [translate_nul_flush(part, self, deformat, reformat, self.timeout, prefs, use_nonce)
                                for part in all_split]
                 return ''.join(parts)
 
@@ -260,7 +260,7 @@ def coreduce(init, funcs, *args):
     return result
 
 
-async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_reformat, timeout, prefs):
+async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_reformat, timeout, prefs, use_nonce=True):
     with (await pipeline.lock.acquire()):
         proc_in, proc_out = pipeline.inpipe, pipeline.outpipe
         deformat, reformat = validate_formatters(unsafe_deformat, unsafe_reformat)
@@ -274,10 +274,13 @@ async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_re
         else:
             deformatted = bytes(to_translate, 'utf-8')
 
-        nonce = '[/NONCE:' + token_urlsafe(8) + ']'
+        if use_nonce:
+            nonce = '\0[/NONCE:' + token_urlsafe(8) + ']'
+        else:
+            nonce = ''
         await proc_in.stdin.write(bytes(format_prefs(prefs), 'utf-8'))
         await proc_in.stdin.write(deformatted)
-        await proc_in.stdin.write(bytes('\0' + nonce + '\0', 'utf-8'))
+        await proc_in.stdin.write(bytes(nonce + '\0', 'utf-8'))
         # TODO: PipeIOStream has no flush, but seems to work anyway?
         # proc_in.stdin.flush()
 
