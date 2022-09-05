@@ -119,7 +119,7 @@ def start_pipeline(commands):
 
 
 def cmd_needs_z(cmd):
-    exceptions = r'^\s*(vislcg3|cg-mwesplit|hfst-tokeni[sz]e|divvun-suggest)'
+    exceptions = r'^\s*([^ ]*/)?(vislcg3|cg-mwesplit|hfst-tokeni[sz]e|divvun-suggest)'
     return re.match(exceptions, cmd) is None
 
 
