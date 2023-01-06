@@ -53,92 +53,95 @@ Usage
 Installation through `apt` or `pip` adds an `apertium-apy` executable:
 
     $ apertium-apy --help
-
-    usage: apertium-apy [-h] [-s NONPAIRS_PATH] [-l LANG_NAMES] [-f MISSING_FREQS]
-                    [-p PORT] [-c SSL_CERT] [-k SSL_KEY] [-t TIMEOUT]
-                    [-j [NUM_PROCESSES]] [-d] [-P LOG_PATH]
-                    [-i MAX_PIPES_PER_PAIR] [-n MIN_PIPES_PER_PAIR]
-                    [-u MAX_USERS_PER_PIPE] [-m MAX_IDLE_SECS]
-                    [-r RESTART_PIPE_AFTER] [-v VERBOSITY] [-V] [-S]
-                    [-M UNKNOWN_MEMORY_LIMIT] [-T STAT_PERIOD_MAX_AGE]
-                    [-wp WIKI_PASSWORD] [-wu WIKI_USERNAME] [-b]
-                    [-rs RECAPTCHA_SECRET] [-md MAX_DOC_PIPES] [-C CONFIG]
-                    [-ak API_KEYS_FILE]
-                    pairs_path
+    usage: apertium-apy [-h] [-s NONPAIRS_PATH] [-l LANG_NAMES] [-F FASTTEXT_MODEL]
+                      [-f MISSING_FREQS] [-p PORT] [-c SSL_CERT] [-k SSL_KEY]
+                      [-t TIMEOUT] [-j [NUM_PROCESSES]] [-d] [-P LOG_PATH]
+                      [-i MAX_PIPES_PER_PAIR] [-n MIN_PIPES_PER_PAIR]
+                      [-u MAX_USERS_PER_PIPE] [-m MAX_IDLE_SECS]
+                      [-r RESTART_PIPE_AFTER] [-v VERBOSITY] [-V] [-S]
+                      [-M UNKNOWN_MEMORY_LIMIT] [-T STAT_PERIOD_MAX_AGE]
+                      [-wp WIKI_PASSWORD] [-wu WIKI_USERNAME] [-b]
+                      [-rs RECAPTCHA_SECRET] [-md MAX_DOC_PIPES] [-C CONFIG]
+                      [-ak API_KEYS]
+                      pairs_path
 
     Apertium APY -- API server for machine translation and language analysis
 
     positional arguments:
-    pairs_path            path to Apertium installed pairs (all modes files in
+      pairs_path            path to Apertium installed pairs (all modes files in
                             this path are included)
 
-    optional arguments:
-    -h, --help            show this help message and exit
-    -s NONPAIRS_PATH, --nonpairs-path NONPAIRS_PATH
+    options:
+      -h, --help            show this help message and exit
+      -s NONPAIRS_PATH, --nonpairs-path NONPAIRS_PATH
                             path to Apertium tree (only non-translator debug modes
                             are included from this path)
-    -l LANG_NAMES, --lang-names LANG_NAMES
+      -l LANG_NAMES, --lang-names LANG_NAMES
                             path to localised language names sqlite database
                             (default = langNames.db)
-    -f MISSING_FREQS, --missing-freqs MISSING_FREQS
+      -F FASTTEXT_MODEL, --fasttext-model FASTTEXT_MODEL
+                            path to fastText language identification model (e.g.
+                            lid.release.ftz)
+      -f MISSING_FREQS, --missing-freqs MISSING_FREQS
                             path to missing word frequency sqlite database
                             (default = None)
-    -p PORT, --port PORT  port to run server on (default = 2737)
-    -c SSL_CERT, --ssl-cert SSL_CERT
+      -p PORT, --port PORT  port to run server on (default = 2737)
+      -c SSL_CERT, --ssl-cert SSL_CERT
                             path to SSL Certificate
-    -k SSL_KEY, --ssl-key SSL_KEY
+      -k SSL_KEY, --ssl-key SSL_KEY
                             path to SSL Key File
-    -t TIMEOUT, --timeout TIMEOUT
+      -t TIMEOUT, --timeout TIMEOUT
                             timeout for requests (default = 10)
-    -j [NUM_PROCESSES], --num-processes [NUM_PROCESSES]
+      -j [NUM_PROCESSES], --num-processes [NUM_PROCESSES]
                             number of processes to run (default = 1; use 0 to run
                             one http server per core, where each http server runs
                             all available language pairs)
-    -d, --daemon          daemon mode: redirects stdout and stderr to files
+      -d, --daemon          daemon mode: redirects stdout and stderr to files
                             apertium-apy.log and apertium-apy.err; use with --log-
                             path
-    -P LOG_PATH, --log-path LOG_PATH
+      -P LOG_PATH, --log-path LOG_PATH
                             path to log output files to in daemon mode; defaults
                             to local directory
-    -i MAX_PIPES_PER_PAIR, --max-pipes-per-pair MAX_PIPES_PER_PAIR
+      -i MAX_PIPES_PER_PAIR, --max-pipes-per-pair MAX_PIPES_PER_PAIR
                             how many pipelines we can spin up per language pair
                             (default = 1)
-    -n MIN_PIPES_PER_PAIR, --min-pipes-per-pair MIN_PIPES_PER_PAIR
+      -n MIN_PIPES_PER_PAIR, --min-pipes-per-pair MIN_PIPES_PER_PAIR
                             when shutting down pipelines, keep at least this many
                             open per language pair (default = 0)
-    -u MAX_USERS_PER_PIPE, --max-users-per-pipe MAX_USERS_PER_PIPE
+      -u MAX_USERS_PER_PIPE, --max-users-per-pipe MAX_USERS_PER_PIPE
                             how many concurrent requests per pipeline before we
                             consider spinning up a new one (default = 5)
-    -m MAX_IDLE_SECS, --max-idle-secs MAX_IDLE_SECS
+      -m MAX_IDLE_SECS, --max-idle-secs MAX_IDLE_SECS
                             if specified, shut down pipelines that have not been
                             used in this many seconds
-    -r RESTART_PIPE_AFTER, --restart-pipe-after RESTART_PIPE_AFTER
+      -r RESTART_PIPE_AFTER, --restart-pipe-after RESTART_PIPE_AFTER
                             restart a pipeline if it has had this many requests
                             (default = 1000)
-    -v VERBOSITY, --verbosity VERBOSITY
+      -v VERBOSITY, --verbosity VERBOSITY
                             logging verbosity
-    -V, --version         show APY version
-    -S, --scalemt-logs    generates ScaleMT-like logs; use with --log-path;
+      -V, --version         show APY version
+      -S, --scalemt-logs    generates ScaleMT-like logs; use with --log-path;
                             disables
-    -M UNKNOWN_MEMORY_LIMIT, --unknown-memory-limit UNKNOWN_MEMORY_LIMIT
+      -M UNKNOWN_MEMORY_LIMIT, --unknown-memory-limit UNKNOWN_MEMORY_LIMIT
                             keeps unknown words in memory until a limit is
                             reached; use with --missing-freqs (default = 1000)
-    -T STAT_PERIOD_MAX_AGE, --stat-period-max-age STAT_PERIOD_MAX_AGE
+      -T STAT_PERIOD_MAX_AGE, --stat-period-max-age STAT_PERIOD_MAX_AGE
                             How many seconds back to keep track request timing
                             stats (default = 3600)
-    -wp WIKI_PASSWORD, --wiki-password WIKI_PASSWORD
+      -wp WIKI_PASSWORD, --wiki-password WIKI_PASSWORD
                             Apertium Wiki account password for SuggestionHandler
-    -wu WIKI_USERNAME, --wiki-username WIKI_USERNAME
+      -wu WIKI_USERNAME, --wiki-username WIKI_USERNAME
                             Apertium Wiki account username for SuggestionHandler
-    -b, --bypass-token    ReCAPTCHA bypass token
-    -rs RECAPTCHA_SECRET, --recaptcha-secret RECAPTCHA_SECRET
+      -b, --bypass-token    ReCAPTCHA bypass token
+      -rs RECAPTCHA_SECRET, --recaptcha-secret RECAPTCHA_SECRET
                             ReCAPTCHA secret for suggestion validation
-    -md MAX_DOC_PIPES, --max-doc-pipes MAX_DOC_PIPES
+      -md MAX_DOC_PIPES, --max-doc-pipes MAX_DOC_PIPES
                             how many concurrent document translation pipelines we
                             allow (default = 3)
-    -C CONFIG, --config CONFIG
+      -C CONFIG, --config CONFIG
                             Configuration file to load options from
-    -ak, --api-keys         JSON file where API keys are stored. Comments are allowed
+      -ak API_KEYS, --api-keys API_KEYS
+                            Configuration file to load API keys
 
 Contributing
 ------------

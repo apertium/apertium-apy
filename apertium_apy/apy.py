@@ -187,6 +187,8 @@ def parse_args(cli_args=sys.argv[1:]):
     parser.add_argument('-s', '--nonpairs-path', help='path to Apertium tree (only non-translator debug modes are included from this path)')
     parser.add_argument('-l', '--lang-names',
                         help='path to localised language names sqlite database (default = langNames.db)', default='langNames.db')
+    parser.add_argument('-F', '--fasttext-model',
+                        help='path to fastText language identification model (e.g. lid.release.ftz)')
     parser.add_argument('-f', '--missing-freqs', help='path to missing word frequency sqlite database (default = None)', default=None)
     parser.add_argument('-p', '--port', help='port to run server on (default = 2737)', type=int, default=2737)
     parser.add_argument('-c', '--ssl-cert', help='path to SSL Certificate', default=None)
@@ -300,6 +302,10 @@ def setup_application(args):
 
         handlers.append((r'/suggest', SuggestionHandler))
 
+    if args.fasttext_model and importlib_util.find_spec('fasttext') is not None:
+        import fasttext
+        IdentifyLangHandler.fasttext = fasttext.FastText.load_model(args.fasttext_model)
+
     # TODO: fix mypy. Application expects List but List is invariant and we use subclasses
     return tornado.web.Application(handlers)  # type:ignore
 
@@ -334,8 +340,12 @@ def main():
     args = parse_args()
     setup_logging(args)  # before we start logging anything!
 
-    if importlib_util.find_spec('cld2full') is None:
-        logging.warning('Unable to import CLD2, continuing using naive method of language detection')
+    if importlib_util.find_spec('fasttext') is None:
+        logging.warning('Unable to import fastText, trying CLD2')
+        if importlib_util.find_spec('cld2full') is None:
+            logging.warning('Unable to import CLD2, continuing using naive method of language identification')
+    elif not args.fasttext_model:
+        logging.warning('Have fasttext lib, but started without --fasttext-model, not using fastText for language identification')
 
     if importlib_util.find_spec('chardet') is None:
         logging.warning('Unable to import chardet, assuming utf-8 encoding for all websites')
