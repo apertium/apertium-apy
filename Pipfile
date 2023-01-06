@@ -10,6 +10,7 @@ requests = "*"
 tornado = "==6.0.3"
 commentjson = "*"
 lxml = "*"
+fasttext = "==0.9.2"
 
 [dev-packages]
 coverage = "*"
