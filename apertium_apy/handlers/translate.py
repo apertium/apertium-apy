@@ -12,8 +12,10 @@ from apertium_apy import missing_freqs_db  # noqa: F401
 from apertium_apy.handlers.base import BaseHandler
 from apertium_apy.keys import ApiKeys
 from apertium_apy.utils import to_alpha3_code, scale_mt_log
-from apertium_apy.utils.translation import parse_mode_file, make_pipeline, FlushingPipeline, SimplePipeline
-from typing import Union
+from apertium_apy.utils.translation import parse_mode_file, make_pipeline
+# Typing imports that flake8 doesn't understand:
+from apertium_apy.utils.translation import FlushingPipeline, SimplePipeline  # noqa: F401
+from typing import Union        # noqa: F401
 
 
 class TranslationInfo:

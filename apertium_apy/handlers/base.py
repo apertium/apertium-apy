@@ -10,9 +10,10 @@ import tornado.web
 from tornado.escape import utf8
 from tornado.locks import Semaphore
 
-from typing import Union, Dict, Optional, List, Any, Tuple  # noqa: F401
 from apertium_apy.utils import to_fallback_code
-from apertium_apy.utils.translation import FlushingPipeline, SimplePipeline
+# Typing imports that flake8 doesn't understand:
+from typing import Union, Dict, Optional, List, Any, Tuple  # noqa: F401
+from apertium_apy.utils.translation import FlushingPipeline, SimplePipeline  # noqa: F401
 
 
 def dump_json(data):
