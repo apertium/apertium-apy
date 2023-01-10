@@ -1,4 +1,5 @@
 from datetime import timedelta
+import re
 
 from tornado import gen
 
@@ -20,9 +21,21 @@ def fasttext_strip_prefix(s):
     return s[9:]
 
 
+fasttext_max_input = 2048
+
+# there's no [:punct:] class in re module, include the most common here:
+fasttext_punct_class = re.compile(r'([`~!@#$%^&*()_=+\[\]{}\\\|;:\"\'<>.,/?—–-]+)')
+
+
+def fasttext_clean(s):
+    """Should clean as ft-train/clean does"""
+    return re.sub(fasttext_punct_class, r' \1 ', s.lower())
+
+
 def fasttext_identify(model, text):
-    # grab a bunch since currently the model might predict stuff outside possible_langs – it's still fast:
-    results = model.predict(text, k=200, threshold=0.001)
+    cleaned = fasttext_clean(text[:fasttext_max_input])
+    # Grab a bunch of results since currently the model might predict stuff outside possible_langs – it's still fast:
+    results = model.predict(cleaned, k=200, threshold=0.001)
     if results[0]:
         possible_langs = zip(map(fasttext_strip_prefix, results[0]),
                              results[1])
