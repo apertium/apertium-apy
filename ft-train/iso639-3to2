@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -euo pipefail
+cd "$(dirname "$0")"
+
+grep ^iso639_codes ../apertium_apy/utils/__init__.py \
+    | sed 's,.*{\(.*\)}.*,\1,'                       \
+    | tr , '\n'                                      \
+    | tr -d "' "                                     \
+    | tr : '\t'

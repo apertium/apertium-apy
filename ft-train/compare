@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -euo pipefail
+cd "$(dirname "$0")"
+
+# fasttext test doesn't give correct recall numbers :(
+
+fasttext predict output/1Mmodel.ftz corpus/test >/tmp/predictions.1M
+
+fasttext predict ../lid.176.ftz corpus/test \
+    | awk -v tf=<(./iso639-3to2) '
+BEGIN{OFS=FS="\t"; while(getline<tf){t[$2]=$1}; FS="__label__"; } $2 in t{print "__label__"t[$2];next  }{print}' \
+          >/tmp/predictions.176
+
+for p in /tmp/predictions.176 /tmp/predictions.1M; do
+    echo "$p"
+    paste "$p" corpus/test \
+        | sed 's, .*,,' \
+        | awk '
+BEGIN{OFS=FS="\t"; }
+ {n++; tp[$1]+=($1==$2); fp[$1]+=($1!=$2); tc[$2]++; pc[$1]++ }
+ $1==$2{c++; }
+END{
+    smooth = 0.00001 # avoid div by zero
+    print "Correct:"c,"Total:"n;
+    print "label","truepos","falsepos","true count","pred count","P","R";
+    for(label in tp){
+        p = sprintf("%0.2f", (tp[label] + smooth)/(pc[label] + smooth))
+        r = sprintf("%0.2f", (tp[label] + smooth)/(tc[label] + smooth))
+        print label,tp[label],fp[label],tc[label],pc[label],p,r
+    }
+}
+' \
+    | column -ts $'\t'
+done
