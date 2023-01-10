@@ -1,0 +1,57 @@
+#!/bin/bash
+
+set -euo pipefail
+cd "$(dirname "$0")"
+
+export LC_ALL=C.UTF-8
+
+want_trainsize=100000
+
+wget -c https://object.pouta.csc.fi/OPUS-100/v1.0/opus-100-corpus-v1.0.tar.gz
+
+./get-prod-sourcelanguages-with-2 >/tmp/langcodes-to-get
+
+mkdir -p corpus
+cd corpus
+
+tr -s '\t' '\n'  < /tmp/langcodes-to-get \
+    | sed 's,.*,opus-100-corpus/v1.0/supervised/*/*train.&,' \
+    | xargs tar xf ../opus-100-corpus-v1.0.tar.gz --wildcards
+
+mkdir -p tmp/langwise
+while IFS=$'\t' read -r c3 c2; do
+    found=$(find . -type f -name "*train.$c2" -o -name "*train.$c3")
+    if ! grep -q . <<<"${found}"; then
+        echo "WARNING: No corpus found for $c3 $c2" >&2
+        continue
+    fi
+    xargs cat <<<"${found}" 2>/dev/null \
+        | head -"${want_trainsize}"     \
+        | ../clean                      \
+        | sed "s,^ *,__label__${c3} ,"  \
+              >"tmp/langwise/$c3"
+    gotlines="$(wc -l < "tmp/langwise/$c3")"
+    if [[ "${gotlines}" -lt "${want_trainsize}" ]]; then
+        echo "WARNING: Got only ${gotlines} lines for $c3 $c2" >&2
+    fi
+done </tmp/langcodes-to-get
+
+# WARNING: Got only 6961 lines for arg an
+# WARNING: Got only 67312 lines for bel be
+# WARNING: No corpus found for crh
+# WARNING: No corpus found for frp
+# WARNING: Got only 79927 lines for kaz kk
+# WARNING: No corpus found for nno_e
+# WARNING: Got only 35791 lines for oci oc
+# WARNING: No corpus found for oci_aran
+# WARNING: No corpus found for oci_gascon
+# WARNING: Got only 35907 lines for sme se
+# WARNING: No corpus found for szl
+# WARNING: No corpus found for zlm
+
+cat tmp/langwise/* | shuf > tmp/full
+head -10000 tmp/full                 > ./valid
+tail -n+10001 tmp/full | head -10000 > ./test
+tail -n+20001 tmp/full               > ./train
+wc -l valid test train
+
