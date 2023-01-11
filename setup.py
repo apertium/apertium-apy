@@ -68,7 +68,7 @@ setup(
     },
     packages=find_packages(exclude=['tests']),
     data_files=[
-        ('share/apertium-apy', ['README.md', 'COPYING', 'langNames.db', 'index.html']),
+        ('share/apertium-apy', ['README.md', 'COPYING', 'langNames.db', 'lid.release.ftz', 'index.html']),
         ('share/apertium-apy/tools', files('tools')),
         ('share/apertium-apy/tools/systemd', files('tools/systemd')),
         ('share/apertium-apy/tools/sysvinit', files('tools/sysvinit')),
