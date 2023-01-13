@@ -1,7 +1,0 @@
-#!/bin/bash
-
-set -euo pipefail
-
-curl -Ss 'https://apertium.org/apy/list?q=pairs' \
-    | jq -r '.responseData|map(.sourceLanguage)|.[]' \
-    | sort -u

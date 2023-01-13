@@ -1,5 +1,11 @@
 #!/bin/bash
 
+case $1 in
+    release|beta) releaseOrBeta=$1;;
+    *) echo "supply either 'release' or 'beta' as arg1 to this script" >&2
+       exit 1
+esac
+
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -9,49 +15,130 @@ want_trainsize=100000
 
 wget -c https://object.pouta.csc.fi/OPUS-100/v1.0/opus-100-corpus-v1.0.tar.gz
 
-./get-prod-sourcelanguages-with-2 >/tmp/langcodes-to-get
+tmp="${releaseOrBeta}.tmp"
+mkdir -p corpus/"${tmp}"
+(
+    cd corpus
 
-mkdir -p corpus
-cd corpus
+    ../get-sourcelanguages-with-2 "${releaseOrBeta}" >"${tmp}"/langcodes-to-get
 
-tr -s '\t' '\n'  < /tmp/langcodes-to-get \
-    | sed 's,.*,opus-100-corpus/v1.0/supervised/*/*train.&,' \
-    | xargs tar xf ../opus-100-corpus-v1.0.tar.gz --wildcards
+    tr -s '\t' '\n'  < "${tmp}"/langcodes-to-get \
+        | sed 's,.*,opus-100-corpus/v1.0/supervised/*/*train.&,' \
+        | xargs tar xf ../opus-100-corpus-v1.0.tar.gz --wildcards
 
-mkdir -p tmp/langwise
-while IFS=$'\t' read -r c3 c2; do
-    found=$(find . -type f -name "*train.$c2" -o -name "*train.$c3")
-    if ! grep -q . <<<"${found}"; then
-        echo "WARNING: No corpus found for $c3 $c2" >&2
-        continue
-    fi
-    xargs cat <<<"${found}" 2>/dev/null \
-        | head -"${want_trainsize}"     \
-        | ../clean                      \
-        | sed "s,^ *,__label__${c3} ,"  \
-              >"tmp/langwise/$c3"
-    gotlines="$(wc -l < "tmp/langwise/$c3")"
-    if [[ "${gotlines}" -lt "${want_trainsize}" ]]; then
-        echo "WARNING: Got only ${gotlines} lines for $c3 $c2" >&2
-    fi
-done </tmp/langcodes-to-get
+    mkdir -p "${tmp}"/langwise
+    while IFS=$'\t' read -r c3 c2; do
+        found=$(find . -type f -name "*train.$c2" -o -name "*train.$c3")
+        if ! grep -q . <<<"${found}"; then
+            echo "WARNING: No corpus found for $c3 $c2" >&2
+            continue
+        fi
+        xargs cat <<<"${found}" 2>/dev/null \
+            | head -"${want_trainsize}"     \
+            | ../clean                      \
+            | sed "s,^ *,__label__${c3} ,"  \
+                  >"${tmp}/langwise/$c3"
+        gotlines="$(wc -l < "${tmp}/langwise/$c3")"
+        if [[ "${gotlines}" -lt "${want_trainsize}" ]]; then
+            echo "WARNING: Got only ${gotlines} lines for $c3 $c2" >&2
+        fi
+    done <"${tmp}"/langcodes-to-get
 
-# WARNING: Got only 6961 lines for arg an
+    cat "${tmp}"/langwise/* | shuf > "${tmp}"/full
+    head -10000 "${tmp}"/full                 > ./valid
+    tail -n+10001 "${tmp}"/full | head -10000 > ./test
+    tail -n+20001 "${tmp}"/full               > ./train
+    wc -l valid test train
+
+)
+
+
+### release warnings: ###
+# WARNING: Got only 35791 lines for oci oc
+# WARNING: Got only 35907 lines for sme se
 # WARNING: Got only 67312 lines for bel be
+# WARNING: Got only 6961 lines for arg an
+# WARNING: Got only 79927 lines for kaz kk
 # WARNING: No corpus found for crh
 # WARNING: No corpus found for frp
-# WARNING: Got only 79927 lines for kaz kk
 # WARNING: No corpus found for nno_e
-# WARNING: Got only 35791 lines for oci oc
 # WARNING: No corpus found for oci_aran
 # WARNING: No corpus found for oci_gascon
-# WARNING: Got only 35907 lines for sme se
 # WARNING: No corpus found for szl
 # WARNING: No corpus found for zlm
 
-cat tmp/langwise/* | shuf > tmp/full
-head -10000 tmp/full                 > ./valid
-tail -n+10001 tmp/full | head -10000 > ./test
-tail -n+20001 tmp/full               > ./train
-wc -l valid test train
 
+### beta warnings include the above as well as: ###
+# WARNING: Got only 14537 lines for kan kn
+# WARNING: Got only 16316 lines for gla gd
+# WARNING: Got only 18415 lines for ibo ig
+# WARNING: Got only 27007 lines for mar mr
+# WARNING: Got only 27215 lines for kir ky
+# WARNING: Got only 624 lines for dzo dz
+# WARNING: Got only 64352 lines for tel te
+# WARNING: Got only 72170 lines for uig ug
+# WARNING: No corpus found for ava av
+# WARNING: No corpus found for bak ba
+# WARNING: No corpus found for bas
+# WARNING: No corpus found for btc
+# WARNING: No corpus found for bua
+# WARNING: No corpus found for byv
+# WARNING: No corpus found for chv cv
+# WARNING: No corpus found for ckb
+# WARNING: No corpus found for cos co
+# WARNING: No corpus found for csb
+# WARNING: No corpus found for dzo_old
+# WARNING: No corpus found for fao fo
+# WARNING: No corpus found for fkv
+# WARNING: No corpus found for grc
+# WARNING: No corpus found for grn gn
+# WARNING: No corpus found for hat ht
+# WARNING: No corpus found for haw
+# WARNING: No corpus found for ina ia
+# WARNING: No corpus found for kaa
+# WARNING: No corpus found for khk
+# WARNING: No corpus found for kik ki
+# WARNING: No corpus found for kmr
+# WARNING: No corpus found for koi
+# WARNING: No corpus found for kok
+# WARNING: No corpus found for kpv
+# WARNING: No corpus found for krl
+# WARNING: No corpus found for kum
+# WARNING: No corpus found for lat la
+# WARNING: No corpus found for lin ln
+# WARNING: No corpus found for liv
+# WARNING: No corpus found for ltz lb
+# WARNING: No corpus found for lug lg
+# WARNING: No corpus found for lvs
+# WARNING: No corpus found for mdf
+# WARNING: No corpus found for myv
+# WARNING: No corpus found for nci
+# WARNING: No corpus found for nhi
+# WARNING: No corpus found for niv_Amur
+# WARNING: No corpus found for niv_Sakh
+# WARNING: No corpus found for olo
+# WARNING: No corpus found for ote
+# WARNING: No corpus found for pan_Arab
+# WARNING: No corpus found for pan_Guru
+# WARNING: No corpus found for quc
+# WARNING: No corpus found for quz
+# WARNING: No corpus found for qve
+# WARNING: No corpus found for sah
+# WARNING: No corpus found for sat
+# WARNING: No corpus found for scn
+# WARNING: No corpus found for sco
+# WARNING: No corpus found for sjo
+# WARNING: No corpus found for sma
+# WARNING: No corpus found for smj
+# WARNING: No corpus found for smn
+# WARNING: No corpus found for snd sd
+# WARNING: No corpus found for srn
+# WARNING: No corpus found for swa sw
+# WARNING: No corpus found for tki
+# WARNING: No corpus found for tlh
+# WARNING: No corpus found for trw
+# WARNING: No corpus found for tyv
+# WARNING: No corpus found for udm
+# WARNING: No corpus found for vro
+# WARNING: No corpus found for zab_Phon
+# WARNING: No corpus found for zab_Simp

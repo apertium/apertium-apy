@@ -1,11 +1,18 @@
 #!/bin/bash
 
+case $1 in
+    release|beta) releaseOrBeta=$1;;
+    *) echo "supply either 'release' or 'beta' as arg1 to this script" >&2
+       exit 1
+esac
+
 set -euo pipefail
 cd "$(dirname "$0")"
 
 mkdir -p output
 
 modelsize=1M
+outfilebase=output/lid."${releaseOrBeta}-${modelsize}"
 
 fasttext supervised                         \
          -label "__label__"                 \
@@ -16,11 +23,11 @@ fasttext supervised                         \
          -minn 2                            \
          -maxn 5                            \
          -input corpus/train                \
-         -output output/"${modelsize}"model \
+         -output "${outfilebase}"           \
          -autotune-validation corpus/valid  \
          -autotune-modelsize "${modelsize}" \
-         -autotune-duration 600
+         -autotune-duration 2400
 
-echo hvad er dette | fasttext predict-prob output/"${modelsize}"model.ftz - 3
-echo hva  er dette | fasttext predict-prob output/"${modelsize}"model.ftz - 3
-echo kva  er dette | fasttext predict-prob output/"${modelsize}"model.ftz - 3
+echo hvad er dette | fasttext predict-prob "${outfilebase}".ftz - 3
+echo hva  er dette | fasttext predict-prob "${outfilebase}".ftz - 3
+echo kva  er dette | fasttext predict-prob "${outfilebase}".ftz - 3

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+case $1 in
+    release) domain=apertium.org;;
+    beta) domain=beta.apertium.org;;
+    *) echo "supply either 'release' or 'beta' as arg1 to this script" >&2
+       exit 1
+esac
+
+set -euo pipefail
+
+curl -Ss "https://${domain}/apy/list?q=pairs" \
+    | jq -r '.responseData|map(.sourceLanguage)|.[]' \
+    | sort -u
