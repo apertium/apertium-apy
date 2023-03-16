@@ -28,9 +28,9 @@ fasttext_punct_class = re.compile(r'([`~!@#$%^&*()_=+\[\]{}\\\|;:\"\'<>.,/?â€”â€
 
 
 def fasttext_clean(s):
-    "Should clean as ft-train/clean does; also keep input to one line."
+    """Should clean as ft-train/clean does; also keep input to one line."""
     return re.sub(fasttext_punct_class, r' \1 ',
-                  s.lower().replace("\n", " "))
+                  s.lower().replace('\n', ' '))
 
 
 def fasttext_identify(model, text):
