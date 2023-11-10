@@ -21,6 +21,8 @@ ALLOWED_MIME_TYPES = {
     'text/plain': 'txt',
     'text/html': 'html-noent',
     'text/rtf': 'rtf',
+    'text/x-latex': 'latex',
+    'text/x-tex': 'latex',
     'application/rtf': 'rtf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
