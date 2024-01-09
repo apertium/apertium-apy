@@ -3,19 +3,14 @@ LABEL maintainer sushain@skc.name
 
 # Install packaged dependencies
 
-RUN apt-get -qq update && apt-get -qq install python3-full python3-pip pipenv
+RUN apt-get -qq update && apt-get -qqfy dist-upgrade && apt-get -qqfy install python3 python3-dev python3-setuptools python3-tornado python3-streamparser python3-requests python3-chardet python3-commentjson python3-lxml libcld2-dev
 
 # Install CLD2
 
 WORKDIR /root/tmp
-ADD https://github.com/CLD2Owners/cld2/archive/refs/heads/master.zip cld2.zip
-RUN unzip -q cld2.zip && \
-    mv cld2-master cld2 && \
-    cd cld2/internal && \
-    CPPFLAGS='-std=c++98' ./compile_libs.sh && \
-    cp *.so /usr/lib/
 ADD https://github.com/mikemccand/chromium-compact-language-detector/archive/refs/heads/master.zip chromium-compact-language-detector.zip
-RUN unzip -q chromium-compact-language-detector.zip && \
+RUN export CPPFLAGS="-I/usr/include/cld2/public -I/usr/include/cld2/internal" && \
+    unzip -q chromium-compact-language-detector.zip && \
     cd chromium-compact-language-detector-master && \
     python3 setup.py build && python3 setup_full.py build && \
     python3 setup.py install && python3 setup_full.py install
@@ -30,14 +25,6 @@ RUN apt-get -qq update && apt-get -qq install \
     apertium-eng-spa
 
 # Install APy
-
-COPY Pipfile apertium-apy/
-COPY Pipfile.lock apertium-apy/
-
-RUN python3 -m venv /venv
-ENV PATH="/venv/bin:$PATH"
-RUN . /venv/bin/activate && cd apertium-apy && pipenv install --deploy --system
-
 COPY . apertium-apy
 RUN cd apertium-apy && make -j4
 
