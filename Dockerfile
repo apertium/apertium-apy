@@ -3,7 +3,7 @@ LABEL maintainer sushain@skc.name
 
 # Install packaged dependencies
 
-RUN apt-get -qq update && apt-get -qq install python3-pip pipenv
+RUN apt-get -qq update && apt-get -qq install python3-full python3-pip pipenv
 
 # Install CLD2
 
@@ -33,7 +33,10 @@ RUN apt-get -qq update && apt-get -qq install \
 
 COPY Pipfile apertium-apy/
 COPY Pipfile.lock apertium-apy/
-RUN cd apertium-apy && pipenv install --deploy --system
+
+RUN python3 -m venv /venv
+ENV PATH="/venv/bin:$PATH"
+RUN . /venv/bin/activate && cd apertium-apy && pipenv install --deploy --system
 
 COPY . apertium-apy
 RUN cd apertium-apy && make -j4
