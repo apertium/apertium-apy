@@ -1002,7 +1002,7 @@ See NEWS for a per-release summary, this is just the git log.
 2017-01-04  Shardul Chiplunkar <shardul.chiplunkar@gmail.com>
 
 	* servlet.py: Initial support for translation chaining.
-	http://wiki.apertium.org/wiki/User:Shardulc has documentation of
+	https://wiki.apertium.org/wiki/User:Shardulc has documentation of
 	this feature.
 
 2016-12-20  Kevin Brubeck Unhammer <unhammer+dill@mm.st>

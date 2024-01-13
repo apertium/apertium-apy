@@ -1,0 +1,33 @@
+#!/bin/bash
+
+case $1 in
+    release|beta) releaseOrBeta=$1;;
+    *) echo "supply either 'release' or 'beta' as arg1 to this script" >&2
+       exit 1
+esac
+
+set -euo pipefail
+cd "$(dirname "$0")"
+
+mkdir -p output
+
+modelsize=1M
+outfilebase=output/lid."${releaseOrBeta}-${modelsize}"
+
+fasttext supervised                         \
+         -label "__label__"                 \
+         -lr 0.1                            \
+         -dim 100                           \
+         -ws 5                              \
+         -wordNgrams 1                      \
+         -minn 2                            \
+         -maxn 5                            \
+         -input corpus/train                \
+         -output "${outfilebase}"           \
+         -autotune-validation corpus/valid  \
+         -autotune-modelsize "${modelsize}" \
+         -autotune-duration 2400
+
+echo hvad er dette | fasttext predict-prob "${outfilebase}".ftz - 3
+echo hva  er dette | fasttext predict-prob "${outfilebase}".ftz - 3
+echo kva  er dette | fasttext predict-prob "${outfilebase}".ftz - 3

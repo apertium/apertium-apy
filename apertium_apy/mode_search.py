@@ -1,6 +1,10 @@
 import re
 import os
 import logging
+try:
+    from lxml import etree
+except ImportError:
+    etree = None
 
 from apertium_apy.utils import to_alpha3_code
 
@@ -29,7 +33,7 @@ def is_loop(dirpath, rootpath, real_root=None):
 
 
 def search_path(rootpath, include_pairs=True, verbosity=1):
-    lang_code = r'[a-z]{2,3}(?:_[A-Za-z0-9]+)?'
+    lang_code = r'[a-z]{2,3}(?:_[A-Za-z0-9]+)*'
     type_re = {
         'pair': re.compile(r'({0})-({0})\.mode'.format(lang_code)),
         'analyzer': re.compile(r'(({0}(-{0})?)-(an)?mor(ph)?)\.mode'.format(lang_code)),
@@ -78,6 +82,28 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
         _log_modes(modes)
 
     return modes
+
+
+def search_prefs(rootpath):
+    if etree is None:
+        logging.warning('Please install python3-lxml to enable /pairprefs endpoint')
+        return
+    real_root = os.path.abspath(os.path.realpath(rootpath))
+    prefspath = real_root + '/prefs'
+    pairprefs = {}        # type: Dict[str, Dict[str, Dict[str, str]]]
+    if not os.path.exists(prefspath):
+        return pairprefs
+    for f in os.listdir(prefspath):
+        fp = os.path.join(prefspath, f)
+        try:
+            mode = re.sub(r'[.]xml$', '', f)
+            pairprefs[mode] = {pref.get('id'): {dsc.get('lang'): dsc.text
+                               for dsc in pref.xpath('./description')}
+                               for pref
+                               in etree.parse(fp).xpath('//preference')}
+        except Exception:
+            logging.warning('Exception on parsing preferences file {}'.format(fp))
+    return pairprefs
 
 
 def _log_modes(modes):

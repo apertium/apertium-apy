@@ -110,3 +110,6 @@ venv.bak/
 
 # pycharm conf files
 .idea/
+/ft-train/corpus/
+/ft-train/opus-100-corpus-v1.0.tar.gz
+/ft-train/output/

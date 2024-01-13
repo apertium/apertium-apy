@@ -4,7 +4,7 @@ Testing
 The tests require some test data.
 
 To install the test data on Debian-based systems, first install core
-tools as show at http://wiki.apertium.org/wiki/Debian and then do
+tools as show at https://wiki.apertium.org/wiki/Debian and then do
 
     sudo apt-get install apertium-sme-nob apertium-es-en
     mkdir ~/apy-testdata

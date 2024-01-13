@@ -1,0 +1,14 @@
+#!/bin/bash
+
+case $1 in
+    release|beta) releaseOrBeta=$1;;
+    *) echo "supply either 'release' or 'beta' as arg1 to this script" >&2
+       exit 1
+esac
+
+set -euo pipefail
+cd "$(dirname "$0")"
+
+export LC_ALL=C.UTF-8
+join -j1 -t$'\t' -a1 -oauto  <(./get-server-sourcelanguages "${releaseOrBeta}" |sort) <(./iso639-3to2|sort ) \
+     | sort -u

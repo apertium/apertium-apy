@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -euo pipefail
+
+sed -e "s/\([[:punct:]]\)/ \1 /g" \
+    | gawk '{print tolower($0)}'

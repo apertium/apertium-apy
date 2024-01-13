@@ -20,6 +20,8 @@ ca	pan_Guru	panjabi (gurmukhi)
 ca	por_BR	portuguès brasiler
 ca	por_PTpre1990	port. europeu (ort. trad.)
 ca	tgk_translit	tadjik transliterat
+cat_iec2017	cat_iec2017	català (IEC 2017)
+cat_valencia	cat_valencia	valencià
 de	cat_valencia	valencianische
 de	oci_aran	aranesische
 de	por_BR	brasilianisches portugiesisch
@@ -31,10 +33,16 @@ en	hbs_BS	Bosnian
 en	hbs_HR	Croatian
 en	hbs_SR	Serbian
 en	hbs_SRcyr	Serbian (Cyrillic)
+en	hyx_hye	Armenian (Eastern)
+en	hyx_hyw	Armenian (Western)
+en	kaz_Arab	Kazakh (Perso-Arabic script)
+en	kaz_Cyrl	Kazakh (Cyrillic script)
 en	mlt_translit	Maltese Transliterated
+en	niv_Amur	Nivkh (Amur)
+en	niv_Sakh	Nivkh (Sakhalin)
+en	nno_a_vi	Norwegian Nynorsk, vi→vi
 en	nno_e	East Norwegian, vi→vi
 en	nno_e_me	East Norwegian, vi→me
-en	nno_a_vi	Norwegian Nynorsk, vi→vi
 en	oci_aran	Aranese
 en	oci_gascon	Gascon
 en	pan_Arab	Punjabi (Arabic)
@@ -42,6 +50,9 @@ en	pan_Guru	Punjabi (Gurmukhi)
 en	por_BR	Brazilian Portuguese
 en	por_PTpre1990	European Port. (trad. spelling)
 en	tgk_translit	Tajik Transliterated
+en	zab_Phon	Dìiʼzhsah (Phonemic spelling)
+en	zab_Simp	Dizhsa (Simplified spelling)
+eng_US	eng_US	English (US)
 es	cat_valencia	valenciano
 es	oci_aran	aranés
 es	por_BR	portugués brasileño
@@ -49,10 +60,6 @@ es	por_PTpre1990	port. europeo (ort. trad.)
 eu	cat_valencia	valentziera
 eu	oci_aran	aranera
 eu	por_BR	brasilgo portugesa
-ita	cat_valencia	valenzano
-ita	oci_aran	aranese
-ita	por_BR	portoghese brasiliano
-ita	por_PTpre1990	port. europeo (ort. trad.)
 fi	cat_valencia	valencian
 fi	oci_aran	araneesi
 fi	por_BR	brasilianportugali
@@ -86,22 +93,34 @@ frp	pan_Guru	pendjabi (gurmukhi)
 frp	por_BR	português brèsilien
 frp	por_PTpre1990	port. européen (ort. trad.)
 frp	tgk_translit	tadjik translitèrâ
+ita	cat_valencia	valenzano
+ita	oci_aran	aranese
+ita	por_BR	portoghese brasiliano
+ita	por_PTpre1990	port. europeo (ort. trad.)
+kaz_Arab	kaz_Arab	قازاقشا (اراب جازۋىمەن)
+kaz_Cyrl	kaz_Cyrl	қазақша (кирил жазуымен)
+kk	kaz_Arab	қазақша (араб жазуымен)
+kk	kaz_Cyrl	қазақша (кирил жазуымен)
+ky	hyx_hye	армянча (чыгыш)
+ky	hyx_hyw	армянча (батыш)
+ky	kaz_Arab	казакча (арап жазуусу)
+ky	kaz_Cyrl	казакча (кирилл жазуусу)
 nb	cat_valencia	valensiansk
+nb	nno_a_vi	nynorsk e-infinitiv, vi→vi
 nb	nno_e	nynorsk e-infinitiv, vi→vi
 nb	nno_e_me	nynorsk e-infinitiv, vi→me
-nb	nno_a_vi	nynorsk e-infinitiv, vi→vi
 nb	oci_aran	araneisk
 nb	por_BR	brasiliansk portugisisk
 nn	cat_valencia	valensiansk
+nn	nno_a_vi	nynorsk e-infinitiv, vi→vi
 nn	nno_e	nynorsk e-infinitiv, vi→vi
 nn	nno_e_me	nynorsk e-infinitiv, vi→me
-nn	nno_a_vi	nynorsk e-infinitiv, vi→vi
 nn	oci_aran	araneisk
 nn	por_BR	brasiliansk portugisisk
 no	cat_valencia	valensiansk
+no	nno_a_vi	nynorsk e-infinitiv, vi→vi
 no	nno_e	nynorsk e-infinitiv, vi→vi
 no	nno_e_me	nynorsk e-infinitiv, vi→me
-no	nno_a_vi	nynorsk e-infinitiv, vi→vi
 no	oci_aran	araneisk
 no	por_BR	brasiliansk portugisisk
 oci	cat_valencia	Valencian
@@ -129,15 +148,4 @@ szl	por_BR	portugalskŏ brazylijskŏ
 tr	cat_valencia	valensiyaca
 tr	oci_aran	Aranca
 tr	por_BR	Brezilya Portekizcesi
-en	kaz_Arab	Kazakh (Perso-Arabic script)
-en	kaz_Cyrl	Kazakh (Cyrillic script)
-kk	kaz_Arab	қазақша (араб жазуымен)
-kk	kaz_Cyrl	қазақша (кирил жазуымен)
-ky	kaz_Arab	казакча (арап жазуусу)
-ky	kaz_Cyrl	казакча (кирилл жазуусу)
-kaz_Arab	kaz_Arab	قازاقشا (اراب جازۋىمەن)
-kaz_Cyrl	kaz_Cyrl	қазақша (кирил жазуымен)
-eng_US	eng_US	English (US)
 wad-ipa	wad-ipa	Wamesa (IPA)
-cat_valencia	cat_valencia	valencià
-cat_iec2017	cat_iec2017	català (IEC 2017)

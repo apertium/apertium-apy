@@ -7,7 +7,7 @@ __copyright__ = 'Copyright 2013--2020, Kevin Brubeck Unhammer, Sushain K. Cheriv
 __credits__ = ['Kevin Brubeck Unhammer', 'Sushain K. Cherivirala', 'Jonathan North Washington', 'Xavi Ivars', 'Shardul Chiplunkar']
 __license__ = 'GPLv3'
 __status__ = 'Beta'
-__version__ = '0.11.6'
+__version__ = '0.12.0'
 
 import argparse
 import configparser
@@ -34,7 +34,7 @@ from typing import Sequence, Iterable, Type, List, Tuple, Any  # noqa: F401
 from apertium_apy import BYPASS_TOKEN, missing_freqs_db  # noqa: F401
 from apertium_apy import missingdb
 from apertium_apy import systemd
-from apertium_apy.mode_search import search_path
+from apertium_apy.mode_search import search_path, search_prefs
 from apertium_apy.utils.wiki import wiki_login, wiki_get_token
 
 from apertium_apy.handlers import (
@@ -53,6 +53,7 @@ from apertium_apy.handlers import (
     TranslateChainHandler,
     TranslateDocHandler,
     TranslateHandler,
+    PairPrefsHandler,
     TranslateRawHandler,
     TranslateWebpageHandler,
 )
@@ -116,6 +117,7 @@ def setup_handler(
         src_modes = search_path(nonpairs_path, include_pairs=False, verbosity=verbosity)
         for mtype in modes:
             modes[mtype] += src_modes[mtype]
+    handler.pairprefs = search_prefs(pairs_path)
 
     for mtype in modes:
         logging.info('%d %s modes found', len(modes[mtype]), mtype)
@@ -185,6 +187,8 @@ def parse_args(cli_args=sys.argv[1:]):
     parser.add_argument('-s', '--nonpairs-path', help='path to Apertium tree (only non-translator debug modes are included from this path)')
     parser.add_argument('-l', '--lang-names',
                         help='path to localised language names sqlite database (default = langNames.db)', default='langNames.db')
+    parser.add_argument('-F', '--fasttext-model',
+                        help='path to fastText language identification model (e.g. lid.release.ftz)')
     parser.add_argument('-f', '--missing-freqs', help='path to missing word frequency sqlite database (default = None)', default=None)
     parser.add_argument('-p', '--port', help='port to run server on (default = 2737)', type=int, default=2737)
     parser.add_argument('-c', '--ssl-cert', help='path to SSL Certificate', default=None)
@@ -235,11 +239,11 @@ def parse_args(cli_args=sys.argv[1:]):
 
         if not os.path.isfile(args.config):
             logging.warning('Configuration file does not exist,'
-                            ' please see http://wiki.apertium.org/'
+                            ' please see https://wiki.apertium.org/'
                             'wiki/Apy#Configuration for more information')
         elif 'APY' not in conf:
             logging.warning('Configuration file does not have APY section,'
-                            ' please see http://wiki.apertium.org/'
+                            ' please see https://wiki.apertium.org/'
                             'wiki/Apy#Configuration for more information')
         else:
             logging.info('Using configuration file ' + args.config)
@@ -263,6 +267,7 @@ def setup_application(args):
         (r'/list', ListHandler),
         (r'/listPairs', ListHandler),
         (r'/stats', StatsHandler),
+        (r'/pairprefs', PairPrefsHandler),
         (r'/translate', TranslateHandler),
         (r'/translateChain', TranslateChainHandler),
         (r'/translateDoc', TranslateDocHandler),
@@ -296,6 +301,10 @@ def setup_application(args):
             SuggestionHandler.wiki_session, 'edit', 'info|revisions')
 
         handlers.append((r'/suggest', SuggestionHandler))
+
+    if args.fasttext_model and importlib_util.find_spec('fasttext') is not None:
+        import fasttext
+        IdentifyLangHandler.fasttext = fasttext.FastText.load_model(args.fasttext_model)
 
     # TODO: fix mypy. Application expects List but List is invariant and we use subclasses
     return tornado.web.Application(handlers)  # type:ignore
@@ -331,8 +340,12 @@ def main():
     args = parse_args()
     setup_logging(args)  # before we start logging anything!
 
-    if importlib_util.find_spec('cld2full') is None:
-        logging.warning('Unable to import CLD2, continuing using naive method of language detection')
+    if importlib_util.find_spec('fasttext') is None:
+        logging.warning('Unable to import fastText, trying CLD2')
+        if importlib_util.find_spec('cld2full') is None:
+            logging.warning('Unable to import CLD2, continuing using naive method of language identification')
+    elif not args.fasttext_model:
+        logging.warning('Have fasttext lib, but started without --fasttext-model, not using fastText for language identification')
 
     if importlib_util.find_spec('chardet') is None:
         logging.warning('Unable to import chardet, assuming utf-8 encoding for all websites')

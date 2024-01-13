@@ -38,16 +38,18 @@ OPEN_OFFICE_XML_FILE_MARKERS = {
 }
 
 
-async def translate_doc(file_to_translate, fmt, mode_file, unknown_marks=False):
+async def translate_doc(file_to_translate, fmt, mode_file, unknown_marks=False, prefs=''):
     modes_dir = os.path.dirname(os.path.dirname(mode_file))
     mode = os.path.splitext(os.path.basename(mode_file))[0]
     if unknown_marks:
         cmd = ['apertium', '-f', fmt, '-d', modes_dir, mode]
     else:
         cmd = ['apertium', '-f', fmt, '-u', '-d', modes_dir, mode]
+    env = {'AP_SETVAR': prefs}
     proc = tornado.process.Subprocess(cmd,
                                       stdin=file_to_translate,
-                                      stdout=tornado.process.Subprocess.STREAM)
+                                      stdout=tornado.process.Subprocess.STREAM,
+                                      env=env)
     translated = await proc.stdout.read_until_close()
     proc.stdout.close()
     # TODO: raises but not caught:
@@ -109,6 +111,7 @@ class TranslateDocHandler(TranslateHandler):
                     t = yield translate_doc(temp_file,
                                             ALLOWED_MIME_TYPES[mtype],
                                             self.pairs['%s-%s' % pair],
-                                            self.mark_unknown)
+                                            self.mark_unknown,
+                                            self.get_argument('prefs', default=''))
                 self.write(t)
                 self.finish()

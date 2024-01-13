@@ -1,6 +1,6 @@
 [Unit]
 Description=Translation server and API for Apertium
-Documentation=http://wiki.apertium.org/wiki/Apertium-apy
+Documentation=https://wiki.apertium.org/wiki/Apertium-apy
 After=network.target
 
 [Service]
