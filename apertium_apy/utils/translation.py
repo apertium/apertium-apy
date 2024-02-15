@@ -122,10 +122,24 @@ def cmd_needs_z(cmd):
     exceptions = r'^\s*(vislcg3|cg-mwesplit|hfst-tokeni[sz]e|divvun-suggest)'
     return re.match(exceptions, cmd) is None
 
+def migrate_biltrans_transfer(mode_str):
+    """Convert old-style transfer autobil.bin to new-style lt-proc -b
+
+    As in https://github.com/apertium/apertium/blob/main/apertium/wblank-mode.cc#L67
+    """
+    if "lt-proc -b" not in mode_str:
+        return re.sub(
+            r"apertium-transfer\s+'([^']+)'\s+'([^']+)'\s+'([^']+autobil\.bin)'",
+            r"lt-proc -b '\3' | apertium-transfer -b '\1' '\2'",
+            mode_str
+        )
+    else:
+        return mode_str
 
 def parse_mode_file(mode_path):
     mode_str = open(mode_path, 'r').read().strip()
     if mode_str:
+        mode_str = migrate_biltrans_transfer(mode_str)
         if 'ca-oc@aran' in mode_str:
             do_flush = False
             modes_parentdir = os.path.dirname(os.path.dirname(mode_path))
