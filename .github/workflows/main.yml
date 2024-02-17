@@ -8,7 +8,6 @@ on:
 
 env:
   LANG: C.UTF-8
-  PIPENV_VENV_IN_PROJECT: 1
 
 jobs:
   test:
@@ -17,64 +16,44 @@ jobs:
     strategy:
       matrix:
         python-version:
-          - 3.8.18
-          - 3.9.18
-          - 3.10.13
-          - 3.11.7
-          - 3.12.1
-    env:
-      PYENV_VERSION: ${{ matrix.python-version }}
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+          - "3.12"
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Set PYENV_ROOT
-        run: echo "PYENV_ROOT=${RUNNER_TEMP}/pyenv" >> $GITHUB_ENV
-      - name: Cache Python installation
-        uses: actions/cache@v2
-        id: cache-python
+      - uses: actions/setup-python@v5
         with:
-          path: ${{ env.PYENV_ROOT }}/versions/${{ matrix.python-version }}
-          key: ${{ runner.os }}-python${{ matrix.python-version }}-v1
-      - name: Install Python
-        run: pyenv install ${{ matrix.python-version }}
-        if: steps.cache-python.outputs.cache-hit != 'true'
-
+          python-version: ${{ matrix.python-version }}
+          cache: pipenv
       - name: Install Pipenv
-        run: pyenv exec pip install pipenv
-      - name: Cache Pip dependencies
-        id: cache-pipenv
-        uses: actions/cache@v2
-        with:
-          path: .venv
-          key: ${{ runner.os }}-python${{ matrix.python-version }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}-v3
+        run: wget -qO- https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
       - name: Install Pip dependencies
-        if: steps.cache-pipenv.outputs.cache-hit != 'true'
-        run: pyenv exec pipenv install --dev
+        run: pipenv install --deploy --dev
 
       - name: Build
-        run: pyenv exec pipenv run make
+        run: pipenv run make
 
       - name: Test
-        run: NONPAIRS=/tmp/languages pyenv exec pipenv run make unit-test
+        run: NONPAIRS=/tmp/languages pipenv run make unit-test
   lint:
     runs-on: ubuntu-latest
     container: ghcr.io/apertium/apertium-apy-cicd
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Install Pipenv
-        run: pip3 install pipenv
-      - name: Cache Pip dependencies
-        id: cache-pipenv
-        uses: actions/cache@v2
+      - uses: actions/setup-python@v5
         with:
-          path: .venv
-          key: ${{ runner.os }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}-v3
+          python-version: "3.12"
+          cache: pipenv
+      - name: Install Pipenv
+        run: wget -qO- https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
       - name: Install Pip dependencies
-        if: steps.cache-pipenv.outputs.cache-hit != 'true'
-        run: pipenv install --dev
+        run: pipenv install --deploy --dev
 
       - name: Build
         run: pipenv run make
@@ -86,19 +65,16 @@ jobs:
     container: ghcr.io/apertium/apertium-apy-cicd
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Install Pipenv
-        run: pip3 install pipenv
-      - name: Cache Pip dependencies
-        id: cache-pipenv
-        uses: actions/cache@v2
+      - uses: actions/setup-python@v5
         with:
-          path: .venv
-          key: ${{ runner.os }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}-v3
+          python-version: "3.12"
+          cache: pipenv
+      - name: Install Pipenv
+        run: wget -qO- https://raw.githubusercontent.com/pypa/pipenv/master/get-pipenv.py | python
       - name: Install Pip dependencies
-        if: steps.cache-pipenv.outputs.cache-hit != 'true'
-        run: pipenv install --dev
+        run: pipenv install --deploy --dev
 
       - name: Build
         run: pipenv run make
