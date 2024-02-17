@@ -37,6 +37,9 @@ jobs:
       - name: Build
         run: pipenv run make
 
+      - name: Install system dependencies
+        run: apt-get update && apt-get install -y file
+
       - name: Test
         run: NONPAIRS=/tmp/languages pipenv run make unit-test
   lint:
@@ -78,6 +81,9 @@ jobs:
 
       - name: Build
         run: pipenv run make
+
+      - name: Install system dependencies
+        run: apt-get update && apt-get install -y file
 
       - name: Test
         run: NONPAIRS=/tmp/languages pipenv run make coverage
