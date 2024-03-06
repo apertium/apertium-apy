@@ -15,6 +15,7 @@ import string
 import random
 import base64
 import fcntl
+import json
 from subprocess import Popen, PIPE
 from multiprocessing import Pool, TimeoutError
 from functools import wraps
@@ -1459,6 +1460,50 @@ class SuggestionHandler(BaseHandler):
                 self.send_error(400, explanation='Page update failed')
 
 
+
+class EnhanceHandler(BaseHandler):
+    uitgpt_endpoint = None
+    uitgpt_apikey = None
+
+    @gen.coroutine
+    def get(self):
+        # TODO: how do we get POST data here? (How does html-tools send POST data?)
+        q = self.get_argument('q', None)
+        lang = self.get_argument('lang', None)
+        if self.uitgpt_apikey is None or self.uitgpt_endpoint is None:
+            self.send_error(500, explanation="ChatUiT disabled")
+            return
+        headers = {
+            "Content-Type": "application/json",
+            "api-key": self.uitgpt_apikey
+        }
+        payload = {
+            "messages": [
+                {"role": "system", "content": "Teksten har språkkode "+lang+". Rett grammatiske feil i teksten."},  # TODO tweak prompt
+                {"role": "user", "content": q}
+            ],
+            "temperature": 0.15,
+            "stream": False
+        }
+        try:
+            response = yield httpclient.AsyncHTTPClient().fetch(self.uitgpt_endpoint,
+                                                                method="POST",
+                                                                body=json.dumps(payload),
+                                                                headers=headers)
+            parsed = json.loads(response.body)
+            fixed = parsed['choices'][0]['message']['content']
+            self.sendResponse({
+                'responseData': {
+                    'status': 'Success',
+                    'translatedText': fixed
+                },
+                'responseDetails': None,
+                'responseStatus': 200
+            })
+        except Exception as e:
+            logging.warning(e)
+            self.send_error(500, explanation="Could not connect to ChatUiT")
+
 class ReportErrorHandler(BaseHandler):
     @gen.coroutine
     def get(self):
@@ -1536,8 +1581,7 @@ def setupHandler(
     port, pairs_path, nonpairs_path, langNames, missingFreqsPath, timeout,
     max_pipes_per_pair, min_pipes_per_pair, max_users_per_pipe, max_idle_secs,
     restart_pipe_after, max_doc_pipes, verbosity=0, scaleMtLogs=False, memory=1000,
-    userdb=None, url_xsls=[], url_cache_path=None, error_reports=None
-):
+    userdb=None, url_xsls=[], url_cache_path=None, error_reports=None):
     global missingFreqsDb
     if missingFreqsPath:
         missingFreqsDb = missingdb.MissingDb(missingFreqsPath, memory)
@@ -1560,6 +1604,9 @@ def setupHandler(
         Handler.url_xsls = translation.walkGTCorpus(corpuspath, Handler.url_xsls)
     Handler.url_cache_path = url_cache_path
     Handler.doc_pipe_sem = Semaphore(max_doc_pipes)
+
+    EnhanceHandler.uitgpt_apikey = os.environ.get("UITGPT_APIKEY", None)
+    EnhanceHandler.uitgpt_endpoint = os.environ.get("UITGPT_ENDPOINT", None)
 
     modes = searchPath(pairs_path, verbosity=verbosity)
     if nonpairs_path:
@@ -1715,7 +1762,8 @@ if __name__ == '__main__':
         (r'/getLocale', GetLocaleHandler),
         (r'/pipedebug', PipeDebugHandler),
         (r'/reportError', ReportErrorHandler),
-        (r'/suggest', SuggestionHandler)
+        (r'/suggest', SuggestionHandler),
+        (r'/enhance', EnhanceHandler),
     ])
 
     if args.bypass_token:
@@ -1740,6 +1788,9 @@ if __name__ == '__main__':
                 args.wiki_password)
             SuggestionHandler.wiki_edit_token = wikiGetToken(
                 SuggestionHandler.wiki_session, 'edit', 'info|revisions')
+
+    if EnhanceHandler.uitgpt_endpoint is None or EnhanceHandler.uitgpt_apikey is None:
+        logging.warning('Export UITGPT_ENDPOINT and UITGPT_APIKEY to enable /enhance functionality')
 
     global http_server
     if args.ssl_cert and args.ssl_key:
