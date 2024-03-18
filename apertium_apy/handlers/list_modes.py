@@ -52,7 +52,7 @@ class ListHandler(BaseHandler):
         elif query == 'spellers':
             self.send_response({lang_src: modename for (lang_src, (path, modename)) in self.spellers.items()})
         else:
-            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, spellers, disambiguators, or pairs')
+            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, spellers, disambiguators, pairs or all')
 
 class ListPairHandler(BaseHandler):
     @tornado.gen.coroutine
