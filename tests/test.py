@@ -143,6 +143,33 @@ class TestRootHandler(BaseTestCase):
 
 
 class TestListHandler(BaseTestCase):
+    def test_list_all(self):
+        response = self.fetch_json('/list', {'q': 'all'})
+        self.assertIsNone(response['responseDetails'])
+        self.assertEqual(response['responseStatus'], 200)
+
+        expected_pairs = set(map(lambda x: frozenset(x.items()), [
+            {'sourceLanguage': 'sme', 'targetLanguage': 'nob'},
+            {'sourceLanguage': 'eng', 'targetLanguage': 'spa'},
+            {'sourceLanguage': 'spa', 'targetLanguage': 'eng_US'},
+            {'sourceLanguage': 'spa', 'targetLanguage': 'eng'},
+        ]))
+        expected_generators = {'nno': 'nno-gener'}
+        expected_taggers = {'nno': 'nno-tagger'}
+        expected_spellers = {'nno': 'nno-speller'}
+
+        response_pairs = set(map(lambda x: frozenset(x.items()), response['responseData']['pairsData']))
+        self.assertTrue(response_pairs >= expected_pairs, '{} is missing one of {}'.format(response_pairs, expected_pairs))
+
+        self.assertTrue(response['responseData']['generatorsData'].items() >= expected_generators.items(),
+                        '{} is missing {}'.format(response['responseData']['generatorsData'], expected_generators))
+
+        self.assertTrue(response['responseData']['taggersData'].items() >= expected_taggers.items(),
+                        '{} is missing {}'.format(response['responseData']['taggersData'], expected_taggers))
+
+        self.assertTrue(response['responseData']['spellersData'].items() >= expected_spellers.items(),
+                        '{} is missing {}'.format(response['responseData']['spellersData'], expected_spellers))
+
     def test_list_pairs(self):
         response = self.fetch_json('/list', {'q': 'pairs'})
         self.assertIsNone(response['responseDetails'])
