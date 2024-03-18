@@ -29,6 +29,18 @@ class ListHandler(BaseHandler):
                 'responseStatus': 200
             }
             self.send_response(response)
+        elif query == 'pairs':
+            src = self.get_argument('src', default=None)
+            response_data = []
+            if src:
+                pairs = [(src, trg) for trg in self.paths[src]]
+            else:
+                pairs = [(p[0], p[1]) for par in self.pairs for p in [par.split('-')]]
+            for (l1, l2) in pairs:
+                response_data.append({'sourceLanguage': l1, 'targetLanguage': l2})
+                if self.get_arguments('include_deprecated_codes'):
+                    response_data.append({'sourceLanguage': to_alpha2_code(l1), 'targetLanguage': to_alpha2_code(l2)})
+            self.send_response({'responseData': response_data, 'responseDetails': None, 'responseStatus': 200})
         elif query == 'analyzers' or query == 'analysers':
             self.send_response({pair: modename for (pair, (path, modename)) in self.analyzers.items()})
         elif query == 'generators':
