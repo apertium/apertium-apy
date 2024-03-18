@@ -44,6 +44,7 @@ from apertium_apy.handlers import (
     GenerateHandler,
     IdentifyLangHandler,
     ListHandler,
+    ListPairHandler,
     ListLanguageNamesHandler,
     PerWordHandler,
     PipeDebugHandler,
@@ -265,7 +266,7 @@ def setup_application(args):
     handlers = [
         (r'/', RootHandler),
         (r'/list', ListHandler),
-        (r'/listPairs', ListHandler),
+        (r'/listPairs', ListPairHandler),
         (r'/stats', StatsHandler),
         (r'/pairprefs', PairPrefsHandler),
         (r'/translate', TranslateHandler),
