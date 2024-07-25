@@ -11,19 +11,14 @@ from apertium_apy.utils import to_alpha3_code
 if False:
     from typing import Dict, List, Tuple  # noqa: F401
 
-
 def is_loop(dirpath, rootpath, real_root=None):
     if os.path.islink(dirpath):
-        # We just descended into a directory via a symbolic link
-        # Check if we're referring to a directory that is
-        # a parent of our nominal directory
         if not real_root:
             real_root = os.path.abspath(os.path.realpath(rootpath))
         relative = os.path.relpath(dirpath, rootpath)
         nominal_path = os.path.join(real_root, relative)
         real_path = os.path.abspath(os.path.realpath(dirpath))
-        for nominal, real in zip(nominal_path.split(os.sep),
-                                 real_path.split(os.sep)):
+        for nominal, real in zip(nominal_path.split(os.sep), real_path.split(os.sep)):
             if nominal != real:
                 return False
         else:
@@ -31,6 +26,21 @@ def is_loop(dirpath, rootpath, real_root=None):
     else:
         return False
 
+def search_voikko_paths(voikko_path='~/.voikko/3'):
+    voikko_path = os.path.expanduser(voikko_path)
+    voikko_modes = []
+
+    if not os.path.exists(voikko_path):
+        logging.warning('Voikko path does not exist: {}'.format(voikko_path))
+        return voikko_modes
+
+    for filename in os.listdir(voikko_path):
+        if filename.endswith('.zhfst'):
+            alpha2_code = filename.split('.')[0]
+            lang3_code = to_alpha3_code(alpha2_code)
+            voikko_modes.append(lang3_code)
+
+    return voikko_modes
 
 def search_path(rootpath, include_pairs=True, verbosity=1):
     lang_code = r'[a-z]{2,3}(?:_[A-Za-z0-9]+)*'
@@ -49,6 +59,7 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
         'tagger': [],
         'spell': [],
         'tokenise': [],
+        'voikko': [],
     }  # type: Dict[str, List[Tuple[str, str, str]]]
 
     real_root = os.path.abspath(os.path.realpath(rootpath))
@@ -78,11 +89,13 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
                                 to_alpha3_code(lang_trg))
                         modes[mtype].append(mode)
 
+    voikko_modes = search_voikko_paths()
+    modes['voikko'] = voikko_modes
+
     if verbosity > 1:
         _log_modes(modes)
 
     return modes
-
 
 def search_prefs(rootpath):
     if etree is None:
@@ -104,7 +117,6 @@ def search_prefs(rootpath):
         except Exception:
             logging.warning('Exception on parsing preferences file {}'.format(fp))
     return pairprefs
-
 
 def _log_modes(modes):
     """Print given modes to log."""
