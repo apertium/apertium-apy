@@ -3,7 +3,6 @@ import tornado.gen
 from apertium_apy.handlers.base import BaseHandler
 from apertium_apy.utils import to_alpha2_code
 
-
 class ListHandler(BaseHandler):
     @tornado.gen.coroutine
     def get(self):
@@ -29,5 +28,7 @@ class ListHandler(BaseHandler):
             self.send_response({pair: modename for (pair, (path, modename)) in self.taggers.items()})
         elif query == 'spellers':
             self.send_response({lang_src: modename for (lang_src, (path, modename)) in self.spellers.items()})
+        elif query == 'voikko_modes':
+            self.send_response({lang_code: f"{lang_code}-voikko_spell" for lang_code in self.voikko_modes})
         else:
-            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, spellers, disambiguators, or pairs')
+            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, spellers, disambiguators, voikko_modes, or pairs')
