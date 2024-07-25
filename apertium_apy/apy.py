@@ -56,6 +56,7 @@ from apertium_apy.handlers import (
     PairPrefsHandler,
     TranslateRawHandler,
     TranslateWebpageHandler,
+    VoikkoSpellerHandler,
 )
 
 
@@ -133,6 +134,8 @@ def setup_handler(
     for dirpath, modename, lang_src in modes['spell']:
         if (any(lang_src == elem[2] for elem in modes['tokenise'])):
             handler.spellers[lang_src] = (dirpath, modename)
+
+    handler.voikko_modes = modes['voikko']
 
     handler.init_pairs_graph()
     handler.init_paths()
@@ -281,6 +284,7 @@ def setup_application(args):
         (r'/identifyLang', IdentifyLangHandler),
         (r'/getLocale', GetLocaleHandler),
         (r'/pipedebug', PipeDebugHandler),
+        (r'/speller/voikko', VoikkoSpellerHandler),
     ]  # type: List[Tuple[str, Type[tornado.web.RequestHandler]]]
 
     if importlib_util.find_spec('streamparser'):
