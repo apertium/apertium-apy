@@ -16,9 +16,9 @@ class MultiSpellerHandler(BaseHandler):
             self.send_error(400, explanation="Invalid spell checker specified. Only 'voikko' and 'divvun' are allowed.")
             return
         
-        in_mode = self.find_fallback_mode(in_mode, self.spell_modes)
+        in_mode = self.find_fallback_mode(in_mode, self.spellers)
         
-        if in_mode in self.spell_modes:
+        if in_mode in self.spellers:
             mode = to_alpha2_code(in_mode)
             tokens = in_text.split()
             units = []
@@ -37,7 +37,8 @@ class MultiSpellerHandler(BaseHandler):
         if spell_checker == 'voikko':
             commands = [['voikkospell', '-d', mode, '-s']]
         elif spell_checker == 'divvun':
-            speller_path = os.path.expanduser(f'~/.voikko/3/{mode}.zhfst')
+            base_path = os.path.expanduser("~")
+            speller_path = os.path.join(base_path, ".voikko", "3", f'{mode}.zhfst')
             commands = [['divvunspell', 'suggest', '-a', speller_path]]
 
         result = yield translate_simple(token, commands)
@@ -48,9 +49,6 @@ class MultiSpellerHandler(BaseHandler):
             return self.parse_voikko_result(token, result)
         elif spell_checker == 'divvun':
             return self.parse_divvun_result(token, result)
-        else:
-            self.send_error(500, explanation="Unknown spell checker specified.")
-            return {'token': token, 'known': False, 'sugg': []}
     
     def parse_voikko_result(self, token, result):
         known = False

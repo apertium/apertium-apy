@@ -135,8 +135,6 @@ def setup_handler(
         if (any(lang_src == elem[2] for elem in modes['tokenise'])):
             handler.spellers[lang_src] = (dirpath, modename)
 
-    handler.spell_modes = modes['voikko']
-
     handler.init_pairs_graph()
     handler.init_paths()
 

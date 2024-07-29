@@ -29,7 +29,5 @@ class ListHandler(BaseHandler):
             self.send_response({pair: modename for (pair, (path, modename)) in self.taggers.items()})
         elif query == 'spellers':
             self.send_response({lang_src: modename for (lang_src, (path, modename)) in self.spellers.items()})
-        elif query == 'spellcheckers':
-            self.send_response({lang_code: f"{lang_code}-spell" for lang_code in self.spell_modes})
         else:
-            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, spellers, disambiguators, spellcheckers, or pairs')
+            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, spellers, disambiguators, or pairs')
