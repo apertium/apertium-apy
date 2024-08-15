@@ -44,5 +44,5 @@ RUN cd apertium-apy && make -j4
 # Run APy
 
 EXPOSE 2737
-ENTRYPOINT ["python3", "/root/apertium-apy/servlet.py", "--lang-names", "/root/apertium-apy/langNames.db"]
+ENTRYPOINT ["python3", "/root/apertium-apy/apy.py", "--lang-names", "/root/apertium-apy/langNames.db"]
 CMD ["/usr/share/apertium/modes", "--port", "2737"]
