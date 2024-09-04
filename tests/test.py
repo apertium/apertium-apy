@@ -50,7 +50,7 @@ def setUpModule():  # noqa: N802
         for _ in range(3):
             time.sleep(1)
             print('.')
-    server_handle = subprocess.Popen(coverage_cli_args + [os.path.join(base_path, 'servlet.py')] + cli_args)  # TODO: print only on error?
+    server_handle = subprocess.Popen(coverage_cli_args + [os.path.join(base_path, 'apy.py')] + cli_args)  # TODO: print only on error?
 
     started = False
     waited = 0

@@ -7,7 +7,7 @@ __copyright__ = 'Copyright 2013--2020, Kevin Brubeck Unhammer, Sushain K. Cheriv
 __credits__ = ['Kevin Brubeck Unhammer', 'Sushain K. Cherivirala', 'Jonathan North Washington', 'Xavi Ivars', 'Shardul Chiplunkar']
 __license__ = 'GPLv3'
 __status__ = 'Beta'
-__version__ = '0.12.0'
+__version__ = '0.12.1'
 
 import argparse
 import configparser
