@@ -12,8 +12,10 @@ from apertium_apy import missing_freqs_db  # noqa: F401
 from apertium_apy.handlers.base import BaseHandler
 from apertium_apy.keys import ApiKeys
 from apertium_apy.utils import to_alpha3_code, scale_mt_log
-from apertium_apy.utils.translation import parse_mode_file, make_pipeline, FlushingPipeline, SimplePipeline
-from typing import Union
+from apertium_apy.utils.translation import parse_mode_file, make_pipeline
+# Typing imports that flake8 doesn't understand:
+from apertium_apy.utils.translation import FlushingPipeline, SimplePipeline  # noqa: F401
+from typing import Union        # noqa: F401
 
 
 class TranslationInfo:
@@ -138,16 +140,18 @@ class TranslateHandler(BaseHandler):
     def get_pair_or_error(self, langpair, text_length):
         try:
             l1, l2 = map(to_alpha3_code, langpair.split('|'))
+            in_mode = '%s-%s' % (l1, l2)
         except ValueError:
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
             self.log_after_translation(self.log_before_translation(), text_length)
             return None
-        if '%s-%s' % (l1, l2) not in self.pairs:
+        in_mode = self.find_fallback_mode(in_mode, self.pairs)
+        if in_mode not in self.pairs:
             self.send_error(400, explanation='That pair is not installed')
             self.log_after_translation(self.log_before_translation(), text_length)
             return None
         else:
-            return (l1, l2)
+            return tuple(in_mode.split('-'))
 
     def get_format(self):
         dereformat = self.get_argument('format', default=None)
@@ -167,12 +171,12 @@ class TranslateHandler(BaseHandler):
         return deformat, reformat
 
     @gen.coroutine
-    def translate_and_respond(self, pair, pipeline, to_translate, mark_unknown, nosplit=False, deformat=True, reformat=True):
+    def translate_and_respond(self, pair, pipeline, to_translate, mark_unknown, nosplit=False, deformat=True, reformat=True, prefs=''):
         mark_unknown = mark_unknown in ['yes', 'true', '1']
         self.note_pair_usage(pair)
         before = self.log_before_translation()
         try:
-            translated = yield pipeline.translate(to_translate, nosplit, deformat, reformat)
+            translated = yield pipeline.translate(to_translate, nosplit, deformat, reformat, prefs)
             self.log_after_translation(before, len(to_translate))
             self.send_response({
                 'responseData': {
@@ -204,7 +208,9 @@ class TranslateHandler(BaseHandler):
                                              self.get_argument('markUnknown', default='yes'),
                                              nosplit=False,
                                              deformat=deformat,
-                                             reformat=reformat)
+                                             reformat=reformat,
+                                             prefs=self.get_argument('prefs', default=''),
+                                             )
 
     @classmethod
     def get_api_key(cls, key):
@@ -212,3 +218,9 @@ class TranslateHandler(BaseHandler):
             cls.api_keys = ApiKeys(cls.api_keys_conf)
 
         return cls.api_keys.get_key(key)
+
+
+class PairPrefsHandler(BaseHandler):
+    @gen.coroutine
+    def get(self):
+        self.send_response(self.pairprefs)

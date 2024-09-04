@@ -1,13 +1,14 @@
 [Unit]
 Description=Translation server and API for Apertium
-Documentation=http://wiki.apertium.org/wiki/Apertium-apy
+Documentation=https://wiki.apertium.org/wiki/Apertium-apy
 After=network.target
 
 [Service]
 # Change this to your username and edit to how you start apy:
 User=apertium
 WorkingDirectory=/usr/share/apertium-apy
-ExecStart=/usr/bin/python3 servlet.py /usr/share/apertium/modes
+ExecStart=/usr/bin/python3 /usr/lib/python3/dist-packages/apertium_apy/apy.py --fasttext-model lid.beta.ftz --lang-names langNames.db /usr/share/apertium/modes
+
 
 # Increase the ulimit -n from the default 1024 – you may get the error
 # "Too many open files" with a lot of pipelines open.

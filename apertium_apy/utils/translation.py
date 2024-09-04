@@ -47,7 +47,7 @@ class Pipeline(object):
         return self.users < other.users
 
     @gen.coroutine
-    def translate(self, to_translate, nosplit, deformat, reformat):
+    def translate(self, to_translate, nosplit, deformat, reformat, prefs):
         raise Exception('Not implemented, subclass me!')
 
 
@@ -66,14 +66,14 @@ class FlushingPipeline(Pipeline):
         # server – why?
 
     @gen.coroutine
-    def translate(self, to_translate, nosplit=False, deformat=True, reformat=True):
+    def translate(self, to_translate, nosplit=False, deformat=True, reformat=True, prefs=''):
         with self.use():
             if nosplit:
-                res = yield translate_nul_flush(to_translate, self, deformat, reformat, self.timeout)
+                res = yield translate_nul_flush(to_translate, self, deformat, reformat, self.timeout, prefs)
                 return res
             else:
                 all_split = split_for_translation(to_translate, n_users=self.users)
-                parts = yield [translate_nul_flush(part, self, deformat, reformat, self.timeout)
+                parts = yield [translate_nul_flush(part, self, deformat, reformat, self.timeout, prefs)
                                for part in all_split]
                 return ''.join(parts)
 
@@ -84,10 +84,10 @@ class SimplePipeline(Pipeline):
         super().__init__(*args, **kwargs)
 
     @gen.coroutine
-    def translate(self, to_translate, nosplit='ignored', deformat='ignored', reformat='ignored'):
+    def translate(self, to_translate, nosplit='ignored', deformat='ignored', reformat='ignored', prefs=''):
         with self.use():
             with (yield self.lock.acquire()):
-                res = yield translate_simple(to_translate, self.commands)
+                res = yield translate_simple(to_translate, self.commands, prefs)
                 return res
 
 
@@ -123,9 +123,25 @@ def cmd_needs_z(cmd):
     return re.match(exceptions, cmd) is None
 
 
+def migrate_biltrans_transfer(mode_str):
+    """Convert old-style transfer autobil.bin to new-style lt-proc -b
+
+    As in https://github.com/apertium/apertium/blob/main/apertium/wblank-mode.cc#L67
+    """
+    if 'lt-proc -b' not in mode_str:
+        return re.sub(
+            r"apertium-transfer\s+'([^']+)'\s+'([^']+)'\s+'([^']+autobil\.bin)'",
+            r"lt-proc -b '\3' | apertium-transfer -b '\1' '\2'",
+            mode_str,
+        )
+    else:
+        return mode_str
+
+
 def parse_mode_file(mode_path):
     mode_str = open(mode_path, 'r').read().strip()
     if mode_str:
+        mode_str = migrate_biltrans_transfer(mode_str)
         if 'ca-oc@aran' in mode_str:
             do_flush = False
             modes_parentdir = os.path.dirname(os.path.dirname(mode_path))
@@ -237,13 +253,13 @@ def validate_formatters(deformat, reformat):
     return valid1(deformat, deformatters), valid1(reformat, reformatters)
 
 
-class ProcessFailure(Exception):
+class ProcessFailureError(Exception):
     pass
 
 
 def check_ret_code(name, proc):
     if proc.returncode != 0:
-        raise ProcessFailure('%s failed, exit code %s', name, proc.returncode)
+        raise ProcessFailureError('%s failed, exit code %s', name, proc.returncode)
 
 
 @gen.coroutine
@@ -260,7 +276,7 @@ def coreduce(init, funcs, *args):
     return result
 
 
-async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_reformat, timeout):
+async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_reformat, timeout, prefs):
     with (await pipeline.lock.acquire()):
         proc_in, proc_out = pipeline.inpipe, pipeline.outpipe
         deformat, reformat = validate_formatters(unsafe_deformat, unsafe_reformat)
@@ -275,8 +291,9 @@ async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_re
             deformatted = bytes(to_translate, 'utf-8')
 
         nonce = '[/NONCE:' + token_urlsafe(8) + ']'
-        proc_in.stdin.write(deformatted)
-        proc_in.stdin.write(bytes('\0' + nonce + '\0', 'utf-8'))
+        await proc_in.stdin.write(bytes(format_prefs(prefs), 'utf-8'))
+        await proc_in.stdin.write(deformatted)
+        await proc_in.stdin.write(bytes('\0' + nonce + '\0', 'utf-8'))
         # TODO: PipeIOStream has no flush, but seems to work anyway?
         # proc_in.stdin.flush()
 
@@ -284,6 +301,7 @@ async def translate_nul_flush(to_translate, pipeline, unsafe_deformat, unsafe_re
         noncereader = proc_out.stdout.read_until(bytes(nonce + '\0', 'utf-8'))
         output = await asyncio.wait_for(noncereader, timeout=timeout)
         output = output.replace(bytes(nonce, 'utf-8'), b'')
+        output = strip_prefs(output)
 
         if reformat:
             proc_reformat = Popen(reformat, stdin=PIPE, stdout=PIPE)
@@ -329,20 +347,34 @@ def translate_pipeline(to_translate, commands):
     towrite = proc_reformat.communicate()[0]
     check_ret_code('Reformatter', proc_reformat)
 
-    output.append(towrite)
+    output.append(towrite.decode('utf-8'))
     all_cmds.append('apertium-rehtml-noent')
 
     return output, all_cmds
 
 
-async def translate_simple(to_translate, commands):
+async def translate_simple(to_translate, commands, prefs=''):
     proc_in, proc_out = start_pipeline(commands)
     assert proc_in == proc_out
+    await proc_in.stdin.write(bytes(format_prefs(prefs), 'utf-8'))
     await proc_in.stdin.write(bytes(to_translate, 'utf-8'))
     proc_in.stdin.close()
     translated = await proc_out.stdout.read_until_close()
     proc_in.stdout.close()
-    return translated.decode('utf-8')
+    return strip_prefs(translated).decode('utf-8')
+
+
+def format_prefs(prefs):
+    """Assumes prefs is a string of comma-separated preference values."""
+    if prefs and prefs != '':
+        return '[<STREAMCMD:SETVAR:{}>]'.format(prefs)
+    else:
+        return ''
+
+
+def strip_prefs(translation):
+    """Remove what was inserted by format_prefs; works on bytes."""
+    return re.sub(rb'\[<STREAMCMD:SETVAR:[^>]*>]', b'', translation)
 
 
 def start_pipeline_from_modefile(mode_file, fmt, unknown_marks=False):
@@ -355,17 +387,18 @@ def start_pipeline_from_modefile(mode_file, fmt, unknown_marks=False):
     return start_pipeline([cmd])
 
 
-async def translate_modefile_bytes(to_translate_bytes, fmt, mode_file, unknown_marks=False):
+async def translate_modefile_bytes(to_translate_bytes, fmt, mode_file, unknown_marks=False, prefs=''):
     proc_in, proc_out = start_pipeline_from_modefile(mode_file, fmt, unknown_marks)
     assert proc_in == proc_out
+    await proc_in.stdin.write(bytes(format_prefs(prefs), 'utf-8'))
     await proc_in.stdin.write(to_translate_bytes)
     proc_in.stdin.close()
     translated_bytes = await proc_out.stdout.read_until_close()
     proc_in.stdout.close()
-    return translated_bytes
+    return strip_prefs(translated_bytes)
 
 
 @gen.coroutine
-def translate_html_mark_headings(to_translate, mode_file, unknown_marks=False):
-    translated = yield translate_modefile_bytes(bytes(to_translate, 'utf-8'), 'html', mode_file, unknown_marks)
+def translate_html_mark_headings(to_translate, mode_file, unknown_marks=False, prefs=''):
+    translated = yield translate_modefile_bytes(bytes(to_translate, 'utf-8'), 'html', mode_file, unknown_marks, prefs)
     return translated.decode('utf-8')

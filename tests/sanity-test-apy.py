@@ -200,7 +200,7 @@ def test_all(host):
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
-        print("ERROR: Expected APy server url as argument, e.g. 'https://www.apertium.org/apy' or 'localhost:2737'")
+        print("ERROR: Expected APy server url as argument, e.g. 'https://apertium.org/apy' or 'localhost:2737'")
         sys.exit(1)
     else:
         test_all(sys.argv[1])

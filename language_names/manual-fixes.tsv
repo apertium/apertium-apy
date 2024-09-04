@@ -175,6 +175,7 @@ en	srd	Sardinian
 en	tr	Turkish
 en	tyv	Tuvan
 en	ug	Uyghur
+en	wad	Wamesa
 en	zlm	Malay
 es	scn	siciliano
 es	srd	sardo
@@ -199,6 +200,7 @@ kk	en	ағылшынша
 kk	gag	ғағауызша
 kk	gd	шотландиялық гэл тілі
 kk	kaa	қарақалпақша
+kk	kjh	хақасша
 kk	kk	қазақша
 kk	kum	құмықша
 kk	ky	қырғызша
@@ -209,7 +211,6 @@ kk	tt	татарша
 kk	tyv	тываша
 kk	ug	ұйғұрша
 kk	uz	өзбекше
-kk	kjh	хақасша
 ky	ar	арабча
 ky	ba	башкортчо
 ky	crh	кырымтатарча
@@ -217,6 +218,7 @@ ky	cv	чубашча
 ky	gag	гагаузча
 ky	he	ивритче
 ky	kaa	каракалпакча
+ky	kjh	хакасча
 ky	ku	куртча
 ky	kum	кумукча
 ky	nog	ногойчо
@@ -226,7 +228,6 @@ ky	tr	түркчө
 ky	tyv	тывача
 ky	ug	уйгурча
 ky	uz	өзбекче
-ky	kjh	хакасча
 nb	smj	lulesamisk
 nb	smn	enaresamisk
 nn	smj	lulesamisk
