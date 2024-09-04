@@ -18,7 +18,7 @@ import tornado.web
 from tornado.options import enable_pretty_logging  # type: ignore
 from tornado.web import RequestHandler
 
-import apy
+from apertium_apy.handlers.base import BaseHandler
 
 if False:
     from typing import Any, Dict, List, Set, Tuple  # noqa: F401
@@ -111,7 +111,7 @@ class RedirectRequestHandler(RequestHandler):
         self.get()
 
 
-class ListRequestHandler(apy.BaseHandler):
+class ListRequestHandler(BaseHandler):
     """Handler for list requests. Takes a language-pair-server map and aggregates the language-pairs of all of the servers."""
 
     def initialize(self, server_lang_pair_map):

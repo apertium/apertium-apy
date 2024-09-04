@@ -13,7 +13,7 @@ analysis and generation. More information is available on the [Apertium Wiki][1]
 Requirements
 ------------
 
-- Python 3.6+
+- Python 3.8+
 - Tornado 4.5.3 - 6.0.4 (`python3-tornado` on Debian/Ubuntu)
 
 Additional functionality is provided by installation
