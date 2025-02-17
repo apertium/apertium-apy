@@ -72,7 +72,6 @@ setup(
         ('share/apertium-apy/tools', files('tools')),
         ('share/apertium-apy/tools/systemd', files('tools/systemd')),
         ('share/apertium-apy/tools/sysvinit', files('tools/sysvinit')),
-        ('share/apertium-apy/tools/upstart', files('tools/upstart')),
     ],
     cmdclass={
         'install': InstallHelper,
