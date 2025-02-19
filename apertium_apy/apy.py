@@ -56,6 +56,7 @@ from apertium_apy.handlers import (
     PairPrefsHandler,
     TranslateRawHandler,
     TranslateWebpageHandler,
+    MultiSpellerHandler,
 )
 
 
@@ -281,6 +282,7 @@ def setup_application(args):
         (r'/identifyLang', IdentifyLangHandler),
         (r'/getLocale', GetLocaleHandler),
         (r'/pipedebug', PipeDebugHandler),
+        (r'/spellCheck', MultiSpellerHandler),
     ]  # type: List[Tuple[str, Type[tornado.web.RequestHandler]]]
 
     if importlib_util.find_spec('streamparser'):
