@@ -50,7 +50,7 @@ class RedirectRequestHandler(RequestHandler):
             '/analyse': 'analyzers', '/generate': 'generators',
             '/perWord': 'perWord', '/coverage': 'coverage',
             '/listLanguageNames': 'languageNames', '/identifyLang': 'identifyLang',
-            '/getLocale': 'getLocale',
+            '/getLocale': 'getLocale', '/guessers': 'guessers',
         }
 
         if path not in path_to_mode:
@@ -69,6 +69,8 @@ class RedirectRequestHandler(RequestHandler):
             lang_pair = self.get_argument('lang')
             per_word_modes = self.get_argument('modes').split()
         elif path == '/coverage':
+            lang_pair = self.get_argument('mode')
+        elif path == '/guesser':
             lang_pair = self.get_argument('mode')
 
         query = self.request.query
@@ -147,6 +149,11 @@ class ListRequestHandler(BaseHandler):
                 self.send_response({
                     pair: self.server_lang_pair_map['taggers'][pair][0] for pair in self.server_lang_pair_map['taggers']
                 })
+            elif query == 'guessers':
+                self.send_response({
+                    pair: self.server_lang_pair_map['guessers'][pair][0] for pair in self.server_lang_pair_map['guessers']
+                })
+
             else:
                 self.send_error(400)
 
@@ -279,7 +286,7 @@ class Fastest(Balancer):
 
     def get_server(self, lang_pair, mode, *args, **kwargs):
         if len(self.serverlist):
-            mode_to_url = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag', 'coverage': 'analyze'}
+            mode_to_url = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag', 'coverage': 'analyze', 'guessers': 'guesser'}
             if mode in mode_to_url:
                 if (mode_to_url[mode], lang_pair) in self.serverlist:
                     possible_servers_list = list(self.serverlist[(mode_to_url[mode], lang_pair)])
@@ -339,7 +346,7 @@ class Fastest(Balancer):
             server_capabilities = determine_server_capabilities(self.original_servers)
         self.serverlist = {}
 
-        mode_to_url = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag'}
+        mode_to_url = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag', 'guessers': 'guesser'}
         for lang, servers in server_capabilities['pairs'].items():
             self.serverlist[(mode_to_url['pairs'], '%s-%s' % lang)] = OrderedDict([(server, 0) for server in servers])
 
@@ -418,7 +425,7 @@ def determine_server_capabilities(serverlist):
         'pairs': {  #note that pairs is a special mode compared to taggers/generators/analyzers
             ('lang', 'pair'): [(server1, port1), (server2, port2)]
             }
-        'taggers|generators|analyzers': {
+        'taggers|generators|analyzers|spellers|guessers': {
             'lang-pair': ('lang-pair-moreinfo', [(server1, port1), (server2, port2)])
             #'moreinfo' tends to be 'anmor' or 'generador' or 'tagger'
             }
@@ -429,7 +436,7 @@ def determine_server_capabilities(serverlist):
     # You will probably need to batch-translate or batch-analyze with the language pairs from /listPairs and
     # look at the return codes in order to do this.
     http = tornado.httpclient.HTTPClient()
-    modes = ('pairs', 'taggers', 'generators', 'analyzers')
+    modes = ('pairs', 'taggers', 'generators', 'analyzers', 'spellers', 'guessers')
     capabilities = {}  # type: Dict[str, Dict]
     for (domain, port) in serverlist:
         server = (domain, port)

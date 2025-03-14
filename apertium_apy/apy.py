@@ -42,6 +42,7 @@ from apertium_apy.handlers import (
     BaseHandler,
     CoverageHandler,
     GenerateHandler,
+    GuesserHandler,
     IdentifyLangHandler,
     ListHandler,
     ListLanguageNamesHandler,
@@ -133,6 +134,8 @@ def setup_handler(
     for dirpath, modename, lang_src in modes['spell']:
         if (any(lang_src == elem[2] for elem in modes['tokenise'])):
             handler.spellers[lang_src] = (dirpath, modename)
+    for dirpath, modename, lang_pair in modes['guesser']:
+        handler.guessers[lang_pair] = (dirpath, modename)
 
     handler.init_pairs_graph()
     handler.init_paths()
@@ -274,6 +277,7 @@ def setup_application(args):
         (r'/translatePage', TranslateWebpageHandler),
         (r'/translateRaw', TranslateRawHandler),
         (r'/analy[sz]e', AnalyzeHandler),
+        (r'/guesser', GuesserHandler),
         (r'/generate', GenerateHandler),
         (r'/listLanguageNames', ListLanguageNamesHandler),
         (r'/perWord', PerWordHandler),

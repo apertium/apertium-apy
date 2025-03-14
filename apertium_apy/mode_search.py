@@ -41,6 +41,7 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
         'tagger': re.compile(r'(({0}(-{0})?)-tagger)\.mode'.format(lang_code)),
         'spell': re.compile(r'(({0}(-{0})?)-spell)\.mode'.format(lang_code)),
         'tokenise': re.compile(r'(({0}(-{0})?)-tokenise)\.mode'.format(lang_code)),
+        'guesser': re.compile(r'(({0}(-{0})?)-guess(er)?)\.mode'.format(lang_code)),
     }
     modes = {
         'pair': [],
@@ -49,6 +50,7 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
         'tagger': [],
         'spell': [],
         'tokenise': [],
+        'guesser': [],
     }  # type: Dict[str, List[Tuple[str, str, str]]]
 
     real_root = os.path.abspath(os.path.realpath(rootpath))
