@@ -1,4 +1,4 @@
-FROM ubuntu:mantic
+FROM ubuntu:latest
 LABEL maintainer xavi.ivars@gmail.com
 WORKDIR /root
 ARG DEBIAN_FRONTEND=noninteractive
