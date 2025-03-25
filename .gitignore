@@ -1,3 +1,4 @@
+/.vscode
 /tests/apertium-apy.err
 /tests/apertium-apy.log
 /langNames.db

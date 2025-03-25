@@ -116,7 +116,7 @@ class RedirectRequestHandler(RequestHandler):
 class ListRequestHandler(BaseHandler):
     """Handler for list requests. Takes a language-pair-server map and aggregates the language-pairs of all of the servers."""
 
-    def initialize(self, server_lang_pair_map):
+    def initialize(self, server_lang_pair_map):  # type: ignore[override]
         self.server_lang_pair_map = server_lang_pair_map
         callbacks = self.get_arguments('callback')
         if callbacks:
@@ -183,7 +183,7 @@ class RoundRobin(Balancer):
         self.langpairmap = langpairmap
         self.generator = itertools.cycle(self.serverlist)
 
-    def get_server(self, lang_pair, mode='pairs', *args, **kwargs):
+    def get_server(self, lang_pair, mode='pairs', *args, **kwargs):  # type: ignore[override]
         # when we get a /perWord request, we have multiple modes, all of which have to be on the server
         # the modes will not be 'pairs'
         if 'per_word_modes' in kwargs and kwargs['per_word_modes'] is not None:
@@ -284,7 +284,7 @@ class Fastest(Balancer):
         self.num_responses = num_responses
         self.init_server_list(server_capabilities=server_capabilities)
 
-    def get_server(self, lang_pair, mode, *args, **kwargs):
+    def get_server(self, lang_pair, mode, *args, **kwargs):  # type: ignore[override]
         if len(self.serverlist):
             mode_to_url = {'pairs': 'translate', 'generators': 'generate', 'analyzers': 'analyze', 'taggers': 'tag', 'coverage': 'analyze', 'guessers': 'guesser'}
             if mode in mode_to_url:

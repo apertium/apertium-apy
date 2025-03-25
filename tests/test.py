@@ -80,7 +80,7 @@ class BaseTestCase(AsyncHTTPTestCase):
     def get_http_port(self):
         return PORT
 
-    def fetch(self, path, params={}, **kwargs):
+    def fetch(self, path, params={}, **kwargs):  # type: ignore[override]
         if params:
             method = kwargs.get('method', 'GET')
             if method == 'GET':

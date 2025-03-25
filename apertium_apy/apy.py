@@ -3,11 +3,11 @@
 # -*- indent-tabs-mode: nil -*-
 
 __author__ = 'Kevin Brubeck Unhammer, Sushain K. Cherivirala'
-__copyright__ = 'Copyright 2013--2020, Kevin Brubeck Unhammer, Sushain K. Cherivirala'
+__copyright__ = 'Copyright 2013--2025, Kevin Brubeck Unhammer, Sushain K. Cherivirala'
 __credits__ = ['Kevin Brubeck Unhammer', 'Sushain K. Cherivirala', 'Jonathan North Washington', 'Xavi Ivars', 'Shardul Chiplunkar']
 __license__ = 'GPLv3'
 __status__ = 'Beta'
-__version__ = '0.12.1'
+__version__ = '0.13.0'
 
 import argparse
 import configparser
