@@ -1,5 +1,5 @@
 include COPYING
 include langNames.db
-include servlet.py
+include apy.py
 include language_names/*
 recursive-include tools *

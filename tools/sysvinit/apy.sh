@@ -20,7 +20,7 @@ export PKG_CONFIG_PATH=/traductors/lib/pkgconfig
 export PATH=/traductors/bin:/usr/bin:/bin:$PATH
 export LD_LIBRARY_PATH=/traductors/lib:$LD_LIBRARY_PATH
 
-SERVLET="servlet.py"
+SERVLET="apy.py"
 EXEC="/traductors/apertium-apy/"
 ARGS="-l tools/apertiumlangs.db ../pairs -d -P /var/log"
 USER="www-data"

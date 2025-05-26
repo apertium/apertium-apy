@@ -50,7 +50,7 @@ def setUpModule():  # noqa: N802
         for _ in range(3):
             time.sleep(1)
             print('.')
-    server_handle = subprocess.Popen(coverage_cli_args + [os.path.join(base_path, 'servlet.py')] + cli_args)  # TODO: print only on error?
+    server_handle = subprocess.Popen(coverage_cli_args + [os.path.join(base_path, 'apy.py')] + cli_args)  # TODO: print only on error?
 
     started = False
     waited = 0
@@ -80,7 +80,7 @@ class BaseTestCase(AsyncHTTPTestCase):
     def get_http_port(self):
         return PORT
 
-    def fetch(self, path, params={}, **kwargs):
+    def fetch(self, path, params={}, **kwargs):  # type: ignore[override]
         if params:
             method = kwargs.get('method', 'GET')
             if method == 'GET':

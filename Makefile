@@ -18,7 +18,7 @@ unit-test:
 
 lint:
 	flake8 *.py apertium_apy/ language_names/ tests/
-	LC_ALL=C find language_names/*.tsv -print0 | xargs -0 -n1 -I {} sh -c 'tail -n +2 {} | sort -c'
+	LC_ALL=C find language_names/*.tsv -print0 | xargs -0r -I X sh -c 'tail -n +2 X | sort -c'
 	mypy --config-file mypy.ini **/*.py
 
 test: unit-test lint
