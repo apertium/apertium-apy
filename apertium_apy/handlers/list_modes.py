@@ -31,6 +31,7 @@ class ListHandler(BaseHandler):
             self.send_response({lang_src: modename for (lang_src, (path, modename)) in self.spellers.items()})
         elif query == 'guessers':
             self.send_response({lang_src: modename for (lang_src, (path, modename)) in self.guessers.items()})
-
+        elif query == 'orthography':
+            self.send_response({lang_src: modename for (lang_src, (path, modename)) in self.orthconvs.items()})
         else:
-            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, guessers, spellers, disambiguators, or pairs')
+            self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, guessers, orthography, spellers, disambiguators, or pairs')

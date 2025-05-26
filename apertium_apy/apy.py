@@ -136,6 +136,8 @@ def setup_handler(
             handler.spellers[lang_src] = (dirpath, modename)
     for dirpath, modename, lang_pair in modes['guesser']:
         handler.guessers[lang_pair] = (dirpath, modename)
+    for dirpath, modename, lang_pair in modes['orthography']:
+        handler.orthconvs[lang_pair] = (dirpath, modename)
 
     handler.init_pairs_graph()
     handler.init_paths()
