@@ -42,6 +42,7 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
         'spell': re.compile(r'(({0}(-{0})?)-spell)\.mode'.format(lang_code)),
         'tokenise': re.compile(r'(({0}(-{0})?)-tokenise)\.mode'.format(lang_code)),
         'guesser': re.compile(r'(({0}(-{0})?)-guess(er)?)\.mode'.format(lang_code)),
+        'bilsearch': re.compile(r'({0})-({0})-bilsearch\.mode'.format(lang_code)),
     }
     modes = {
         'pair': [],
@@ -51,6 +52,7 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
         'spell': [],
         'tokenise': [],
         'guesser': [],
+        'bilsearch': [],
     }  # type: Dict[str, List[Tuple[str, str, str]]]
 
     real_root = os.path.abspath(os.path.realpath(rootpath))
@@ -63,14 +65,20 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
             for mtype, regex in type_re.items():
                 m = regex.match(filename)
                 if m:
-                    if mtype != 'pair':
-                        modename = m.group(1)  # e.g. en-es-anmorph
-                        langlist = [to_alpha3_code(x) for x in m.group(2).split('-')]
-                        lang_pair = '-'.join(langlist)  # e.g. en-es
+                    if mtype == 'bilsearch':
+                        lang_src = to_alpha3_code(m.group(1))
+                        lang_trg = to_alpha3_code(m.group(2))
+                        lang_pair = f"{lang_src}-{lang_trg}"
+                        modename = f"{lang_pair}-bilsearch"
                         dir_of_modes = os.path.dirname(dirpath)
-                        mode = (dir_of_modes,
-                                modename,
-                                lang_pair)
+                        mode = (dir_of_modes, modename, lang_pair)
+                        modes[mtype].append(mode)
+                    elif mtype != 'pair':
+                        modename = m.group(1)
+                        langlist = [to_alpha3_code(x) for x in m.group(2).split('-')]
+                        lang_pair = '-'.join(langlist)
+                        dir_of_modes = os.path.dirname(dirpath)
+                        mode = (dir_of_modes, modename, lang_pair)
                         modes[mtype].append(mode)
                     elif include_pairs:
                         lang_src = m.group(1)
