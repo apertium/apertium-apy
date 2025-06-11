@@ -6,8 +6,8 @@ After=network.target
 [Service]
 # Change this to your username and edit to how you start apy:
 User=apertium
-WorkingDirectory=/usr/share/apertium-apy
-ExecStart=/usr/bin/python3 servlet.py /usr/share/apertium/modes
+WorkingDirectory=/apy
+ExecStart=/usr/bin/python3 servlet.py /modes --max-idle-secs 3600 --restart-pipe-after 200 --max-pipes-per-pair 2 --max-users-per-pipe 1
 
 # Increase the ulimit -n from the default 1024 – you may get the error
 # "Too many open files" with a lot of pipelines open.
