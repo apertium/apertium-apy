@@ -2,11 +2,9 @@ FROM ghcr.io/apertium/base
 LABEL maintainer sushain@skc.name
 
 # Install packaged dependencies
-
-RUN apt-get -qq update && apt-get -qq install python3-full python3-pip pipenv
+RUN apt-get -qq update && apt-get -qq install python3-full python3-pip pipenv xdg-utils
 
 # Install CLD2
-
 WORKDIR /root/tmp
 ADD https://github.com/CLD2Owners/cld2/archive/refs/heads/master.zip cld2.zip
 RUN unzip -q cld2.zip && \
@@ -23,14 +21,12 @@ WORKDIR /root
 RUN rm -rf /root/tmp
 
 # Install Apertium-related libraries (and a test pair)
-
 RUN apt-get -qq update && apt-get -qq install \
     giella-core \
     hfst-ospell \
     apertium-eng-spa
 
 # Install APy
-
 COPY Pipfile apertium-apy/
 COPY Pipfile.lock apertium-apy/
 
@@ -42,7 +38,6 @@ COPY . apertium-apy
 RUN cd apertium-apy && make -j4
 
 # Run APy
-
 EXPOSE 2737
 ENTRYPOINT ["python3", "/root/apertium-apy/apy.py", "--lang-names", "/root/apertium-apy/langNames.db"]
 CMD ["/usr/share/apertium/modes", "--port", "2737"]
