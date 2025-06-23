@@ -31,6 +31,14 @@ class ListHandler(BaseHandler):
             self.send_response({lang_src: modename for (lang_src, (path, modename)) in self.spellers.items()})
         elif query == 'guessers':
             self.send_response({lang_src: modename for (lang_src, (path, modename)) in self.guessers.items()})
+        elif query == 'bilsearch':
+            response_data = []
+            for pair, (path, modename) in self.bilsearch.items():
+                l1, l2 = pair.split('-')
+                response_data.append({'sourceLanguage': l1, 'targetLanguage': l2})
+                if self.get_arguments('include_deprecated_codes'):
+                    response_data.append({'sourceLanguage': to_alpha2_code(l1), 'targetLanguage': to_alpha2_code(l2)})
+            self.send_response({'responseData': response_data, 'responseDetails': None, 'responseStatus': 200})
 
         else:
             self.send_error(400, explanation='Expecting q argument to be one of analysers, generators, guessers, spellers, disambiguators, or pairs')
