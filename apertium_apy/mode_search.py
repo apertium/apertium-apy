@@ -43,6 +43,7 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
         'tokenise': re.compile(r'(({0}(-{0})?)-tokenise)\.mode'.format(lang_code)),
         'guesser': re.compile(r'(({0}(-{0})?)-guess(er)?)\.mode'.format(lang_code)),
         'bilsearch': re.compile(r'({0})-({0})-bilsearch\.mode'.format(lang_code)),
+        'billookup': re.compile(r'({0})-({0})-billookup\.mode'.format(lang_code)),
     }
     modes = {
         'pair': [],
@@ -53,6 +54,7 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
         'tokenise': [],
         'guesser': [],
         'bilsearch': [],
+        'billookup': [],
     }  # type: Dict[str, List[Tuple[str, str, str]]]
 
     real_root = os.path.abspath(os.path.realpath(rootpath))
@@ -65,11 +67,11 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
             for mtype, regex in type_re.items():
                 m = regex.match(filename)
                 if m:
-                    if mtype == 'bilsearch':
+                    if mtype == 'bilsearch' or mtype == 'billookup':
                         lang_src = to_alpha3_code(m.group(1))
                         lang_trg = to_alpha3_code(m.group(2))
                         lang_pair = f"{lang_src}-{lang_trg}"
-                        modename = f"{lang_pair}-bilsearch"
+                        modename = f"{lang_pair}-{mtype}"
                         dir_of_modes = os.path.dirname(dirpath)
                         mode = (dir_of_modes, modename, lang_pair)
                         modes[mtype].append(mode)
