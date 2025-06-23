@@ -40,8 +40,9 @@ class BillookupHandler(BaseHandler):
                 if len(parts) < 2:
                     continue
                 source = parts[0]
-                targets = parts[1:]
-                results.append({source: targets})
+                targets = [t for t in parts[1:] if not t.startswith('*')]
+                if targets:
+                    results.append({source: targets})
 
             self.send_response({
                 'responseData': {
