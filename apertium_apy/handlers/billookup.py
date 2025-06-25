@@ -1,4 +1,5 @@
 import logging
+import re
 from tornado import gen
 
 from apertium_apy.handlers.base import BaseHandler
@@ -30,7 +31,7 @@ class BillookupHandler(BaseHandler):
             result = yield translate_simple(query, commands)
 
             entries = result.strip().split('^')
-            results = []
+            raw_results = []
             for entry in entries:
                 entry = entry.strip()
                 if not entry or '$' not in entry:
@@ -42,7 +43,49 @@ class BillookupHandler(BaseHandler):
                 source = parts[0]
                 targets = [t for t in parts[1:] if not t.startswith('*')]
                 if targets:
-                    results.append({source: targets})
+                    raw_results.append({source: targets})
+
+            # allowed subcategories per POS (to be filled out)
+            allowed = {
+                "n": ["m", "f", "nt", "aa", "nn"],
+                "np": ["m", "f", "nt", "aa", "nn"],
+                "v": ["tv", "iv"],
+                "vblex": ["tv", "iv"],
+            }
+
+            def normalize(form):
+                word = form.split("<", 1)[0]
+                tags = re.findall(r"<([^>]+)>", form)
+                if not tags:
+                    return word
+                pos = tags[0]
+                subcats = allowed.get(pos, [])
+                filtered = []
+                for t in tags[1:]:
+                    if t in subcats and t not in filtered:
+                        filtered.append(t)
+                tag_str = f"<{pos}>" + "".join(f"<{t}>" for t in filtered)
+                return f"{word}{tag_str}"
+
+            consolidated = {}
+            for item in raw_results:
+                for src in item:
+                    norm_src = normalize(src)
+                    if norm_src not in consolidated:
+                        consolidated[norm_src] = []
+                    for tgt in item[src]:
+                        norm_tgt = normalize(tgt)
+                        if norm_tgt not in consolidated[norm_src]:
+                            consolidated[norm_src].append(norm_tgt)
+
+            results = []
+            for src, tgts in consolidated.items():
+                tgt_list = []
+                for t in tgts:
+                    tgt_list.append(t)
+                entry = {}
+                entry[src] = tgt_list
+                results.append(entry)
 
             self.send_response({
                 'responseData': {
