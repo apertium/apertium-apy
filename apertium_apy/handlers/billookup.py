@@ -48,9 +48,8 @@ class BillookupHandler(BaseHandler):
             # allowed subcategories per POS (to be filled out)
             allowed = {
                 "n": ["m", "f", "nt", "aa", "nn"],
-                "np": ["m", "f", "nt", "aa", "nn"],
+                "np": ["ant", "top", "cog", "m", "f", "nt", "mf", "aa", "nn"],
                 "v": ["tv", "iv"],
-                "vblex": ["tv", "iv"],
             }
 
             def normalize(form):
