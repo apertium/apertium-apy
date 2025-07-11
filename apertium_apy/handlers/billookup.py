@@ -46,10 +46,12 @@ class BillookupHandler(BaseHandler):
                     raw_results.append({source: targets})
 
             # allowed subcategories per POS (to be filled out)
+            # could separate this out in a language specific way
             allowed = {
                 "n": ["m", "f", "nt", "aa", "nn"],
                 "np": ["ant", "top", "cog", "m", "f", "nt", "mf", "aa", "nn"],
                 "v": ["tv", "iv"],
+                "vblex": [],
             }
 
             def normalize(form):
