@@ -44,6 +44,7 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
         'guesser': re.compile(r'(({0}(-{0})?)-guess(er)?)\.mode'.format(lang_code)),
         'bilsearch': re.compile(r'({0})-({0})-bilsearch\.mode'.format(lang_code)),
         'billookup': re.compile(r'({0})-({0})-billookup\.mode'.format(lang_code)),
+        'embeddings': re.compile(r'({0})-({0})-embeddings\.mode'.format(lang_code)),
     }
     modes = {
         'pair': [],
@@ -55,6 +56,7 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
         'guesser': [],
         'bilsearch': [],
         'billookup': [],
+        'embeddings': [],
     }  # type: Dict[str, List[Tuple[str, str, str]]]
 
     real_root = os.path.abspath(os.path.realpath(rootpath))
@@ -67,7 +69,7 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
             for mtype, regex in type_re.items():
                 m = regex.match(filename)
                 if m:
-                    if mtype == 'bilsearch' or mtype == 'billookup':
+                    if mtype == 'bilsearch' or mtype == 'billookup' or mtype == 'embeddings':
                         lang_src = to_alpha3_code(m.group(1))
                         lang_trg = to_alpha3_code(m.group(2))
                         lang_pair = f"{lang_src}-{lang_trg}"

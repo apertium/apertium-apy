@@ -19,3 +19,4 @@ from apertium_apy.handlers.translate_raw import TranslateRawHandler  # noqa: F40
 from apertium_apy.handlers.translate_webpage import TranslateWebpageHandler  # noqa: F401
 from apertium_apy.handlers.bilsearch import BilsearchHandler  # noqa: F401
 from apertium_apy.handlers.billookup import BillookupHandler  # noqa: F401
+from apertium_apy.handlers.embeddings import EmbeddingsHandler  # noqa: F401
