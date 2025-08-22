@@ -17,3 +17,4 @@ from apertium_apy.handlers.translate_chain import TranslateChainHandler  # noqa:
 from apertium_apy.handlers.translate_doc import TranslateDocHandler  # noqa: F401
 from apertium_apy.handlers.translate_raw import TranslateRawHandler  # noqa: F401
 from apertium_apy.handlers.translate_webpage import TranslateWebpageHandler  # noqa: F401
+from apertium_apy.handlers.multi_speller import MultiSpellerHandler  # noqa: F401
