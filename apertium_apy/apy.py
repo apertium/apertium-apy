@@ -40,6 +40,8 @@ from apertium_apy.utils.wiki import wiki_login, wiki_get_token
 from apertium_apy.handlers import (
     AnalyzeHandler,
     BaseHandler,
+    BillookupHandler,
+    BilsearchHandler,
     CoverageHandler,
     GenerateHandler,
     GuesserHandler,
@@ -136,6 +138,10 @@ def setup_handler(
             handler.spellers[lang_src] = (dirpath, modename)
     for dirpath, modename, lang_pair in modes['guesser']:
         handler.guessers[lang_pair] = (dirpath, modename)
+    for dirpath, modename, lang_pair in modes['bilsearch']:
+        handler.bilsearch[lang_pair] = (dirpath, modename)
+    for dirpath, modename, lang_pair in modes['billookup']:
+        handler.billookup[lang_pair] = (dirpath, modename)
 
     handler.init_pairs_graph()
     handler.init_paths()
@@ -285,6 +291,8 @@ def setup_application(args):
         (r'/identifyLang', IdentifyLangHandler),
         (r'/getLocale', GetLocaleHandler),
         (r'/pipedebug', PipeDebugHandler),
+        (r'/bilsearch', BilsearchHandler),
+        (r'/billookup', BillookupHandler),
     ]  # type: List[Tuple[str, Type[tornado.web.RequestHandler]]]
 
     if importlib_util.find_spec('streamparser'):
