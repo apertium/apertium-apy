@@ -266,7 +266,7 @@ class TestTranslateWebpageHandler(BaseTestCase):
     def test_translate_webpage(self):
         response = self.fetch_json('/translatePage', params={
             'langpair': 'eng|spa',
-            'url': 'http://example.org/',
+            'url': 'https://files.apertium.org/example.html',
             'markUnknown': 'no',
         })
         self.assertIn('literatura', response['responseData']['translatedText'])
