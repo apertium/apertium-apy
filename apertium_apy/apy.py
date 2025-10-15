@@ -43,6 +43,7 @@ from apertium_apy.handlers import (
     BillookupHandler,
     BilsearchHandler,
     CoverageHandler,
+    EmbeddingsHandler,
     GenerateHandler,
     GuesserHandler,
     IdentifyLangHandler,
@@ -142,6 +143,8 @@ def setup_handler(
         handler.bilsearch[lang_pair] = (dirpath, modename)
     for dirpath, modename, lang_pair in modes['billookup']:
         handler.billookup[lang_pair] = (dirpath, modename)
+    for dirpath, modename, lang_pair in modes['embeddings']:
+        handler.embeddings[lang_pair] = (dirpath, modename)
 
     handler.init_pairs_graph()
     handler.init_paths()
@@ -293,6 +296,7 @@ def setup_application(args):
         (r'/pipedebug', PipeDebugHandler),
         (r'/bilsearch', BilsearchHandler),
         (r'/billookup', BillookupHandler),
+        (r'/embeddings', EmbeddingsHandler),
     ]  # type: List[Tuple[str, Type[tornado.web.RequestHandler]]]
 
     if importlib_util.find_spec('streamparser'):
