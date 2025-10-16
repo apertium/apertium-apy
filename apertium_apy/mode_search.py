@@ -72,15 +72,15 @@ def search_path(rootpath, include_pairs=True, verbosity=1):
                     if mtype == 'bilsearch' or mtype == 'billookup' or mtype == 'embeddings':
                         lang_src = to_alpha3_code(m.group(1))
                         lang_trg = to_alpha3_code(m.group(2))
-                        lang_pair = f"{lang_src}-{lang_trg}"
-                        modename = f"{lang_pair}-{mtype}"
+                        lang_pair = f'{lang_src}-{lang_trg}'
+                        modename = f'{lang_pair}-{mtype}'
                         dir_of_modes = os.path.dirname(dirpath)
                         mode = (dir_of_modes, modename, lang_pair)
                         modes[mtype].append(mode)
                     elif mtype != 'pair':
-                        modename = m.group(1) # e.g. en-es-anmorph
+                        modename = m.group(1)  # e.g. en-es-anmorph
                         langlist = [to_alpha3_code(x) for x in m.group(2).split('-')]
-                        lang_pair = '-'.join(langlist) # e.g. en-es
+                        lang_pair = '-'.join(langlist)  # e.g. en-es
                         dir_of_modes = os.path.dirname(dirpath)
                         mode = (dir_of_modes, modename, lang_pair)
                         modes[mtype].append(mode)
@@ -124,4 +124,4 @@ def _log_modes(modes):
     """Print given modes to log."""
     for mtype in modes:
         if modes[mtype]:
-            logging.info('"%s" modes found:\n%s', mtype, '\n'.join(['\t'.join(m) for m in modes[mtype]]))
+            logging.info("'%s' modes found:\n%s", mtype, '\n'.join(['\t'.join(m) for m in modes[mtype]]))

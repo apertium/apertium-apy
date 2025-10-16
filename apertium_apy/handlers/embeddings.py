@@ -6,11 +6,12 @@ from apertium_apy.handlers.base import BaseHandler
 from apertium_apy.utils.translation import translate_simple
 from apertium_apy.utils import to_alpha3_code
 
+
 class EmbeddingsHandler(BaseHandler):
     def get_pair_or_error(self, langpair):
         try:
             l1, l2 = map(to_alpha3_code, langpair.split('|'))
-            in_mode = f"{l1}-{l2}"
+            in_mode = f'{l1}-{l2}'
         except ValueError:
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
             return None
@@ -24,7 +25,7 @@ class EmbeddingsHandler(BaseHandler):
     @gen.coroutine
     def embed_and_respond(self, pair, query):
         try:
-            raw_path, mode = self.embeddings["-".join(pair)]
+            raw_path, mode = self.embeddings['-'.join(pair)]
             path = os.path.abspath(raw_path)
 
             commands = [['apertium', '-d', path, '-f', 'none', mode]]

@@ -48,7 +48,7 @@ class TranslateHandler(BaseHandler):
             return re.sub(self.unknown_mark_re, r'\1', translated)
 
     def note_unknown_tokens(self, pair, text):
-        global missing_freqs_db
+        global missing_freqs_db  # noqa: F824
         if missing_freqs_db is not None:
             for token in re.findall(self.unknown_mark_re, text):
                 missing_freqs_db.note_unknown(token, pair)

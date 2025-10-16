@@ -5,6 +5,7 @@ from apertium_apy.handlers.base import BaseHandler
 from apertium_apy.utils.translation import translate_simple
 from apertium_apy.utils import to_alpha3_code
 
+
 class BilsearchHandler(BaseHandler):
     def get_pair_or_error(self, langpair):
         try:
@@ -23,15 +24,15 @@ class BilsearchHandler(BaseHandler):
     @gen.coroutine
     def search_and_respond(self, pair, query):
         try:
-            path, mode = self.bilsearch["-".join(pair)]
+            path, mode = self.bilsearch['-'.join(pair)]
             commands = [['apertium', '-d', path, '-f', 'none', mode]]
             result = yield translate_simple(query, commands)
-            resultPerSearch = result.split('\n\n')
+            resultPerSearch = result.split('\n\n')  # noqa: N806
             results = []
-            for i, resultSet in enumerate(resultPerSearch):
+            for i, resultSet in enumerate(resultPerSearch):  # noqa: N806
                 results.append({})
                 for word in resultSet.strip().split('\n'):
-                    (l,r) = word.split(':')
+                    (l, r) = word.split(':')
                     if l not in results[i]:
                         results[i][l] = []
                     results[i][l].append(r)

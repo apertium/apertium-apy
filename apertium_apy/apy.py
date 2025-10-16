@@ -64,7 +64,7 @@ from apertium_apy.handlers import (
 
 
 def sig_handler(sig, frame):
-    global missing_freqs_db
+    global missing_freqs_db  # noqa: F824
     if missing_freqs_db is not None:
         if 'children' in frame.f_locals:
             for child in frame.f_locals['children']:

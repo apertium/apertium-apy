@@ -11,7 +11,7 @@ class BillookupHandler(BaseHandler):
     def get_pair_or_error(self, langpair):
         try:
             l1, l2 = map(to_alpha3_code, langpair.split('|'))
-            in_mode = f"{l1}-{l2}"
+            in_mode = f'{l1}-{l2}'
         except ValueError:
             self.send_error(400, explanation='That pair is invalid, use e.g. eng|spa')
             return None
@@ -25,7 +25,7 @@ class BillookupHandler(BaseHandler):
     @gen.coroutine
     def lookup_and_respond(self, pair, query):
         try:
-            path, mode = self.billookup["-".join(pair)]
+            path, mode = self.billookup['-'.join(pair)]
             formatting = 'none'
             commands = [['apertium', '-d', path, '-f', formatting, mode]]
             result = yield translate_simple(query, commands)
@@ -48,15 +48,15 @@ class BillookupHandler(BaseHandler):
             # allowed subcategories per POS (to be filled out)
             # could separate this out in a language specific way
             allowed = {
-                "n": ["m", "f", "nt", "aa", "nn"],
-                "np": ["ant", "top", "cog", "m", "f", "nt", "mf", "aa", "nn"],
-                "v": ["tv", "iv"],
-                "vblex": [],
+                'n': ['m', 'f', 'nt', 'aa', 'nn'],
+                'np': ['ant', 'top', 'cog', 'm', 'f', 'nt', 'mf', 'aa', 'nn'],
+                'v': ['tv', 'iv'],
+                'vblex': [],
             }
 
             def normalize(form):
-                word = form.split("<", 1)[0]
-                tags = re.findall(r"<([^>]+)>", form)
+                word = form.split('<', 1)[0]
+                tags = re.findall(r'<([^>]+)>', form)
                 if not tags:
                     return word, []
                 pos = tags[0]
@@ -68,39 +68,39 @@ class BillookupHandler(BaseHandler):
                         if t not in filtered:
                             filtered.append(t)
                     else:
-                        tag_with_brackets = f"<{t}>"
+                        tag_with_brackets = f'<{t}>'
                         if tag_with_brackets not in extra:
                             extra.append(tag_with_brackets)
-                tag_str = f"<{pos}>" + "".join(f"<{t}>" for t in filtered)
-                return f"{word}{tag_str}", extra
+                tag_str = f'<{pos}>' + ''.join(f'<{t}>' for t in filtered)
+                return f'{word}{tag_str}', extra
 
             consolidated = {}
             for item in raw_results:
                 for src in item:
                     norm_src, extra_src = normalize(src)
                     if norm_src not in consolidated:
-                        consolidated[norm_src] = {"targets": {}, "extra_tags": []}
+                        consolidated[norm_src] = {'targets': {}, 'extra_tags': []}
                     for tag in extra_src:
-                        if tag not in consolidated[norm_src]["extra_tags"]:
-                            consolidated[norm_src]["extra_tags"].append(tag)
+                        if tag not in consolidated[norm_src]['extra_tags']:
+                            consolidated[norm_src]['extra_tags'].append(tag)
                     for tgt in item[src]:
                         norm_tgt, _ = normalize(tgt)
-                        if norm_tgt not in consolidated[norm_src]["targets"]:
-                            consolidated[norm_src]["targets"][norm_tgt] = True
+                        if norm_tgt not in consolidated[norm_src]['targets']:
+                            consolidated[norm_src]['targets'][norm_tgt] = True
 
             results = []
             for src, data in consolidated.items():
-                tgt_list = list(data["targets"].keys())
-                if data["extra_tags"]:
-                    extra_combined = "".join(data["extra_tags"])
+                tgt_list = list(data['targets'].keys())
+                if data['extra_tags']:
+                    extra_combined = ''.join(data['extra_tags'])
                     entry = {
                         src: tgt_list,
-                        "extra-tags": [extra_combined]
+                        'extra-tags': [extra_combined],
                     }
                 else:
                     entry = {
                         src: tgt_list,
-                        "extra-tags": []
+                        'extra-tags': [],
                     }
                 results.append(entry)
 
