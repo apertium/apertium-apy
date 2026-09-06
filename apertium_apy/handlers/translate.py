@@ -8,7 +8,6 @@ from tornado import gen
 import tornado.iostream
 import asyncio
 
-from apertium_apy import missing_freqs_db  # noqa: F401
 from apertium_apy.handlers.base import BaseHandler
 from apertium_apy.keys import ApiKeys
 from apertium_apy.utils import to_alpha3_code, scale_mt_log
@@ -48,10 +47,9 @@ class TranslateHandler(BaseHandler):
             return re.sub(self.unknown_mark_re, r'\1', translated)
 
     def note_unknown_tokens(self, pair, text):
-        global missing_freqs_db  # noqa: F824
-        if missing_freqs_db is not None:
+        if self.missing_freqs_db is not None:
             for token in re.findall(self.unknown_mark_re, text):
-                missing_freqs_db.note_unknown(token, pair)
+                self.missing_freqs_db.note_unknown(token, pair)
 
     def cleanable(self, i, pair, pipe):
         if pipe.stuck:

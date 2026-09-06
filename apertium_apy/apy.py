@@ -31,7 +31,7 @@ from tornado.log import enable_pretty_logging
 
 from typing import Sequence, Iterable, Type, List, Tuple, Any  # noqa: F401
 
-from apertium_apy import BYPASS_TOKEN, missing_freqs_db  # noqa: F401
+from apertium_apy import BYPASS_TOKEN
 from apertium_apy import missingdb
 from apertium_apy import systemd
 from apertium_apy.mode_search import search_path, search_prefs
@@ -64,7 +64,7 @@ from apertium_apy.handlers import (
 
 
 def sig_handler(sig, frame):
-    global missing_freqs_db  # noqa: F824
+    missing_freqs_db = BaseHandler.missing_freqs_db
     if missing_freqs_db is not None:
         if 'children' in frame.f_locals:
             for child in frame.f_locals['children']:
@@ -99,11 +99,9 @@ def setup_handler(
     memory=1000, apy_keys=None,
 ):
 
-    global missing_freqs_db
-    if missing_freqs_path:
-        missing_freqs_db = missingdb.MissingDb(missing_freqs_path, memory)
-
     handler = BaseHandler
+    if missing_freqs_path:
+        handler.missing_freqs_db = missingdb.MissingDb(missing_freqs_path, memory)
     handler.lang_names = lang_names
     handler.timeout = timeout
     handler.max_pipes_per_pair = max_pipes_per_pair

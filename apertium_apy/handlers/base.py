@@ -14,6 +14,7 @@ from apertium_apy.utils import to_fallback_code
 # Typing imports that flake8 doesn't understand:
 from typing import Union, Dict, Optional, List, Any, Tuple  # noqa: F401
 from apertium_apy.utils.translation import FlushingPipeline, SimplePipeline  # noqa: F401
+from apertium_apy.missingdb import MissingDb  # noqa: F401
 
 
 def dump_json(data):
@@ -49,6 +50,7 @@ class BaseHandler(tornado.web.RequestHandler):
     scale_mt_logs = False
     verbosity = 0
     api_keys_conf = None
+    missing_freqs_db = None     # type: Optional[MissingDb]
     stat_period_max_age = timedelta.max
 
     # dict representing a graph of translation pairs; keys are source languages
