@@ -67,7 +67,8 @@ class TestNoteUnknownTokens(TestCase):
         self.db_path = os.path.join(tempfile.mkdtemp(), 'missingFreqs.db')
         # setup_handler() installs the db here; commit on every token so the
         # assertions can read it straight back off disk.
-        BaseHandler.missing_freqs_db = MissingDb(self.db_path, 0)
+        self.db = MissingDb(self.db_path, 0)
+        BaseHandler.missing_freqs_db = self.db
 
     def tearDown(self):
         BaseHandler.missing_freqs_db = None
@@ -82,19 +83,19 @@ class TestNoteUnknownTokens(TestCase):
         # None into each importing module. setup_handler()'s assignment was
         # therefore invisible here and no unknown word was ever recorded.
         make_handler().note_unknown_tokens('cat-spa', 'Hola *fooword i *barword')
-        BaseHandler.missing_freqs_db.commit()
+        self.db.commit()
 
         self.assertEqual(self.rows(), [('cat-spa', 'barword', 1), ('cat-spa', 'fooword', 1)])
 
     def test_repeated_tokens_accumulate(self):
         make_handler().note_unknown_tokens('cat-spa', '*fooword i *fooword')
-        BaseHandler.missing_freqs_db.commit()
+        self.db.commit()
 
         self.assertEqual(self.rows(), [('cat-spa', 'fooword', 2)])
 
     def test_unmarked_text_records_nothing(self):
         make_handler().note_unknown_tokens('cat-spa', 'Hola com estas')
-        BaseHandler.missing_freqs_db.commit()
+        self.db.commit()
 
         self.assertEqual(self.rows(), [])
 
@@ -103,7 +104,7 @@ class TestNoteUnknownTokens(TestCase):
         # are still unknown and must be counted.
         handler = make_handler()
         translated = handler.maybe_strip_marks(False, ('cat', 'spa'), 'Hola *fooword')
-        BaseHandler.missing_freqs_db.commit()
+        self.db.commit()
 
         self.assertEqual(translated, 'Hola fooword')
         self.assertEqual(self.rows(), [('cat-spa', 'fooword', 1)])
