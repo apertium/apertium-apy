@@ -115,6 +115,11 @@ def start_pipeline(commands):
         procs.append(tornado.process.Subprocess(cmd,
                                                 stdin=in_from,
                                                 stdout=out_from))
+        if i > 0:
+            # The child now holds its own copy of the pipe between it
+            # and the previous process; keeping ours open would leak
+            # one fd per intermediate command for the pipeline's lifetime.
+            in_from.close()
     return procs[0], procs[-1]
 
 
