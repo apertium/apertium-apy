@@ -50,7 +50,7 @@ class BillookupHandler(BaseHandler):
             allowed = {
                 'n': ['m', 'f', 'nt', 'aa', 'nn'],
                 'np': ['ant', 'top', 'cog', 'm', 'f', 'nt', 'mf', 'aa', 'nn'],
-                'v': ['tv', 'iv'],
+                'v': ['tv', 'iv', 'aa', 'nn'],
                 'vblex': [],
             }
 
