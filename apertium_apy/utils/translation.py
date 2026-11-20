@@ -16,6 +16,8 @@ from tornado import gen
 
 if False:
     from typing import List  # noqa: F401
+    from typing import Optional  # noqa: F401
+    from tornado.iostream import PipeIOStream  # noqa: F401
 
 
 class Pipeline(object):
@@ -102,12 +104,14 @@ def make_pipeline(modes_parsed, timeout):
 
 
 def start_pipeline(commands):
-    procs = []  # type: List[tornado.process.Subprocess]
+    procs = []                # type: List[tornado.process.Subprocess]
+    prev_stdout = None        # type: Optional[PipeIOStream]
     for i, cmd in enumerate(commands):
         if i == 0:
             in_from = tornado.process.Subprocess.STREAM
         else:
-            in_from = procs[-1].stdout
+            prev_stdout = procs[-1].stdout
+            in_from = prev_stdout
         if i == len(commands) - 1:
             out_from = tornado.process.Subprocess.STREAM
         else:
@@ -115,11 +119,11 @@ def start_pipeline(commands):
         procs.append(tornado.process.Subprocess(cmd,
                                                 stdin=in_from,
                                                 stdout=out_from))
-        if i > 0:
+        if prev_stdout is not None:
             # The child now holds its own copy of the pipe between it
             # and the previous process; keeping ours open would leak
             # one fd per intermediate command for the pipeline's lifetime.
-            in_from.close()
+            prev_stdout.close()
     return procs[0], procs[-1]
 
 
